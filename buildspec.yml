@@ -1,29 +1,30 @@
-version: 0.2
+  version: 0.2
 
 
-phases:
-  pre_build:
-    commands:
-      - echo Prebuild ops
-      - pip3 install -r requirements.txt
-#      - python3 finance_box_be/configurations.py dev # Run the scripting file to handle configuration
-#      - python3 finance_box_be/default_configurations.py dev # Run the scripting file to handle configuration
+  phases:
+    pre_build:
+      commands:
+        - echo Prebuild ops
+        - pip3 install -r requirements.txt
+  #      - python3 finance_box_be/configurations.py dev # Run the scripting file to handle configuration
+  #      - python3 finance_box_be/default_configurations.py dev # Run the scripting file to handle configuration
 
-  build:
-    commands:
-      - echo Building the application
-#      - python3 manage.py makemigrations  # Create database migratio
-#      - python3 manage.py runserver &  # Start the Django server without checking migrations in the background
-#      - sleep 5  # Give the server some time to start
-#      - curl -sS http://localhost:8000/health > /dev/null || (sudo netstat -tlnp | grep :8000 | awk '{print $7}' | awk -F'/' '{print $1}' | xargs sudo kill -9 && exit 1)
-      # Check server availability and kill process if unavailable
-#      - sleep 5
+    build:
+      commands:
+        - echo Building the application
+        - python3 manage.py collectstatic --noinput
+  #      - python3 manage.py makemigrations  # Create database migratio
+  #      - python3 manage.py runserver &  # Start the Django server without checking migrations in the background
+  #      - sleep 5  # Give the server some time to start
+  #      - curl -sS http://localhost:8000/health > /dev/null || (sudo netstat -tlnp | grep :8000 | awk '{print $7}' | awk -F'/' '{print $1}' | xargs sudo kill -9 && exit 1)
+        # Check server availability and kill process if unavailable
+  #      - sleep 5
 
-  post_build:
-    commands:
-      - echo Build completed on $(date)
+    post_build:
+      commands:
+        - echo Build completed on $(date)
 
 
-artifacts:
-  files:
-    - '**/*'
+  artifacts:
+    files:
+      - '**/*'
