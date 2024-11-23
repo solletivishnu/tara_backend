@@ -16,4 +16,9 @@ urlpatterns = [
 
     # Refresh token view
     path('refresh-token/', RefreshTokenView.as_view(), name='refresh-token'),
+
+    path('user-details/', UserDetailsListView.as_view(), name='user-details-list'),
+
+    # URL for retrieving, updating, and deleting specific user details
+    path('user-details/<int:pk>/', UserDetailsDetailView.as_view(), name='user-details-detail'),
 ]

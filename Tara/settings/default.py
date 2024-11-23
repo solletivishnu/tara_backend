@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
+import os
+from dotenv import load_dotenv
+import base64
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,10 +27,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-+9)9852a8&af5dmne4@fgjxcn8q7)65losj40_3&hy^d1+x2ku'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = ['*']
 
+
+# Define base directory and log path
+LOG_PATH = os.path.join(BASE_DIR, 'log')
 
 # Application definition
 
@@ -174,3 +180,111 @@ SIMPLE_JWT = {
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+
+# Set the log level based on the environment
+ENVIRONMENT = os.getenv('DJANGO_ENV', 'local')  # Default to 'local' if DJANGO_ENV is not set
+LOG_LEVEL = 'DEBUG' if ENVIRONMENT in ['local', 'development'] else 'ERROR'
+
+
+# Define log directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+
+# Ensure the 'logs' directory exists
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'log_format': {
+            'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        },
+        'django.server': {
+            '()': 'django.utils.log.ServerFormatter',
+            'format': '[%(server_time)s] %(message)s',
+        },
+    },
+    'handlers': {
+        # Handler for general application logs (logs rotation at midnight)
+        'daily_file': {
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'application.log'),
+            'when': 'midnight',
+            'interval': 1,
+            'backupCount': 7,
+            'formatter': 'log_format',
+        },
+        # Console handler for general logs
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'log_format',
+        },
+        # Console handler for error logs
+        'error_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'log_format',
+        },
+        # Django server handler for server-related logs
+        'django.server': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'django.server',
+        },
+    },
+    'loggers': {
+        # General logger (django logger)
+        'django': {
+            'handlers': ['console', 'daily_file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # Error-specific logger
+        'error_logger': {
+            'handlers': ['error_console', 'daily_file'],
+            'level': 'ERROR',  # Error logs specifically handled here
+            'propagate': False,
+        },
+        # Server-related logs
+        'django.server': {
+            'handlers': ['django.server'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # Optional: Autoreload related logs
+        'django.utils.autoreload': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
+
+
+################ master gst
+
+MASTER_GST_EMAIL = os.getenv('MASTER_GST_EMAIL')
+MASTER_GST_CLIENT_ID = os.getenv('MASTER_GST_CLIENT_ID')
+MASTER_GST_SECRET_KEY = os.getenv('MASTER_GST_SECRET_KEY')
+
+############# Zerobounce email validation
+ZEROBOUNCE_EMAIL = os.getenv('ZEROBOUNCE_EMAIL')
+ZEROBOUNCE_SECRET_KEY = os.getenv('ZEROBOUNCE_SECRET_KEY')
+
+################
+
+
+RAZORPAY_CLIENT_ID = os.getenv('RAZORPAY_CLIENT_ID')
+
+RAZORPAY_CLIENT_SECRET = os.getenv('RAZORPAY_CLIENT_SECRET')
+
+SANDBOX_API_KEY = os.getenv('SANDBOX_API_KEY')
+SANDBOX_API_SECRET = os.getenv('SANDBOX_API_SECRET')
+SANDBOX_API_URL = os.getenv('SANDBOX_API_URL')
+SANDBOX_API_VERSION = os.getenv('SANDBOX_API_VERSION')
+
+
+# Load the secret encryption key
+SECRET_ENCRYPTION_KEY = os.getenv("SECRET_ENCRYPTION_KEY", "default-fallback-key")

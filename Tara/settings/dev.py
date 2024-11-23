@@ -7,12 +7,12 @@ DATABASES = {
             'NAME': 'development',
             'ENFORCE_SCHEMA': False,
             'CLIENT': {
-                'host': 'mongodb+srv://dev-user:4b1nZ9uMSsBR8ccY@cluster0.vxfiacn.mongodb.net/development'
+                'host': 'mongodb+srv://Development:jJ649y2MEH99Ykdu@cluster0.xozfe.mongodb.net/development'
                         '?tls=true&tlsAllowInvalidCertificates=true',
                 'port': 27017,
-                'username': 'dev-user',
-                'password': '4b1nZ9uMSsBR8ccY',
-                'authSource': 'db-dev',
+                'username': 'Development',
+                'password': 'jJ649y2MEH99Ykdu',
+                'authSource': 'admin',
                 'authMechanism': 'SCRAM-SHA-1',
                 'tls': True,
                 'tlsAllowInvalidCertificates': True
