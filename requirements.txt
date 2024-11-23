@@ -56,7 +56,7 @@ xlrd==1.2.0
 pychromepdf==1.1
 weasyprint==61.2
 python-dotenv
-
+whitenoise
 
 
 
