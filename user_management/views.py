@@ -164,7 +164,7 @@ class ActivateUserView(APIView):
     """
     View for activating user accounts using UID and token.
     """
-
+    permission_classes = [AllowAny]
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter(
@@ -201,6 +201,7 @@ class ActivateUserView(APIView):
 # Test Protected API
 
 class TestProtectedAPIView(APIView):
+
     @swagger_auto_schema(
         operation_description="Test protected endpoint",
         responses={
@@ -345,7 +346,15 @@ class UserDetailsListView(APIView):
 
     @swagger_auto_schema(
         operation_description="List all user details.",
-        responses={200: UserDetailsSerializer(many=True)}
+        responses={200: UserDetailsSerializer(many=True)},  # Specify many=True for list
+        manual_parameters=[
+            openapi.Parameter(
+                'Authorization',
+                openapi.IN_HEADER,
+                description="Bearer <JWT Token>",
+                type=openapi.TYPE_STRING
+            ),
+        ]
     )
     def get(self, request):
         user_details = UserDetails.objects.all()
@@ -353,9 +362,20 @@ class UserDetailsListView(APIView):
         return Response(serializer.data)
 
     @swagger_auto_schema(
-        operation_description="Register user details.",
+        operation_description="Register user details (PAN, Aadhaar, ICAI number, etc.) based on user type.",
         request_body=UserDetailsSerializer,
-        responses={201: "User details saved successfully.", 400: "Invalid data."}
+        responses={
+            201: "User details saved successfully.",
+            400: "Invalid data",
+        },
+        manual_parameters=[
+            openapi.Parameter(
+                'Authorization',
+                openapi.IN_HEADER,
+                description="Bearer <JWT Token>",
+                type=openapi.TYPE_STRING
+            ),
+        ]
     )
     def post(self, request):
         try:
