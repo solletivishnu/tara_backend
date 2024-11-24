@@ -21,6 +21,10 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from Tara.utils import *
+from django.conf import settings
+from django.conf.urls.static import static
+
+
 
 
 schema_view = get_schema_view(
@@ -46,3 +50,6 @@ urlpatterns = [
     path('user_management/', include('user_management.urls')),
     path('token_auth/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair')
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
