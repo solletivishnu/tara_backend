@@ -292,6 +292,6 @@ SANDBOX_API_VERSION = os.getenv('SANDBOX_API_VERSION')
 # Load the secret encryption key
 SECRET_ENCRYPTION_KEY = os.getenv("SECRET_ENCRYPTION_KEY", "default-fallback-key")
 
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Optional if you have a static folder in your project
-]
+# STATICFILES_DIRS = [
+#     os.path.join(BASE_DIR, 'static'),  # Optional if you have a static folder in your project
+# ]
