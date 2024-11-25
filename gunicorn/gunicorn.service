@@ -6,7 +6,7 @@ After=network.target
 User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/TaraFirst
-ExecStart=/home/ubuntu/env/bin/gunicorn  --timeout 600 --access-logfile - --workers 2 --bind unix:/home/ubuntu/TaraFirst/Tara/Tara.sock Tara.wsgi:application
+ExecStart=/home/ubuntu/env/bin/gunicorn --timeout 600 --workers 2 --bind unix:/home/ubuntu/TaraFirst/Tara/Tara.sock Tara.wsgi:application
 
 
 [Install]
