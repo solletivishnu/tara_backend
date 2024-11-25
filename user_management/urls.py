@@ -21,4 +21,7 @@ urlpatterns = [
 
     # URL for retrieving, updating, and deleting specific user details
     path('user-details/<int:pk>/', UserDetailsDetailView.as_view(), name='user-details-detail'),
+
+    # firm urls
+    path('firmkyc/', FirmKYCView.as_view(), name='firmkyc'),
 ]

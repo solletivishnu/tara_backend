@@ -219,47 +219,43 @@ LOGGING = {
             'interval': 1,
             'backupCount': 7,
             'formatter': 'log_format',
+            'encoding': 'utf-8',  # Ensure proper encoding
         },
         # Console handler for general logs
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'log_format',
         },
-        # Console handler for error logs
+        # Console handler for error logs, setting log level to ERROR
         'error_console': {
             'class': 'logging.StreamHandler',
+            'level': 'ERROR',  # Ensures only ERROR logs are printed in console
             'formatter': 'log_format',
-        },
-        # Django server handler for server-related logs
-        'django.server': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'django.server',
         },
     },
     'loggers': {
         # General logger (django logger)
         'django': {
             'handlers': ['console', 'daily_file'],
-            'level': 'INFO',
+            'level': 'INFO',  # Captures INFO and above logs
             'propagate': True,
         },
         # Error-specific logger
         'error_logger': {
             'handlers': ['error_console', 'daily_file'],
-            'level': 'ERROR',  # Error logs specifically handled here
+            'level': 'ERROR',  # Only captures ERROR and above logs
             'propagate': False,
         },
         # Server-related logs
         'django.server': {
-            'handlers': ['django.server'],
-            'level': 'INFO',
+            'handlers': ['console'],
+            'level': 'INFO',  # Log server-related messages with INFO level
             'propagate': True,
         },
         # Optional: Autoreload related logs
         'django.utils.autoreload': {
             'handlers': ['console'],
-            'level': 'WARNING',
+            'level': 'WARNING',  # Only warn about reloading issues
             'propagate': False,
         },
     },
@@ -291,3 +287,9 @@ SANDBOX_API_VERSION = os.getenv('SANDBOX_API_VERSION')
 
 # Load the secret encryption key
 SECRET_ENCRYPTION_KEY = os.getenv("SECRET_ENCRYPTION_KEY", "default-fallback-key")
+
+AWS_REGION = os.getenv('AWS_REGION')  # e.g., "us-east-1"
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+
