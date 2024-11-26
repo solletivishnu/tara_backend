@@ -199,64 +199,59 @@ if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
 LOGGING = {
+    # Version of logging
     'version': 1,
+    # disable logging
     'disable_existing_loggers': False,
+    # Formatter
     'formatters': {
         'log_format': {
-            'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+            'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
         },
         'django.server': {
             '()': 'django.utils.log.ServerFormatter',
             'format': '[%(server_time)s] %(message)s',
-        },
+        }
     },
+    # Handlers #############################################################
     'handlers': {
-        # Handler for general application logs (logs rotation at midnight)
-        'daily_file': {
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'application.log'),
-            'when': 'midnight',
-            'interval': 1,
-            'backupCount': 7,
+        'file': {
+            # 'level': 'INFO',
+            'class': 'logging.FileHandler',
             'formatter': 'log_format',
-            'encoding': 'utf-8',  # Ensure proper encoding
+            'filename': 'application.log',
         },
-        # Console handler for general logs
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'log_format',
+            'formatter': 'log_format'
         },
-        # Console handler for error logs, setting log level to ERROR
-        'error_console': {
-            'class': 'logging.StreamHandler',
-            'level': 'ERROR',  # Ensures only ERROR logs are printed in console
-            'formatter': 'log_format',
-        },
-    },
-    'loggers': {
-        # General logger (django logger)
-        'django': {
-            'handlers': ['console', 'daily_file'],
-            'level': 'INFO',  # Captures INFO and above logs
-            'propagate': True,
-        },
-        # Error-specific logger
-        'error_logger': {
-            'handlers': ['error_console', 'daily_file'],
-            'level': 'ERROR',  # Only captures ERROR and above logs
-            'propagate': False,
-        },
-        # Server-related logs
         'django.server': {
-            'handlers': ['console'],
-            'level': 'INFO',  # Log server-related messages with INFO level
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'django.server',
+        }
+    },
+    # Loggers ####################################################################
+    'loggers': {
+        '': {
+            'level': 'INFO',
+            'handlers': ['console', 'file']
+        },
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True
+        },
+        'django.server': {
+            'handlers': ['django.server'],
+            'level': 'INFO',
             'propagate': True,
         },
-        # Optional: Autoreload related logs
-        'django.utils.autoreload': {
-            'handlers': ['console'],
-            'level': 'WARNING',  # Only warn about reloading issues
-            'propagate': False,
+        'gunicorn': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+            # 'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG')
         },
     },
 }

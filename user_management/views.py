@@ -28,8 +28,7 @@ import boto3
 from botocore.exceptions import ClientError, BotoCoreError
 
 # Create loggers for general and error logs
-logger = logging.getLogger('django')
-error_logger = logging.getLogger('error_logger')
+logger = logging.getLogger(__name__)
 
 
 class Constants:
@@ -178,14 +177,14 @@ def user_registration(request):
             logger.debug(f"Validation errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except IntegrityError as e:
-            error_logger.error(f"Integrity error during registration: {str(e)}")
+            logger.error(f"Integrity error during registration: {str(e)}")
             return Response({"error": "A user with this email or mobile number already exists."},
                             status=status.HTTP_400_BAD_REQUEST)
         except DatabaseError as e:
-            error_logger.error(f"Database error during registration: {str(e)}")
+            logger.error(f"Database error during registration: {str(e)}")
             return Response({"error": "Database error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
-            error_logger.error(f"Unexpected error during registration: {str(e)}")
+            logger.error(f"Unexpected error during registration: {str(e)}")
             return Response({"error": "An unexpected error occurred.", "details": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -216,17 +215,23 @@ class ActivateUserView(APIView):
         """
         Handle user account activation.
         """
+        logger.info("Starting user account activation process.")
+
         try:
             uid = urlsafe_base64_decode(uid).decode()
             user = User.objects.get(pk=uid)
-        except (ValueError, TypeError, User.DoesNotExist):
+            logger.info(f"User with UID {uid} found.")
+        except (ValueError, TypeError, User.DoesNotExist) as e:
+            logger.error(f"Error during activation process: {e}")
             return Response({"message": "Invalid activation link"}, status=status.HTTP_400_BAD_REQUEST)
 
         if default_token_generator.check_token(user, token):
             user.is_active = True
             user.save()
+            logger.info(f"User account with UID {uid} successfully activated.")
             return Response({"message": "Account activated successfully"}, status=status.HTTP_200_OK)
 
+        logger.warning(f"Activation token for user with UID {uid} is invalid or expired.")
         return Response({"message": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -277,11 +282,14 @@ class ForgotPasswordView(APIView):
         """
         email = request.data.get("email")
         if not email:
+            logger.warning("Email not provided in the request.")
             raise ValidationError("Email is required.")
 
         try:
             user = User.objects.get(email=email.lower())
+            logger.info(f"User found for email: {email}")
         except User.DoesNotExist:
+            logger.info(f"Attempt to reset password for non-existent email: {email}")
             # Send a generic response even if the email does not exist
             return Response({"message": "If an account exists with this email, you will receive a reset link."},
                             status=status.HTTP_200_OK)
@@ -295,9 +303,9 @@ class ForgotPasswordView(APIView):
         try:
             ses_client = boto3.client(
                 'ses',
-                region_name=AWS_REGION,
-                aws_access_key_id=AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+                region_name=settings.AWS_REGION,
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
             )
 
             subject = "Reset Your Password"
@@ -314,21 +322,20 @@ class ForgotPasswordView(APIView):
             """
 
             response = ses_client.send_email(
-                Source=EMAIL_HOST_USER,
+                Source=settings.EMAIL_HOST_USER,
                 Destination={'ToAddresses': [email]},
                 Message={
                     'Subject': {'Data': subject},
-                    'Body': {
-                        'Text': {'Data': body}
-                    }
+                    'Body': {'Text': {'Data': body}}
                 }
             )
+            logger.info(f"Password reset email sent to {email} successfully.")
             return Response({"message": "If an account exists with this email, you will receive a reset link."},
                             status=status.HTTP_200_OK)
 
         except (BotoCoreError, ClientError) as e:
             # Log SES-related errors
-            print(f"SES Error: {str(e)}")
+            logger.error(f"SES Error: {str(e)}")
             return Response({"message": "Unable to send reset email. Please try again later."},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -360,17 +367,24 @@ class ResetPasswordView(APIView):
         """
         password = request.data.get("password")
         if not password:
+            logger.warning("Password not provided in the request.")
             raise ValidationError("Password is required.")
+
         try:
             uid = urlsafe_base64_decode(uid).decode()
             user = User.objects.get(pk=uid)
-        except (User.DoesNotExist, ValueError, TypeError):
+            logger.info(f"User found for UID: {uid}")
+        except (User.DoesNotExist, ValueError, TypeError) as e:
+            logger.error(f"Error decoding UID or finding user: {str(e)}")
             return Response({"message": "Invalid reset link"}, status=status.HTTP_400_BAD_REQUEST)
 
         if default_token_generator.check_token(user, token):
             user.set_password(password)
             user.save()
+            logger.info(f"Password successfully reset for user: {user.email}")
             return Response({"message": "Password has been successfully reset."}, status=status.HTTP_200_OK)
+
+        logger.warning(f"Invalid or expired token for user: {user.email}")
         return Response({"message": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -422,6 +436,7 @@ class RefreshTokenView(APIView):
 
         # Ensure the refresh token is provided
         if not refresh_token:
+            logger.warning("Refresh token is missing from the request.")
             return Response(
                 {"detail": "Refresh token is required."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -431,12 +446,14 @@ class RefreshTokenView(APIView):
             # Validate and create a new access token
             token = RefreshToken(refresh_token)
             new_access_token = str(token.access_token)
+            logger.info(f"New access token generated for refresh token: {refresh_token}")
             return Response(
                 {"access": new_access_token},
                 status=status.HTTP_200_OK
             )
         except Exception as e:
             # Handle invalid or expired refresh tokens
+            logger.error(f"Error generating new access token: {str(e)}. Refresh token: {refresh_token}")
             return Response(
                 {"detail": "Invalid refresh token.", "error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
