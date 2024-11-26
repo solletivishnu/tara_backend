@@ -15,6 +15,7 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 import base64
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -153,14 +154,8 @@ MIGRATION_MODULES = {
     'admin': None,
 }
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'mekalasaikiran05041996@gmail.com'
-EMAIL_HOST_PASSWORD = 'ofwl xutg hsfa leww'
 
-FRONTEND_URL = 'http://localhost:3000'
+FRONTEND_URL = 'http://tara-first.s3-website.ap-south-1.amazonaws.com/'
 
 
 REST_FRAMEWORK = {
