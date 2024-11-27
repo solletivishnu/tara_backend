@@ -26,10 +26,6 @@ class EncryptedField(models.Field):
 
 
 class CustomAccountManager(BaseUserManager):
-    """
-    Custom account manager for User model.
-    Handles user creation with either email or mobile number.
-    """
     def create_user(self, email=None, password=None, mobile_number=None, **extra_fields):
         # Normalize email if provided
         email = self.normalize_email(email) if email else None
@@ -38,28 +34,25 @@ class CustomAccountManager(BaseUserManager):
         if not email and not mobile_number:
             raise ValueError("At least one of email or mobile number must be provided.")
 
+        # Check for existing users
+        if email and self.model.objects.filter(email=email).exists():
+            raise ValueError("A user with this email already exists.")
+        if mobile_number and self.model.objects.filter(mobile_number=mobile_number).exists():
+            raise ValueError("A user with this mobile number already exists.")
+
+        # Dynamically set email_or_mobile
+        email_or_mobile = email or mobile_number
+
         # Create user instance
-        user = self.model(email=email, mobile_number=mobile_number, **extra_fields)
-
-        # Set password if provided
-        if password:
-            user.set_password(password)
-
-        # Save user
+        user = self.model(
+            email=email,
+            mobile_number=mobile_number,
+            email_or_mobile=email_or_mobile,
+            **extra_fields
+        )
+        user.set_password(password)
         user.save(using=self._db)
         return user
-
-    def create_superuser(self, email=None, password=None, mobile_number=None, **extra_fields):
-        # Set required fields for superuser
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-
-        if not extra_fields.get('is_staff'):
-            raise ValueError("Superuser must have is_staff=True.")
-        if not extra_fields.get('is_superuser'):
-            raise ValueError("Superuser must have is_superuser=True.")
-
-        return self.create_user(email=email, password=password, mobile_number=mobile_number, **extra_fields)
 
 
 class AddressModel(models.Model):
@@ -77,8 +70,9 @@ class AddressModel(models.Model):
 
 class User(AbstractBaseUser, PermissionsMixin):
     """Custom user model with email or mobile number login."""
-    email = models.EmailField(unique=True, null=True, blank=True)
-    mobile_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    email_or_mobile = models.CharField(max_length=120, unique=True, null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
+    mobile_number = models.CharField(max_length=15, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -87,11 +81,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomAccountManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'email_or_mobile'
+
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return self.email or self.mobile_number or "User"
+        return self.email_or_mobile or "User"
 
 
 class UserDetails(models.Model):

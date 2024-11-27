@@ -24,6 +24,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if not email and not mobile_number:
             raise serializers.ValidationError("At least one of email or mobile number must be provided.")
 
+        if email and User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({"email": "A user with this email already exists."})
+
+            # Check if mobile number is already registered
+        if mobile_number and User.objects.filter(mobile_number=mobile_number).exists():
+            raise serializers.ValidationError({"mobile_number": "A user with this mobile number already exists."})
+
         return attrs
 
     def create(self, validated_data):

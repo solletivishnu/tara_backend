@@ -114,7 +114,7 @@ def user_registration(request):
                 if email:
                     token = default_token_generator.make_token(user)
                     uid = urlsafe_base64_encode(str(user.pk).encode())
-                    activation_link = f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
+                    activation_link = f"{FRONTEND_URL}/activate/{uid}/{token}/"
                     ses_client = boto3.client(
                         'ses',
                         region_name=AWS_REGION,
