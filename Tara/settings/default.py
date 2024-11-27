@@ -33,7 +33,7 @@ DEBUG = os.getenv('DEBUG')
 ALLOWED_HOSTS = [
     'localhost',  # Local development
     '127.0.0.1',  # Local development
-    'your-domain.com',  # Replace with your actual domain
+    '35.154.44.198',  # Replace with your actual domain
     'ec2-35-154-44-198.ap-south-1.compute.amazonaws.com',  # EC2 public DNS
     'api.ipify.org',  # Add this if your app needs to handle requests from this domain
 ]
