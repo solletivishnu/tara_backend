@@ -176,6 +176,7 @@ def user_registration(request):
 
             logger.warning("Registration failed: Validation errors.")
             logger.debug(f"Validation errors: {serializer.errors}")
+            print("************************************")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except IntegrityError as e:
             logger.error(f"Integrity error during registration: {str(e)}")
