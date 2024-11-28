@@ -283,6 +283,7 @@ class ForgotPasswordView(APIView):
         email = request.data.get("email")
         if not email:
             logger.warning("Email not provided in the request.")
+            print("**********************")
             raise ValidationError("Email is required.")
 
         try:
