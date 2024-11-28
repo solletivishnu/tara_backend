@@ -40,7 +40,7 @@ ALLOWED_HOSTS = [
     'dev.tarafirst.com'
 ]
 
-
+CORS_ORIGIN_ALLOW_ALL =True
 
 # Define base directory and log path
 LOG_PATH = os.path.join(BASE_DIR, 'log')
@@ -56,7 +56,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'user_management',
     'drf_yasg',
-    'rest_framework_simplejwt'
+    'rest_framework_simplejwt',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
@@ -68,6 +69,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'Tara.urls'
