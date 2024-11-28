@@ -8,15 +8,16 @@ phases:
   pre_build:
     commands:
       - echo Prebuild ops
-      - |
-        # Check if requirements.txt has changed by comparing their hashes
-        if ! cmp -s <(sha256sum requirements.txt) <(sha256sum /tmp/previous_requirements.txt); then
-          echo "Requirements changed, installing dependencies..."
-          pip3 install --cache-dir=/root/.cache/pip -r requirements.txt
-          sha256sum requirements.txt > /tmp/previous_requirements.txt  # Save the hash of the requirements file
-        else
-          echo "No changes in requirements, skipping install."
-        fi
+      - echo Skipping installation of dependencies as per request
+#        # Check if requirements.txt has changed by comparing their hashes
+#        if ! cmp -s <(sha256sum requirements.txt) <(sha256sum /tmp/previous_requirements.txt); then
+#          echo "Requirements changed, installing dependencies..."
+#          pip3 install --cache-dir=/root/.cache/pip -r requirements.txt
+#          sha256sum requirements.txt > /tmp/previous_requirements.txt  # Save the hash of the requirements file
+#        else
+#          echo "No changes in requirements, skipping install."
+#        fi
+
 
   build:
     commands:
