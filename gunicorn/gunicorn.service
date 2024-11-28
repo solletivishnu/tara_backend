@@ -1,13 +1,14 @@
 [Unit]
-Description=gunicorn daemon
-Requires=gunicorn.socket
+Description=gunicorn daemon for Tara
 After=network.target
+
 [Service]
 User=ubuntu
-Group=www-data
+Group=ubuntu
 WorkingDirectory=/home/ubuntu/TaraFirst
-ExecStart=/home/ubuntu/env/bin/gunicorn --timeout 600 --workers 3 --bind unix:/home/ubuntu/TaraFirst/Tara/Tara.sock Tara.wsgi:application
-
+ExecStart=/home/ubuntu/env/bin/gunicorn --workers 2 --bind unix:/home/ubuntu/TaraFirst/Tara/Tara.sock Tara.wsgi:application
+Environment="DJANGO_SETTINGS_MODULE=Tara.settings.default"
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
