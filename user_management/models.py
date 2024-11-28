@@ -93,10 +93,11 @@ class UserDetails(models.Model):
     USER_TYPE_CHOICES = [
         ('individual', 'Individual'),
         ('cafirm', 'Chartered Accountant Firm'),
+        ('business_or_corporate', 'Business/Corporate')
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # ForeignKey to User
-    user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='individual')
+    user_type = models.CharField(max_length=40, choices=USER_TYPE_CHOICES, default='individual')
 
     # Encrypted Fields for sensitive data
     user_name = models.CharField(max_length=40, blank=False, null=False)
