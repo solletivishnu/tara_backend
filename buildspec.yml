@@ -22,14 +22,14 @@ phases:
   build:
     commands:
       - echo Building the application
-      - |
-        # Check if static files already exist and have not changed
-        if [ ! -d "staticfiles" ] || [ "$(find staticfiles -type f | wc -l)" -eq "0" ]; then
-          echo "Static files not found or empty, running collectstatic..."
-          python3 manage.py collectstatic --noinput
-        else
-          echo "Static files already collected, skipping collectstatic."
-        fi
+#      - |
+#        # Check if static files already exist and have not changed
+#        if [ ! -d "staticfiles" ] || [ "$(find staticfiles -type f | wc -l)" -eq "0" ]; then
+#          echo "Static files not found or empty, running collectstatic..."
+#          python3 manage.py collectstatic --noinput
+#        else
+#          echo "Static files already collected, skipping collectstatic."
+#        fi
 
   post_build:
     commands:
