@@ -36,6 +36,8 @@ ALLOWED_HOSTS = [
     '35.154.44.198',  # Replace with your actual domain
     'ec2-35-154-44-198.ap-south-1.compute.amazonaws.com',  # EC2 public DNS
     'api.ipify.org',  # Add this if your app needs to handle requests from this domain
+    '*',
+    'dev.tarafirst.com'
 ]
 
 
