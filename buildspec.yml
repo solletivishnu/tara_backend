@@ -1,30 +1,39 @@
-  version: 0.2
+version: 0.2
 
+cache:
+  paths:
+    - '/root/.cache/pip/**/*'  # Cache pip dependencies
 
-  phases:
-    pre_build:
-      commands:
-        - echo Prebuild ops
-        - pip3 install -r requirements.txt
-  #      - python3 finance_box_be/configurations.py dev # Run the scripting file to handle configuration
-  #      - python3 finance_box_be/default_configurations.py dev # Run the scripting file to handle configuration
+phases:
+  pre_build:
+    commands:
+      - echo Prebuild ops
+      - |
+        # Check if requirements.txt has changed; install dependencies only if it has.
+        if ! cmp -s requirements.txt /tmp/previous_requirements.txt; then
+          echo "Requirements changed, installing dependencies..."
+          pip3 install -r requirements.txt
+          cp requirements.txt /tmp/previous_requirements.txt  # Cache the requirements.txt for comparison in the next build
+        else
+          echo "No changes in requirements, skipping install."
+        fi
 
-    build:
-      commands:
-        - echo Building the application
-        - python3 manage.py collectstatic --noinput
-  #      - python3 manage.py makemigrations  # Create database migratio
-  #      - python3 manage.py runserver &  # Start the Django server without checking migrations in the background
-  #      - sleep 5  # Give the server some time to start
-  #      - curl -sS http://localhost:8000/health > /dev/null || (sudo netstat -tlnp | grep :8000 | awk '{print $7}' | awk -F'/' '{print $1}' | xargs sudo kill -9 && exit 1)
-        # Check server availability and kill process if unavailable
-  #      - sleep 5
+  build:
+    commands:
+      - echo Building the application
+      - |
+        # Check if static files already exist and have not changed
+        if [ ! -d "staticfiles" ] || [ "$(find staticfiles -type f | wc -l)" -eq "0" ]; then
+          echo "Static files not found or empty, running collectstatic..."
+          python3 manage.py collectstatic --noinput
+        else
+          echo "Static files already collected, skipping collectstatic."
+        fi
 
-    post_build:
-      commands:
-        - echo Build completed on $(date)
+  post_build:
+    commands:
+      - echo Build completed on $(date)
 
-
-  artifacts:
-    files:
-      - '**/*'
+artifacts:
+  files:
+    - '**/*'
