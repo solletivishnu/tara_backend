@@ -88,6 +88,7 @@ def user_registration(request):
     and verify email or mobile number.
     """
     logger.info("Received a user registration request.")
+    print("*********************")
 
     if request.method == 'POST':
         try:
