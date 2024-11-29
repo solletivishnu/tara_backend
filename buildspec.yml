@@ -3,38 +3,40 @@ version: 0.2
 cache:
   paths:
     - '/root/.cache/pip/**/*'  # Cache pip dependencies
+    - 'staticfiles/**/*'       # Cache collected static files
+    - '/tmp/previous_*'        # Cache previous checksums for comparison
 
 phases:
   pre_build:
     commands:
-      - echo Prebuild ops
-      - echo Skipping installation of dependencies as per request
-#        # Check if requirements.txt has changed by comparing their hashes
-#        if ! cmp -s <(sha256sum requirements.txt) <(sha256sum /tmp/previous_requirements.txt); then
-#          echo "Requirements changed, installing dependencies..."
-#          pip3 install --cache-dir=/root/.cache/pip -r requirements.txt
-#          sha256sum requirements.txt > /tmp/previous_requirements.txt  # Save the hash of the requirements file
-#        else
-#          echo "No changes in requirements, skipping install."
-#        fi
-
+      - echo "Starting pre-build phase..."
+      - |
+        # Check if requirements.txt has changed
+        if ! cmp -s <(sha256sum requirements.txt) <(sha256sum /tmp/previous_requirements.txt); then
+          echo "Requirements changed, installing dependencies..."
+          pip3 install --cache-dir=/root/.cache/pip -r requirements.txt
+          sha256sum requirements.txt > /tmp/previous_requirements.txt  # Save the hash of requirements.txt
+        else
+          echo "No changes in requirements.txt, skipping dependency installation."
+        fi
 
   build:
     commands:
-      - echo Building the application
-#      - |
-#        # Check if static files already exist and have not changed
-#        if [ ! -d "staticfiles" ] || [ "$(find staticfiles -type f | wc -l)" -eq "0" ]; then
-#          echo "Static files not found or empty, running collectstatic..."
-#          python3 manage.py collectstatic --noinput
-#        else
-#          echo "Static files already collected, skipping collectstatic."
-#        fi
+      - echo "Starting build phase..."
+      - |
+        # Skip collectstatic if static files have not changed
+        if [ ! -f "staticfiles/staticfiles.json" ] || ! cmp -s staticfiles/staticfiles.json /tmp/previous_staticfiles.json; then
+          echo "Static files changed, running collectstatic..."
+          python3 manage.py collectstatic --noinput
+          cp staticfiles/staticfiles.json /tmp/previous_staticfiles.json  # Save the manifest for comparison
+        else
+          echo "No changes in static files, skipping collectstatic."
+        fi
 
   post_build:
     commands:
-      - echo Build completed on $(date)
+      - echo "Post-build phase completed on $(date)"
 
 artifacts:
   files:
-    - '**/*'
+    - '**/*'  # Include all files in the build artifacts
