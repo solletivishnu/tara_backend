@@ -3,16 +3,16 @@ version: 0.2
 cache:
   paths:
     - '/root/.cache/pip/**/*'  # Cache pip dependencies
-    - 'staticfiles/**/*'       # Cache collected static files
-    - '/tmp/previous_*'        # Cache previous checksums for comparison
+    - 'staticfiles/**/*'       # Cache static files
+    - '/tmp/previous_*'        # Cache requirements hash file
 
 phases:
   pre_build:
     commands:
       - echo "Starting pre-build phase..."
       - |
-        # Check if requirements.txt has changed
-        if ! cmp -s <(sha256sum requirements.txt) <(sha256sum /tmp/previous_requirements.txt); then
+        # Check if requirements.txt has changed by comparing their hashes
+        if [ ! -f /tmp/previous_requirements.txt ] || ! cmp -s requirements.txt /tmp/previous_requirements.txt; then
           echo "Requirements changed, installing dependencies..."
           pip3 install --cache-dir=/root/.cache/pip -r requirements.txt
           sha256sum requirements.txt > /tmp/previous_requirements.txt  # Save the hash of requirements.txt
@@ -24,19 +24,18 @@ phases:
     commands:
       - echo "Starting build phase..."
       - |
-        # Skip collectstatic if static files have not changed
-        if [ ! -f "staticfiles/staticfiles.json" ] || ! cmp -s staticfiles/staticfiles.json /tmp/previous_staticfiles.json; then
-          echo "Static files changed, running collectstatic..."
+        # Check if static files exist or are empty, then collect if needed
+        if [ ! -d "staticfiles" ] || [ "$(find staticfiles -type f | wc -l)" -eq "0" ]; then
+          echo "Static files not found or empty, running collectstatic..."
           python3 manage.py collectstatic --noinput
-          cp staticfiles/staticfiles.json /tmp/previous_staticfiles.json  # Save the manifest for comparison
         else
-          echo "No changes in static files, skipping collectstatic."
+          echo "Static files already collected, skipping collectstatic."
         fi
 
   post_build:
     commands:
-      - echo "Post-build phase completed on $(date)"
+      - echo "Build completed on $(date)"
 
 artifacts:
   files:
-    - '**/*'  # Include all files in the build artifacts
+    - '**/*'  # Include all files
