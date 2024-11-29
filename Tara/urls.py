@@ -5,6 +5,8 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from Tara.utils import *  # Custom utility imports
+from django.conf import settings
+from django.conf.urls.static import static
 
 # Swagger schema view
 schema_view = get_schema_view(
@@ -30,6 +32,6 @@ urlpatterns = [
     path('user_management/', include('user_management.urls')),
     # Token authentication URL
     path('token_auth/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-]
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 
