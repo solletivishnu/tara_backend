@@ -4,10 +4,10 @@ phases:
   install:
     commands:
       - echo "Setting up virtual environment"
-      - cd /home/ubuntu/TaraFirst  # Navigate to the directory containing manage.py and requirements.txt
+      - cd $CODEBUILD_SRC_DIR  # Move to the directory where the code is downloaded
       # Check if virtual environment exists before creating it
-      - if [ ! -d "/home/ubuntu/TaraFirst/venv" ]; then python3 -m venv /home/ubuntu/TaraFirst/venv; fi  # Create venv if it doesn't exist
-      - source /home/ubuntu/TaraFirst/venv/bin/activate  # Activate the virtual environment
+      - if [ ! -d "$CODEBUILD_SRC_DIR/venv" ]; then python3 -m venv $CODEBUILD_SRC_DIR/venv; fi  # Create venv if it doesn't exist
+      - source $CODEBUILD_SRC_DIR/venv/bin/activate  # Activate the virtual environment
       - pip install -r requirements.txt  # Install dependencies
   build:
     commands:
