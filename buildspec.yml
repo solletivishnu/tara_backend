@@ -10,6 +10,7 @@ phases:
   pre_build:
     commands:
       - echo "Starting pre-build phase..."
+      - echo "Testing the phase >>>>"
       - |
         # Check if requirements.txt has changed by comparing their hashes
         if [ ! -f /tmp/previous_requirements.txt ] || ! cmp -s requirements.txt /tmp/previous_requirements.txt; then
