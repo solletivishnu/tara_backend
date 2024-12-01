@@ -25,8 +25,14 @@ phases:
     commands:
       - echo "Starting build phase..."
       - |
-        # Check if static files exist or are empty, then collect if needed
-        if [ ! -d "staticfiles" ] || [ "$(find staticfiles -type f | wc -l)" -eq "0" ]; then
+        # Check if staticfiles directory exists, create if missing
+        if [ ! -d "staticfiles" ]; then
+          echo "Staticfiles directory not found, creating directory..."
+          mkdir -p staticfiles
+        fi
+
+        # Check if static files are empty, then collect if needed
+        if [ "$(find staticfiles -type f | wc -l)" -eq "0" ]; then
           echo "Static files not found or empty, running collectstatic..."
           python3 manage.py collectstatic --noinput
         else
