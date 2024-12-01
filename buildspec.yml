@@ -3,13 +3,15 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "Installing dependencies using multiple jobs"
-      - pip install -r requirements.txt -j 8  # Install dependencies with 8 parallel jobs
+      - echo "Upgrading pip to the latest version"
+      - pip install --upgrade pip  # Ensure pip is up-to-date
+      - echo "Installing dependencies in parallel"
+      - cat requirements.txt | xargs -n 1 -P 8 pip install  # Install dependencies in parallel (8 jobs)
 
   build:
     commands:
       - echo "Running the build steps"
-      - python manage.py collectstatic --noinput  # Other build steps if necessary
+      - python manage.py collectstatic --noinput  # Or other build commands if needed
 
   post_build:
     commands:
