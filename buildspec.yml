@@ -5,8 +5,8 @@ phases:
     commands:
       - echo "Upgrading pip to the latest version"
       - pip install --upgrade pip  # Ensure pip is up-to-date
-      - echo "Installing dependencies in parallel"
-      - cat requirements.txt | xargs -n 1 -P 8 pip install  # Install dependencies in parallel (8 jobs)
+      - echo "Installing dependencies in parallel, excluding pandas and numpy"
+      - cat requirements.txt | grep -v 'pandas\|numpy' | xargs -n 1 -P 8 pip install  # Install dependencies excluding pandas and numpy
 
   build:
     commands:
@@ -15,4 +15,4 @@ phases:
 
   post_build:
     commands:
-      - echo "Build completed"
+      - echo "Build completed successfully"
