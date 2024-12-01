@@ -3,16 +3,14 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "Setting up virtual environment"
-      - cd $CODEBUILD_SRC_DIR  # Move to the directory where the code is downloaded
-      # Check if virtual environment exists before creating it
-      - if [ ! -d "$CODEBUILD_SRC_DIR/venv" ]; then python3 -m venv $CODEBUILD_SRC_DIR/venv; fi  # Create venv if it doesn't exist
-      - . $CODEBUILD_SRC_DIR/venv/bin/activate  # Use dot instead of source
-      - pip install -r requirements.txt  # Install dependencies
+      - echo "Installing dependencies using multiple jobs"
+      - pip install -r requirements.txt -j 8  # Install dependencies with 8 parallel jobs
+
   build:
     commands:
       - echo "Running the build steps"
-      - python manage.py collectstatic --noinput  # Or other build commands if needed
+      - python manage.py collectstatic --noinput  # Other build steps if necessary
+
   post_build:
     commands:
       - echo "Build completed"
