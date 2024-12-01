@@ -6,6 +6,7 @@ from django.db import models
 from djongo.models import ArrayField, EmbeddedField
 from Tara.settings.default import *
 
+
 KEY = b'zSwtDDLJp6Qkb9CMCJnVeOzAeSJv-bA3VYNCy5zM-b4='
 class EncryptedField(models.Field):
     def __init__(self, *args, **kwargs):
@@ -26,7 +27,7 @@ class EncryptedField(models.Field):
 
 
 class CustomAccountManager(BaseUserManager):
-    def create_user(self, email=None, password=None, mobile_number=None, **extra_fields):
+    def create_user(self, email=None, password=None, mobile_number=None, created_by=None, **extra_fields):
         # Normalize email if provided
         email = self.normalize_email(email) if email else None
 
@@ -48,11 +49,17 @@ class CustomAccountManager(BaseUserManager):
             email=email,
             mobile_number=mobile_number,
             email_or_mobile=email_or_mobile,
+            created_by=created_by,
             **extra_fields
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
+
+    def create_superuser(self, email=None, password=None, **extra_fields):
+        # Set fields for superuser creation
+        extra_fields.setdefault('user_type', 'superuser')
+        return self.create_user(email=email, password=password, **extra_fields)
 
 
 class AddressModel(models.Model):
@@ -69,20 +76,35 @@ class AddressModel(models.Model):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    """Custom user model with email or mobile number login."""
+    USER_TYPE_CHOICES = [
+        ('individual', 'Individual'),
+        ('cafirm', 'Chartered Accountant Firm'),
+        ('business_or_corporate', 'Business/Corporate'),
+        ('superuser', 'Superuser')
+    ]
+
     email_or_mobile = models.CharField(max_length=120, unique=True, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     mobile_number = models.CharField(max_length=15, null=True, blank=True)
-    is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
     otp = models.IntegerField(null=True)
+    user_type = models.CharField(
+        max_length=40,
+        choices=USER_TYPE_CHOICES,
+        default='individual'  # Default value set to 'individual'
+    )
+    created_by = models.ForeignKey(
+        AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_users'
+    )
 
     objects = CustomAccountManager()
 
     USERNAME_FIELD = 'email_or_mobile'
-
     REQUIRED_FIELDS = []
 
     def __str__(self):
@@ -90,15 +112,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class UserDetails(models.Model):
-    USER_TYPE_CHOICES = [
-        ('individual', 'Individual'),
-        ('cafirm', 'Chartered Accountant Firm'),
-        ('business_or_corporate', 'Business/Corporate')
-    ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # ForeignKey to User
-    user_type = models.CharField(max_length=40, choices=USER_TYPE_CHOICES, default='individual')
-
     # Encrypted Fields for sensitive data
     user_name = models.CharField(max_length=40, blank=False, null=False)
     pan_number = EncryptedField(max_length=20, blank=True, null=True)  # Encrypted PAN

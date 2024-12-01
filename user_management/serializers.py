@@ -68,7 +68,7 @@ class UserDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserDetails
         fields = [
-            'user', 'user_type', 'pan_number', 'aadhaar_number', 'dob', 'icai_number', 'address', 'user_name',
+            'user', 'pan_number', 'aadhaar_number', 'dob', 'icai_number', 'address', 'user_name',
         ]
         read_only_fields = ['user']
 
