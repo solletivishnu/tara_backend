@@ -50,6 +50,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'id': user.id,
             'email': user.email,
             'mobile_number': user.mobile_number,
+            'user_type': user.user_type,
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }
