@@ -305,7 +305,7 @@ def users_creation(request):
                 # Handle Mobile Number Verification
                 if mobile_number:
                     otp = generate_otp()
-                    print("****** Auto generate OTP******")
+                    print("****** Auto generate OTP**********")
                     response = send_otp_helper(mobile_number, otp)  # Changed function name to avoid conflict
                     if response['return']:
                         query = User.objects.filter(mobile_number=mobile_number)
