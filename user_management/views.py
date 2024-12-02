@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .serializers import UserRegistrationSerializer, UsersKYCSerializer, UserActivationSerializer, FirmKYCSerializer
+from .serializers import *
 from password_generator import PasswordGenerator
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -890,3 +891,74 @@ class FirmKYCView(APIView):
             return Response({"detail": "FirmKYC details deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         except FirmKYC.DoesNotExist:
             return Response({"detail": "FirmKYC details not found."}, status=status.HTTP_404_NOT_FOUND)
+
+@swagger_auto_schema(
+    method='patch',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'email_or_mobile': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Email or Mobile Number of the user (optional).'
+            ),
+            'email': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Email address of the user (optional).'
+            ),
+            'mobile_number': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Mobile number of the user (optional).'
+            ),
+            'user_type': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='User type to be updated. Choices are: "individual", "cafirm", "business_or_corporate", "superuser". (optional).'
+            ),
+        },
+        required=[],  # No required fields because any field from the serializer can be passed.
+    ),
+    responses={
+        200: openapi.Response(
+            description="User updated successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        description='Success message'
+                    ),
+                }
+            ),
+        ),
+        400: openapi.Response("Invalid data provided."),
+        404: openapi.Response("User not found."),
+    },
+    manual_parameters=[
+        openapi.Parameter(
+            'Authorization',
+            openapi.IN_HEADER,
+            description="Bearer <JWT Token>",
+            type=openapi.TYPE_STRING,
+            required=True  # Make Authorization header required
+        ),
+    ],
+    operation_description="Updates the user fields like email, mobile number, or user type of the currently authenticated user. Only the fields provided will be updated."
+)
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])  # Ensure only authenticated users can access this endpoint
+def partial_update_user(request):
+    """
+    Handle partial update of user profile, allowing only specified fields to be updated.
+    """
+    try:
+        user = request.user  # Get the currently authenticated user
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()  # Save the updated user data
+            return Response({"message": "User updated successfully."}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        logger.error(f"Error updating user info: {str(e)}")
+        return Response({"error": "An unexpected error occurred while updating user info."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

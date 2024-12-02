@@ -25,4 +25,6 @@ urlpatterns = [
 
     # firm urls
     path('firmkyc/', FirmKYCView.as_view(), name='firmkyc'),
+
+    path('update-users-info', views.partial_update_user, name='partial_update_user'),
 ]
