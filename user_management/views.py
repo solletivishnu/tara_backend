@@ -230,7 +230,7 @@ def users_creation(request):
             email = request_data.get('email', '').lower()
             mobile_number = request_data.get('mobile_number', '')
             request_data['password'] = Autogenerate_password()
-            request_data['created_by'] = request.user
+            request_data['created_by'] = request.user.id
 
             logger.debug(f"Request data: email={email}, mobile_number={mobile_number}")
 

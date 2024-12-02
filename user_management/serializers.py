@@ -9,10 +9,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={"input_type": "password"})
     email = serializers.EmailField(required=False, allow_null=True)
     mobile_number = serializers.CharField(required=False, allow_null=True)
+    created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ('email', 'mobile_number', 'password')
+        fields = ('email', 'mobile_number', 'password', 'created_by')
 
     def validate(self, attrs):
         email = attrs.get('email')
@@ -24,28 +25,37 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if not email and not mobile_number:
             raise serializers.ValidationError("At least one of email or mobile number must be provided.")
 
+        # Check if email is already registered
         if email and User.objects.filter(email=email).exists():
             raise serializers.ValidationError({"email": "A user with this email already exists."})
 
-            # Check if mobile number is already registered
+        # Check if mobile number is already registered
         if mobile_number and User.objects.filter(mobile_number=mobile_number).exists():
             raise serializers.ValidationError({"mobile_number": "A user with this mobile number already exists."})
 
         return attrs
 
     def create(self, validated_data):
-        # Pass default None for missing fields
+        # Extract created_by if present; default to None
+        created_by = validated_data.pop('created_by', None)
         email = validated_data.get('email', None)
         mobile_number = validated_data.get('mobile_number', None)
         password = validated_data.get('password')
 
-        # Use custom manager to create the user
+        # Create the user with the provided data
         user = User.objects.create_user(
             email=email,
             password=password,
-            mobile_number=mobile_number
+            mobile_number=mobile_number,
         )
+
+        # Assign created_by to the user
+        if created_by:
+            user.created_by = created_by
+            user.save()
+
         return user
+
 
 
 class UserActivationSerializer(serializers.Serializer):
