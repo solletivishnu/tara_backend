@@ -18,10 +18,10 @@ urlpatterns = [
     # Refresh token view
     path('refresh-token/', RefreshTokenView.as_view(), name='refresh-token'),
 
-    path('user-details/', UserDetailsListView.as_view(), name='user-details-list'),
+    path('users-kyc/', UsersKYCListView.as_view(), name='user-kyc-list'),
 
     # URL for retrieving, updating, and deleting specific user details
-    path('user-details/<int:pk>/', UserDetailsDetailView.as_view(), name='user-details-detail'),
+    path('users-kyc/<int:pk>/', UsersKYCDetailView.as_view(), name='user-kyc-detail'),
 
     # firm urls
     path('firmkyc/', FirmKYCView.as_view(), name='firmkyc'),

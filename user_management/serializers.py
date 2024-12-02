@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, UserDetails, FirmKYC, AddressModel
+from .models import User, UserKYC, FirmKYC, AddressModel
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """
@@ -57,7 +57,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-
 class UserActivationSerializer(serializers.Serializer):
     token = serializers.CharField()
 
@@ -72,11 +71,11 @@ class AddressSerializer(serializers.Serializer):
     country = serializers.CharField(max_length=20, required=False)
 
 
-class UserDetailsSerializer(serializers.ModelSerializer):
+class UsersKYCSerializer(serializers.ModelSerializer):
     address = AddressSerializer()  # Nested serializer for address
 
     class Meta:
-        model = UserDetails
+        model = UserKYC
         fields = [
             'user', 'pan_number', 'aadhaar_number', 'date', 'icai_number', 'address', 'name',
         ]
@@ -112,7 +111,7 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         """
         # Extract address data and remove it from `validated_data`
         address_data = validated_data.pop('address', {})
-        user_details = UserDetails.objects.create(**validated_data)
+        user_details = UserKYC.objects.create(**validated_data)
 
         # Handle embedded address data
         if address_data:

@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from .serializers import UserRegistrationSerializer, UserDetailsSerializer, UserActivationSerializer, FirmKYCSerializer
+from .serializers import UserRegistrationSerializer, UsersKYCSerializer, UserActivationSerializer, FirmKYCSerializer
 from password_generator import PasswordGenerator
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -14,7 +14,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from .models import User, UserDetails, FirmKYC
+from .models import User, UserKYC, FirmKYC
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import ValidationError
@@ -610,12 +610,12 @@ class RefreshTokenView(APIView):
             )
 
 
-class UserDetailsListView(APIView):
+class UsersKYCListView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_description="List all user details.",
-        responses={200: UserDetailsSerializer(many=True)},  # Specify many=True for list
+        responses={200: UsersKYCSerializer(many=True)},  # Specify many=True for list
         manual_parameters=[
             openapi.Parameter(
                 'Authorization',
@@ -626,13 +626,13 @@ class UserDetailsListView(APIView):
         ]
     )
     def get(self, request):
-        user_details = UserDetails.objects.all()
-        serializer = UserDetailsSerializer(user_details, many=True)
+        user_details = UserKYC.objects.all()
+        serializer = UsersKYCSerializer(user_details, many=True)
         return Response(serializer.data)
 
     @swagger_auto_schema(
         operation_description="Register user details (PAN, Aadhaar, ICAI number, etc.) based on user type.",
-        request_body=UserDetailsSerializer,
+        request_body=UsersKYCSerializer,
         responses={
             201: "User details saved successfully.",
             400: "Invalid data",
@@ -671,7 +671,7 @@ class UserDetailsListView(APIView):
             pan_verification_data = pan_verification_request.json()
             category = None
             if pan_verification_data['code'] == 200 and pan_verification_data['data']['status'] == 'valid':
-                serializer = UserDetailsSerializer(data=request.data)
+                serializer = UsersKYCSerializer(data=request.data)
                 if serializer.is_valid():
                     serializer.save(user=request.user)
                     return Response({"detail": "User details saved successfully."}, status=status.HTTP_201_CREATED)
@@ -685,7 +685,7 @@ class UserDetailsListView(APIView):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class UserDetailsDetailView(APIView):
+class UsersKYCDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
@@ -700,7 +700,7 @@ class UserDetailsDetailView(APIView):
             ),
         ],
         responses={
-            200: UserDetailsSerializer,
+            200: UsersKYCSerializer,
             404: openapi.Response(description="User details not found.")
         }
     )
@@ -710,14 +710,14 @@ class UserDetailsDetailView(APIView):
         """
         try:
             user_details = request.user.userdetails
-            serializer = UserDetailsSerializer(user_details)
+            serializer = UsersKYCSerializer(user_details)
             return Response(serializer.data)
-        except UserDetails.DoesNotExist:
+        except UserKYC.DoesNotExist:
             return Response({"detail": "User details not found."}, status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
         operation_description="Update user details.",
-        request_body=UserDetailsSerializer,
+        request_body=UsersKYCSerializer,
         manual_parameters=[
             openapi.Parameter(
                 'Authorization',
@@ -739,12 +739,12 @@ class UserDetailsDetailView(APIView):
         """
         try:
             user_details = request.user.userdetails
-            serializer = UserDetailsSerializer(user_details, data=request.data)
+            serializer = UsersKYCSerializer(user_details, data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({"detail": "User details updated successfully."}, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except UserDetails.DoesNotExist:
+        except UserKYC.DoesNotExist:
             return Response({"detail": "User details not found."}, status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
@@ -771,7 +771,7 @@ class UserDetailsDetailView(APIView):
             user_details = request.user.userdetails
             user_details.delete()
             return Response({"detail": "User details deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-        except UserDetails.DoesNotExist:
+        except UserKYC.DoesNotExist:
             return Response({"detail": "User details not found."}, status=status.HTTP_404_NOT_FOUND)
 
 

@@ -111,7 +111,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email_or_mobile or "User"
 
 
-class UserDetails(models.Model):
+class UserKYC(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # ForeignKey to User
     # Encrypted Fields for sensitive data
