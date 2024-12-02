@@ -73,20 +73,23 @@ class AddressSerializer(serializers.Serializer):
 
 
 class UserDetailsSerializer(serializers.ModelSerializer):
-    address = AddressSerializer()
+    address = AddressSerializer()  # Nested serializer for address
 
     class Meta:
         model = UserDetails
         fields = [
-            'user', 'pan_number', 'aadhaar_number', 'dob', 'icai_number', 'address', 'user_name',
+            'user', 'pan_number', 'aadhaar_number', 'date', 'icai_number', 'address', 'name',
         ]
-        read_only_fields = ['user']
+        read_only_fields = ['user']  # Prevent modification of `user` field
 
     def validate(self, data):
         """
-        Validate data for specific cases.
+        Validate data based on the user type.
         """
-        user_type = data.get('user_type', 'individual')
+        # Retrieve `user_type` from the related `User` model
+        user = self.instance.user if self.instance else self.context['request'].user
+        user_type = user.user_type if hasattr(user, 'user_type') else 'individual'
+
         icai_number = data.get('icai_number')
 
         # Ensure `icai_number` is None for individuals
@@ -104,16 +107,33 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        """
+        Create a new `UserDetails` instance.
+        """
+        # Extract address data and remove it from `validated_data`
         address_data = validated_data.pop('address', {})
         user_details = UserDetails.objects.create(**validated_data)
-        user_details.address = address_data
+
+        # Handle embedded address data
+        if address_data:
+            user_details.address = address_data
+        user_details.save()
+
         return user_details
 
     def update(self, instance, validated_data):
+        """
+        Update an existing `UserDetails` instance.
+        """
+        # Extract and handle address data
         address_data = validated_data.pop('address', {})
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        instance.address.update(address_data)
+
+        # Update the embedded address data if provided
+        if address_data:
+            instance.address.update(address_data)
+
         instance.save()
         return instance
 

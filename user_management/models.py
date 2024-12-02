@@ -115,16 +115,16 @@ class UserDetails(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # ForeignKey to User
     # Encrypted Fields for sensitive data
-    user_name = models.CharField(max_length=40, blank=False, null=False)
+    name = models.CharField(max_length=40, blank=False, null=False)
     pan_number = EncryptedField(max_length=20, blank=True, null=True)  # Encrypted PAN
     aadhaar_number = EncryptedField(max_length=20, blank=True, null=True)  # Encrypted Aadhaar
-    dob = models.DateField(null=True, blank=True)
+    date = models.DateField(null=True, blank=True)
     # Fields specific to CA Firm
     icai_number = models.CharField(max_length=15, blank=True, null=True)  # Only for CA Firm
     address = EmbeddedField(model_container=AddressModel, default={})
 
     def __str__(self):
-        return f"{self.user.email} - {self.user_type}"
+        return f"{self.user.email} - {self.user.user_type}"
 
 
 class FirmKYC(models.Model):
