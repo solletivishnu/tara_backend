@@ -662,20 +662,20 @@ class UsersKYCListView(APIView):
                 'x-api-key': SANDBOX_API_KEY,
                 'x-api-version': SANDBOX_API_VERSION
             }
+            date_field = datetime.strptime(request_data['date'], "%Y-%m-%d")
+            dob = date_field.strftime("%d/%m/%Y")
             payload = {
                 "@entity": "in.co.sandbox.kyc.pan_verification.request",
                 "reason": "For onboarding customers",
                 "pan": request_data['pan_number'],
                 "name_as_per_pan": request_data['name'],
-                "date_of_birth": request_data['date'],
+                "date_of_birth": dob,
                 "consent": "Y"
             }
             pan_verification_request = requests.post(url, json=payload, headers=headers)
             pan_verification_data = pan_verification_request.json()
             category = None
             if pan_verification_data['code'] == 200 and pan_verification_data['data']['status'] == 'valid':
-                date_field = datetime.strptime(request_data['date'], "%d/%m/%Y")
-                request_data['date'] = date_field.strftime("%Y-%m-%d")
                 serializer = UsersKYCSerializer(data=request_data,
                                                 context={'request': request})  # Pass request in the context
                 if serializer.is_valid():
