@@ -77,7 +77,7 @@ class UsersKYCSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserKYC
         fields = [
-            'user', 'pan_number', 'aadhaar_number', 'date', 'icai_number', 'address', 'name',
+            'user', 'pan_number', 'aadhaar_number', 'date', 'icai_number', 'address', 'name', 'have_firm'
         ]
         read_only_fields = ['user']  # Prevent modification of `user` field
 
