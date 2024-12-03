@@ -147,7 +147,7 @@ class FirmKYC(models.Model):
     firm_name = models.CharField(max_length=255, blank=True, null=True)
     firm_registration_number = models.CharField(max_length=40, blank=True, null=True)
     firm_email = models.EmailField(unique=True, null=True, blank=True)
-    firm_mobile_number = models.IntegerField()
+    firm_mobile_number = models.CharField(max_length=40, blank=True, null=True)
     number_of_firm_partners = models.IntegerField()
     address = EmbeddedField(model_container=AddressModel, default={})
 
