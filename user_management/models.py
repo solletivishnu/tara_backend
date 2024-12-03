@@ -79,8 +79,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     USER_TYPE_CHOICES = [
         ('individual', 'Individual'),
         ('cafirm', 'Chartered Accountant Firm'),
-        ('business_or_corporate', 'Business/Corporate'),
-        ('superuser', 'Superuser')
+        ('business', 'Business/Corporate'),
+        ('service_provider', 'ServiceProvider')
     ]
 
     email_or_mobile = models.CharField(max_length=120, unique=True, null=True, blank=True)
@@ -92,7 +92,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     user_type = models.CharField(
         max_length=40,
         choices=USER_TYPE_CHOICES,
-        default='individual'  # Default value set to 'individual'
+        default=None,  # Default value set to None
+        null=True,  # Allows storing NULL in the database
+        blank=True  # Allows leaving the field blank in forms
     )
     created_by = models.ForeignKey(
         AUTH_USER_MODEL,
