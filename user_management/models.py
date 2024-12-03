@@ -126,6 +126,18 @@ class UserKYC(models.Model):
     address = EmbeddedField(model_container=AddressModel, default={})
     have_firm = models.BooleanField(default=False)
 
+    @property
+    def is_completed(self):
+        """
+        Check if all mandatory KYC fields are filled for completion.
+        """
+        required_fields = [self.name, self.pan_number, self.aadhaar_number, self.date]
+        if self.have_firm:
+            required_fields.append(self.icai_number)
+
+        # Return True if all required fields are filled
+        return all(field is not None and field != "" for field in required_fields)
+
     def __str__(self):
         return f"{self.user.email} - {self.user.user_type}"
 
