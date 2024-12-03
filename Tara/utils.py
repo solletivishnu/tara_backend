@@ -45,12 +45,20 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Generate the refresh and access token
         refresh = self.get_token(user)
 
+        # Check if UserKYC is completed
+        user_kyc = False
+        if hasattr(user, 'userkyc'):  # Assuming `UserKYC` has a one-to-one or foreign key to `User`
+            user_kyc_instance = user.userkyc
+            if user_kyc_instance.is_completed:  # Assuming `is_completed` indicates KYC completion
+                user_kyc = True
+
         # Customize the response data
         data = {
             'id': user.id,
             'email': user.email,
             'mobile_number': user.mobile_number,
             'user_type': user.user_type,
+            'user_kyc': user_kyc,
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }

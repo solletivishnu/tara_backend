@@ -250,7 +250,7 @@ def users_creation(request):
 
                 # Handle Email Verification
                 if email:
-                    reference_link = "https://www.tarafirst.com"  # Make sure this is the correct URL
+                    reference_link = Reference_link  # Make sure this is the correct URL
 
                     ses_client = boto3.client(
                         'ses',
@@ -448,7 +448,7 @@ class ForgotPasswordView(APIView):
         # Generate reset token and link
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(str(user.pk).encode())
-        reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
+        reset_link = f"{Reference_link}/reset-password/{uid}/{token}/"
 
         # Send the email via Amazon SES
         try:
@@ -955,7 +955,10 @@ def partial_update_user(request):
 
         if serializer.is_valid():
             serializer.save()  # Save the updated user data
-            return Response({"message": "User updated successfully."}, status=status.HTTP_200_OK)
+            return Response({
+                "message": "User updated successfully.",
+                "data": serializer.data  # Include the updated user data in the response
+            }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

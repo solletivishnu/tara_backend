@@ -320,3 +320,6 @@ DATABASES = {
             'CONN_MAX_AGE': None
         }
 }
+
+
+Reference_link = "http://dev.tarafirst.com/"
