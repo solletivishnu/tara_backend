@@ -665,7 +665,7 @@ class UsersKYCListView(APIView):
                 "@entity": "in.co.sandbox.kyc.pan_verification.request",
                 "reason": "For onboarding customers",
                 "pan": request_data['pan_number'],
-                "name_as_per_pan": request_data['user_name'],
+                "name_as_per_pan": request_data['name'],
                 "date_of_birth": request_data['dob']
             }
             pan_verification_request = requests.post(url, json=payload, headers=headers)
