@@ -27,6 +27,7 @@ import json
 from Tara.settings.default import *
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
+from datetime import datetime
 
 # Create loggers for general and error logs
 logger = logging.getLogger(__name__)
@@ -666,17 +667,22 @@ class UsersKYCListView(APIView):
                 "reason": "For onboarding customers",
                 "pan": request_data['pan_number'],
                 "name_as_per_pan": request_data['name'],
-                "date_of_birth": request_data['dob']
+                "date_of_birth": request_data['date'],
+                "consent": "Y"
             }
             pan_verification_request = requests.post(url, json=payload, headers=headers)
             pan_verification_data = pan_verification_request.json()
             category = None
             if pan_verification_data['code'] == 200 and pan_verification_data['data']['status'] == 'valid':
-                serializer = UsersKYCSerializer(data=request.data)
+                date_field = datetime.strptime(request_data['date'], "%d/%m/%Y")
+                request_data['date'] = date_field.strftime("%Y-%m-%d")
+                serializer = UsersKYCSerializer(data=request_data,
+                                                context={'request': request})  # Pass request in the context
                 if serializer.is_valid():
-                    serializer.save(user=request.user)
-                    return Response({"detail": "User details saved successfully."}, status=status.HTTP_201_CREATED)
+                    serializer.save(user=request.user)  # Ensure the user is passed when saving
+                    return Response({"data":serializer.data, "detail": "User details saved successfully."}, status=status.HTTP_201_CREATED)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
             elif pan_verification_data['code'] != 200:
                 return Response({'error_message': 'Invalid pan details, Please cross check the DOB, Pan number or Name'},
                                 status=status.HTTP_400_BAD_REQUEST)

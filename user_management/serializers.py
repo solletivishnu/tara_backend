@@ -72,7 +72,7 @@ class AddressSerializer(serializers.Serializer):
 
 
 class UsersKYCSerializer(serializers.ModelSerializer):
-    address = AddressSerializer()  # Nested serializer for address
+    address = AddressSerializer(default={}, required=False)  # Nested serializer for address
 
     class Meta:
         model = UserKYC
@@ -85,10 +85,13 @@ class UsersKYCSerializer(serializers.ModelSerializer):
         """
         Validate data based on the user type.
         """
-        # Retrieve `user_type` from the related `User` model
-        user = self.instance.user if self.instance else self.context['request'].user
-        user_type = user.user_type if hasattr(user, 'user_type') else 'individual'
+        user = self.context['request'].user  # Accessing the user from the request context
 
+        # Ensure user_type exists in the user model
+        if not hasattr(user, 'user_type'):
+            raise serializers.ValidationError("User type is missing.")
+
+        user_type = user.user_type
         icai_number = data.get('icai_number')
 
         # Ensure `icai_number` is None for individuals
@@ -107,17 +110,23 @@ class UsersKYCSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Create a new `UserDetails` instance.
+        Create a new `UserKYC` instance.
         """
-        # Extract address data and remove it from `validated_data`
-        address_data = validated_data.pop('address', {})
+        # Check if 'address' is present in validated_data
+        if 'address' not in validated_data:
+            # If not present, set default address values
+            validated_data['address'] = {
+                "address_line1": None,
+                "address_line2": None,
+                "address_line3": None,
+                "pinCode": None,
+                "state": None,
+                "city": None,
+                "country": None
+            }
+
+        # Create and save the UserKYC instance
         user_details = UserKYC.objects.create(**validated_data)
-
-        # Handle embedded address data
-        if address_data:
-            user_details.address = address_data
-        user_details.save()
-
         return user_details
 
     def update(self, instance, validated_data):
