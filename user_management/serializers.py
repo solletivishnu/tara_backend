@@ -147,7 +147,7 @@ class UsersKYCSerializer(serializers.ModelSerializer):
 
 
 class FirmKYCSerializer(serializers.ModelSerializer):
-    address = AddressSerializer()
+    address = AddressSerializer(required=False)
 
     class Meta:
         model = FirmKYC
@@ -156,6 +156,28 @@ class FirmKYCSerializer(serializers.ModelSerializer):
             'number_of_firm_partners', 'address'
         ]
         read_only_fields = ['user']
+
+    def create(self, validated_data):
+        """
+        Create a new `UserKYC` instance.
+        """
+        # Check if 'address' is present in validated_data
+        if 'address' not in validated_data:
+            # If not present, set default address values
+            validated_data['address'] = {
+                "address_line1": None,
+                "address_line2": None,
+                "address_line3": None,
+                "pinCode": None,
+                "state": None,
+                "city": None,
+                "country": None
+            }
+
+        # Create and save the UserKYC instance
+        user_details = FirmKYC.objects.create(**validated_data)
+
+        return user_details
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
