@@ -27,4 +27,24 @@ urlpatterns = [
     path('firmkyc/', FirmKYCView.as_view(), name='firmkyc'),
 
     path('update-users-info', views.partial_update_user, name='partial_update_user'),
+
+    path('services/', ServicesMasterDataAPIView.as_view()),  # For GET (list) and POST
+
+    path('services/<int:pk>/', ServicesMasterDataAPIView.as_view()),  # For GET (detail), PUT, DELETE
+
+    # URL for retrieving a list of visa applications or details of a specific visa application
+    path('visa-applications/', VisaApplicationsAPIView.as_view(), name='visa-application-list'),
+
+    # URL for retrieving a specific visa application by its ID
+    path('visa-applications/<int:pk>/', VisaApplicationsAPIView.as_view(), name='visa-application-detail'),
+
+    # URL for bulk creating visa applications (POST method)
+    path('visa-applications/bulk/', VisaApplicationsAPIView.as_view(), name='visa-application-bulk-create'),
+
+    # URL for updating an existing visa application by ID (PUT method)
+    path('visa-applications/<int:pk>/update/', VisaApplicationsAPIView.as_view(), name='visa-application-update'),
+
+    # URL for deleting a visa application by ID (DELETE method)
+    path('visa-applications/<int:pk>/delete/', VisaApplicationsAPIView.as_view(), name='visa-application-delete'),
+
 ]

@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import User, UserKYC, FirmKYC, AddressModel
+from django.contrib.auth.models import *
+from .models import *
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """
@@ -8,20 +10,21 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     """
     password = serializers.CharField(write_only=True, required=True, style={"input_type": "password"})
     email = serializers.EmailField(required=False, allow_null=True)
-    mobile_number = serializers.CharField(required=False, allow_null=True)
+    mobile_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
+    user_type = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ('email', 'mobile_number', 'password', 'created_by')
+        fields = ('email', 'mobile_number', 'password', 'created_by', 'user_type')
 
     def validate(self, attrs):
         email = attrs.get('email')
         mobile_number = attrs.get('mobile_number')
 
         # Ensure only one of email or mobile number is provided
-        if email and mobile_number:
-            raise serializers.ValidationError("Provide either email or mobile number, not both.")
+        # if email and mobile_number:
+        #     raise serializers.ValidationError("Provide either email or mobile number, not both.")
         if not email and not mobile_number:
             raise serializers.ValidationError("At least one of email or mobile number must be provided.")
 
@@ -41,12 +44,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         email = validated_data.get('email', None)
         mobile_number = validated_data.get('mobile_number', None)
         password = validated_data.get('password')
+        user_type = validated_data.get('user_type', None)
 
         # Create the user with the provided data
         user = User.objects.create_user(
             email=email,
             password=password,
             mobile_number=mobile_number,
+            user_type =user_type
         )
 
         # Assign created_by to the user
@@ -189,3 +194,71 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         # Perform the actual update for the instance
         return super().update(instance, validated_data)
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    # Customizing the id field to match the desired structure
+    id = serializers.IntegerField(source='pk', required=False)
+
+    class Meta:
+        model = Group  # Replace with your actual model
+        fields = ['id', 'name']
+
+    def to_representation(self, instance):
+        """
+        Customizing how the response data is serialized.
+        """
+        # Get the default representation of the model
+        representation = super().to_representation(instance)
+
+        # If you want to include the MongoDB _id as well:
+        representation['_id'] = {"$oid": str(instance.pk)}  # Converts the `pk` (primary key) to ObjectId format
+        return representation
+
+
+class PermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Permission
+        fields = ['id', 'name', 'codename', 'content_type']
+
+
+class ServicesMasterDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServicesMasterData
+        fields = '__all__'
+
+
+class ServiceDetailsSerializer(serializers.ModelSerializer):
+    service_type = serializers.PrimaryKeyRelatedField(queryset=ServicesMasterData.objects.all())
+    visa_application = serializers.PrimaryKeyRelatedField(queryset=VisaApplications.objects.all(), required=True)  # Include this line
+
+    class Meta:
+        model = ServiceDetails
+        fields = ['id', 'service_type', 'date', 'status', 'comments', 'quantity', 'visa_application']  # Add 'visa_application' field
+
+
+
+class VisaApplicationsSerializer(serializers.ModelSerializer):
+    # services = ServiceDetailsSerializer(many=True)
+
+    class Meta:
+        model = VisaApplications
+        fields = "__all__"
+
+
+class VisaApplicationsGetSerializer(serializers.ModelSerializer):
+    services = ServiceDetailsSerializer(many=True)
+    user_email = serializers.SerializerMethodField()
+    user_mobile_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VisaApplications
+        fields = "__all__"
+
+    def get_user_email(self, obj):
+        # Assuming the related User model has the email field
+        return obj.user.email if obj.user else None
+
+    def get_user_mobile_number(self, obj):
+        # Assuming the related User model has the mobile_number field
+        return obj.user.mobile_number if obj.user else None

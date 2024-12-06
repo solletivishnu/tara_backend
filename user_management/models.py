@@ -80,7 +80,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('individual', 'Individual'),
         ('cafirm', 'Chartered Accountant Firm'),
         ('business', 'Business/Corporate'),
-        ('service_provider', 'ServiceProvider')
+        ('service_provider', 'ServiceProvider'),
+        ('service_provider_admin', 'ServiceProviderAdmin')
     ]
 
     email_or_mobile = models.CharField(max_length=120, unique=True, null=True, blank=True)
@@ -154,6 +155,48 @@ class FirmKYC(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.firm_registration_number}"
 
+
+class ServicesMasterData(models.Model):
+    service_name = models.CharField(max_length=50, null=False, blank=False)
+
+    def __str__(self):
+        return f"{self.service_name}"
+
+
+class ServiceDetails(models.Model):
+    STATUS_CHOICES = [
+        ('in_progress', 'In Progress'),
+        ('created', 'Created'),
+        ('completed', 'Completed'),
+        ('pending', 'Pending'),
+    ]
+
+    service_type = models.OneToOneField(ServicesMasterData, on_delete=models.CASCADE, related_name="service_details")
+    date = models.DateField(default=timezone.now)
+    status = models.CharField(
+        max_length=40,
+        choices=STATUS_CHOICES,
+        default='created'
+    )
+    comments = models.CharField(max_length=256, blank=True, null=True)
+    quantity = models.IntegerField(null=False)
+    visa_application = models.ForeignKey('VisaApplications', related_name='services', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Service for {self.visa_application.first_name} {self.visa_application.last_name}"
+
+
+class VisaApplications(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="visa_applications")
+    first_name = models.CharField(max_length=40)
+    last_name = models.CharField(max_length=40)
+    passport_number = EncryptedField(max_length=20, blank=True, null=True)
+    purpose = models.CharField(max_length=20, blank=True, null=True)
+    visa_type = models.CharField(max_length=15, blank=True, null=True)
+    destination_country = models.CharField(max_length=50, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.email} - {self.visa_type}"
 
 
 
