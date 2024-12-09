@@ -770,6 +770,7 @@ class UsersKYCDetailView(APIView):
         Retrieve the authenticated user's details.
         """
         try:
+            print("******* Testing the development server ******")
             user_details = request.user.userdetails
             serializer = UsersKYCSerializer(user_details)
             return Response(serializer.data)
