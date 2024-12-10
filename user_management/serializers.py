@@ -264,6 +264,7 @@ class VisaApplicationsGetSerializer(serializers.ModelSerializer):
         return obj.user.mobile_number if obj.user else None
 
 class VisaClientUserListSerializer(serializers.ModelSerializer):
+    services = ServiceDetailsSerializer(many=True)
     email = serializers.SerializerMethodField()
     mobile_number = serializers.SerializerMethodField()
 
