@@ -1498,18 +1498,37 @@ def service_status(request):
         # Use VisaClientUserListSerializer for the serialization
         serializer = VisaClientUserListSerializer(visa_applications, many=True)
 
-        # Initialize counters
-        counts = {'progress': 0, 'in_progress': 0, 'completed': 0}
+        # Initialize counters and data containers
+        counts = {
+            'progress': 0,
+            'progress_data': [],
+            'in_progress': 0,
+            'in_progress_data': [],
+            'completed': 0,
+            'completed_data': []
+        }
 
-        # Calculate counts based on service status
+        # Calculate counts and organize data
         for item in serializer.data:
             for service in item['services']:
+                service_data = {
+                    'service_id': service['id'],
+                    'service_type': service['service_type'],
+                    'comments': service.get('comments', ''),
+                    'quantity': service.get('quantity', 0),
+                    'date': service.get('date', ''),
+                    'status': service['status']
+                }
+
                 if service['status'] == 'created':
                     counts['progress'] += 1
+                    counts['progress_data'].append(service_data)
                 elif service['status'] == 'in_progress':
                     counts['in_progress'] += 1
+                    counts['in_progress_data'].append(service_data)
                 elif service['status'] == 'completed':
                     counts['completed'] += 1
+                    counts['completed_data'].append(service_data)
 
         return Response(counts, status=status.HTTP_200_OK)
 
