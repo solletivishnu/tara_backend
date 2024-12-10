@@ -1244,41 +1244,41 @@ class ServicesMasterDataAPIView(APIView):
             return Response({"error": "Service not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
-class VisaApplicationsAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    @swagger_auto_schema(
-        operation_description="Retrieve a list of all visa applications.",
-        responses={
-            200: openapi.Response(description="List of visa applications retrieved successfully."),
-            403: openapi.Response(description="Unauthorized access. Only ServiceProviderAdmins can view this data."),
-        },
-        manual_parameters=[
-            openapi.Parameter(
-                'Authorization',
-                openapi.IN_HEADER,
-                description="Bearer <JWT Token>",
-                type=openapi.TYPE_STRING,
-                required=True,
-            ),
-        ],
-    )
-    def get(self, request):
-        if request.user.user_type == "ServiceProviderAdmin":
-            # Retrieve the ID of the user who created the current user
-            created_by_id = request.user.id
-            print(created_by_id)
-
-            # Filter visa applications for the user created by the current user
-            visa_applications = VisaApplications.objects.filter(user_id=created_by_id)
-            serializer = VisaApplicationsSerializer(visa_applications, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            # If the user is not a ServiceProviderAdmin, return an unauthorized response
-            return Response(
-                {"error": "Unauthorized access. Only ServiceProviderAdmins can view this data."},
-                status=status.HTTP_403_FORBIDDEN
-            )
+# class VisaApplicationsAPIView(APIView):
+#     permission_classes = [IsAuthenticated]
+#
+#     @swagger_auto_schema(
+#         operation_description="Retrieve a list of all visa applications.",
+#         responses={
+#             200: openapi.Response(description="List of visa applications retrieved successfully."),
+#             403: openapi.Response(description="Unauthorized access. Only ServiceProviderAdmins can view this data."),
+#         },
+#         manual_parameters=[
+#             openapi.Parameter(
+#                 'Authorization',
+#                 openapi.IN_HEADER,
+#                 description="Bearer <JWT Token>",
+#                 type=openapi.TYPE_STRING,
+#                 required=True,
+#             ),
+#         ],
+#     )
+#     def get(self, request):
+#         if request.user.user_type == "ServiceProviderAdmin":
+#             # Retrieve the ID of the user who created the current user
+#             created_by_id = request.user.id
+#             print(created_by_id)
+#
+#             # Filter visa applications for the user created by the current user
+#             visa_applications = VisaApplications.objects.filter(user_id=created_by_id)
+#             serializer = VisaApplicationsSerializer(visa_applications, many=True)
+#             return Response(serializer.data, status=status.HTTP_200_OK)
+#         else:
+#             # If the user is not a ServiceProviderAdmin, return an unauthorized response
+#             return Response(
+#                 {"error": "Unauthorized access. Only ServiceProviderAdmins can view this data."},
+#                 status=status.HTTP_403_FORBIDDEN
+#             )
 
 
 class VisaApplicationDetailAPIView(APIView):

@@ -33,10 +33,8 @@ urlpatterns = [
 
     path('services/<int:pk>/', ServicesMasterDataAPIView.as_view()),  # For GET (detail), PUT, DELETE
 
-    path('visa-applications/', VisaApplicationsAPIView.as_view(), name='visa-applications-list-create'),
-
     # Endpoint for specific visa application actions (GET, PUT, DELETE)
-    path('visa-applications/<int:pk>/', VisaApplicationDetailAPIView.as_view(), name='visa-applications-detail-update-delete'),
+    path('visa-applicants/<int:pk>/', VisaApplicationDetailAPIView.as_view(), name='visa-applications-detail-update-delete'),
 
     path('visa-applicants/', manage_visa_applications, name='manage_visa_applications'),
 
