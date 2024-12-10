@@ -1349,6 +1349,7 @@ class VisaApplicationDetailAPIView(APIView):
 def manage_visa_applications(request):
     visaapplication_id = request.data.get('visaapplication_id')
     services_data = request.data.get('services', [])
+    print("****************")
 
     if visaapplication_id and services_data:
         # Add services to an existing visa application
