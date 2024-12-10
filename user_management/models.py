@@ -195,6 +195,9 @@ class VisaApplications(models.Model):
     visa_type = models.CharField(max_length=15, blank=True, null=True)
     destination_country = models.CharField(max_length=50, blank=True, null=True)
 
+    class Meta:
+        unique_together = ("purpose", "visa_type", "destination_country")
+
     def __str__(self):
         return f"{self.user.email} - {self.visa_type}"
 
