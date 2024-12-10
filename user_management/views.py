@@ -30,6 +30,7 @@ from botocore.exceptions import ClientError, BotoCoreError
 from datetime import datetime
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import NotFound
 
 # Create loggers for general and error logs
 logger = logging.getLogger(__name__)
@@ -843,7 +844,7 @@ class UsersKYCDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        operation_description="Retrieve user details.",
+        operation_description="Retrieve user details by ID.",
         tags=["UsersKYC"],
         manual_parameters=[
             openapi.Parameter(
@@ -859,20 +860,19 @@ class UsersKYCDetailView(APIView):
             404: openapi.Response(description="User details not found.")
         }
     )
-    def get(self, request):
+    def get(self, request, pk=None):
         """
-        Retrieve the authenticated user's details.
+        Retrieve user details by ID.
         """
         try:
-            print("******* Testing the development server ******")
-            user_details = request.user.userdetails
+            user_details = UserKYC.objects.get(pk=pk, user=request.user)
             serializer = UsersKYCSerializer(user_details)
             return Response(serializer.data)
         except UserKYC.DoesNotExist:
-            return Response({"detail": "User details not found."}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound("User details not found.")
 
     @swagger_auto_schema(
-        operation_description="Update user details.",
+        operation_description="Update user details by ID.",
         tags=["UsersKYC"],
         request_body=UsersKYCSerializer,
         manual_parameters=[
@@ -890,22 +890,22 @@ class UsersKYCDetailView(APIView):
             404: openapi.Response(description="User details not found.")
         }
     )
-    def put(self, request):
+    def put(self, request, pk=None):
         """
-        Update the authenticated user's details.
+        Update user details by ID.
         """
         try:
-            user_details = request.user.userdetails
+            user_details = UserKYC.objects.get(pk=pk, user=request.user)
             serializer = UsersKYCSerializer(user_details, data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({"detail": "User details updated successfully."}, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except UserKYC.DoesNotExist:
-            return Response({"detail": "User details not found."}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound("User details not found.")
 
     @swagger_auto_schema(
-        operation_description="Delete user details.",
+        operation_description="Delete user details by ID.",
         tags=["UsersKYC"],
         manual_parameters=[
             openapi.Parameter(
@@ -921,16 +921,16 @@ class UsersKYCDetailView(APIView):
             404: openapi.Response(description="User details not found.")
         }
     )
-    def delete(self, request):
+    def delete(self, request, pk=None):
         """
-        Delete the authenticated user's details.
+        Delete user details by ID.
         """
         try:
-            user_details = request.user.userdetails
+            user_details = UserKYC.objects.get(pk=pk, user=request.user)
             user_details.delete()
             return Response({"detail": "User details deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         except UserKYC.DoesNotExist:
-            return Response({"detail": "User details not found."}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound("User details not found.")
 
 
 class FirmKYCView(APIView):
