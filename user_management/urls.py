@@ -5,7 +5,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('register/', views.user_registration, name='user_registration'),
-    path('users-creation/', views.users_creation, name='user-create'),
+    path('users/', users_creation, name='users_creation'),
+    path('visa-users/', visa_users_creation, name='visa_users_creation'),
     path('activate/<uid>/<token>/', ActivateUserView.as_view(), name='activate'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('protected/', TestProtectedAPIView.as_view(), name='test_protected'),
@@ -32,19 +33,11 @@ urlpatterns = [
 
     path('services/<int:pk>/', ServicesMasterDataAPIView.as_view()),  # For GET (detail), PUT, DELETE
 
-    # URL for retrieving a list of visa applications or details of a specific visa application
-    path('visa-applications/', VisaApplicationsAPIView.as_view(), name='visa-application-list'),
+    path('visa-applications/', VisaApplicationsAPIView.as_view(), name='visa-applications-list-create'),
 
-    # URL for retrieving a specific visa application by its ID
-    path('visa-applications/<int:pk>/', VisaApplicationsAPIView.as_view(), name='visa-application-detail'),
+    # Endpoint for specific visa application actions (GET, PUT, DELETE)
+    path('visa-applications/<int:pk>/', VisaApplicationDetailAPIView.as_view(), name='visa-applications-detail-update-delete'),
 
-    # URL for bulk creating visa applications (POST method)
-    path('visa-applications/bulk/', VisaApplicationsAPIView.as_view(), name='visa-application-bulk-create'),
-
-    # URL for updating an existing visa application by ID (PUT method)
-    path('visa-applications/<int:pk>/update/', VisaApplicationsAPIView.as_view(), name='visa-application-update'),
-
-    # URL for deleting a visa application by ID (DELETE method)
-    path('visa-applications/<int:pk>/delete/', VisaApplicationsAPIView.as_view(), name='visa-application-delete'),
+    path('visa-applicants/', manage_visa_applications, name='manage_visa_applications'),
 
 ]
