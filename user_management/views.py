@@ -1513,7 +1513,9 @@ def service_status(request):
             for service in item['services']:
                 service_data = {
                     'service_id': service['id'],
+                    'visa_applicant_name': item['first_name']+' '+item['last_name'],
                     'service_type': service['service_type'],
+                    'service_name': service['service_name'],
                     'comments': service.get('comments', ''),
                     'quantity': service.get('quantity', 0),
                     'date': service.get('date', ''),
