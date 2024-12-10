@@ -40,4 +40,6 @@ urlpatterns = [
 
     path('visa-applicants/', manage_visa_applications, name='manage_visa_applications'),
 
+    path('visa-clients/', get_visa_clients_users_list, name='visa_clients_list')
+
 ]

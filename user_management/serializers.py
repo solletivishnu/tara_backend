@@ -262,3 +262,19 @@ class VisaApplicationsGetSerializer(serializers.ModelSerializer):
     def get_user_mobile_number(self, obj):
         # Assuming the related User model has the mobile_number field
         return obj.user.mobile_number if obj.user else None
+
+class VisaClientUserListSerializer(serializers.ModelSerializer):
+    email = serializers.SerializerMethodField()
+    mobile_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VisaApplications
+        fields = "__all__"  # Ensure this includes any fields from `VisaApplications` needed
+
+    def get_email(self, obj):
+        # Assuming the related User model has the email field
+        return obj.user.email if obj.user else None
+
+    def get_mobile_number(self, obj):
+        # Assuming the related User model has the mobile_number field
+        return obj.user.mobile_number if obj.user else None

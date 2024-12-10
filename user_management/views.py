@@ -1245,18 +1245,40 @@ class ServicesMasterDataAPIView(APIView):
 
 
 class VisaApplicationsAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_description="Retrieve a list of all visa applications.",
         responses={
-            200: "List of visa applications retrieved successfully."
-        }
+            200: openapi.Response(description="List of visa applications retrieved successfully."),
+            403: openapi.Response(description="Unauthorized access. Only ServiceProviderAdmins can view this data."),
+        },
+        manual_parameters=[
+            openapi.Parameter(
+                'Authorization',
+                openapi.IN_HEADER,
+                description="Bearer <JWT Token>",
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
+        ],
     )
     def get(self, request):
-        visa_applications = VisaApplications.objects.all()
-        serializer = VisaApplicationsSerializer(visa_applications, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.user.user_type == "ServiceProviderAdmin":
+            # Retrieve the ID of the user who created the current user
+            created_by_id = request.user.id
+            print(created_by_id)
+
+            # Filter visa applications for the user created by the current user
+            visa_applications = VisaApplications.objects.filter(user_id=created_by_id)
+            serializer = VisaApplicationsSerializer(visa_applications, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            # If the user is not a ServiceProviderAdmin, return an unauthorized response
+            return Response(
+                {"error": "Unauthorized access. Only ServiceProviderAdmins can view this data."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
 
 class VisaApplicationDetailAPIView(APIView):
@@ -1365,5 +1387,44 @@ def manage_visa_applications(request):
 
     return Response({"error": "Invalid request. Provide either 'new_application_data' or both 'visaapplication_id' and 'services'."},
                     status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(
+    methods=['get'],
+    operation_description="Retrieve a list of all visa clients with their applications.",
+    responses={
+        200: VisaClientUserListSerializer(many=True),
+        403: "Unauthorized Access. Only Service Provider Admins can access this resource."
+    },
+    manual_parameters=[
+            openapi.Parameter(
+                'Authorization',
+                openapi.IN_HEADER,
+                description="Bearer <JWT Token>",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_visa_clients_users_list(request):
+    if request.user.user_type == "ServiceProviderAdmin":
+        # Retrieve the ID of the VisaUser created by the current ServiceProviderAdmin
+        created_by_id = request.user.id
+
+        # Get all users created by the current ServiceProviderAdmin
+        users = User.objects.filter(created_by=created_by_id)
+
+        # Retrieve and serialize all VisaApplications in one query
+        visa_applications = VisaApplications.objects.filter(user__in=users)
+
+        # Use VisaClientUserListSerializer for the serialization
+        serializer = VisaClientUserListSerializer(visa_applications, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    return Response({"error": "Unauthorized access."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
 
 
