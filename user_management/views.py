@@ -257,6 +257,7 @@ def get_conditional_schema(user_type):
             type=openapi.TYPE_STRING,
         ),
     ],
+   tags=["User Management - UsersCreation"]
 )
 @permission_classes([IsAuthenticated])
 @api_view(['POST'])
@@ -345,6 +346,7 @@ def users_creation(request):
         500: openapi.Response("Internal Server Error. Database error occurred."),
     },
     operation_description="ServiceProviderAdmin can register visa users with additional details.",
+    tags=["User Management - VisaUsersCreation"],
     manual_parameters=[
         openapi.Parameter(
             'Authorization',
@@ -760,6 +762,7 @@ class UsersKYCListView(APIView):
 
     @swagger_auto_schema(
         operation_description="List all user details.",
+        tags=["UsersKYC"],
         responses={200: UsersKYCSerializer(many=True)},  # Specify many=True for list
         manual_parameters=[
             openapi.Parameter(
@@ -777,6 +780,7 @@ class UsersKYCListView(APIView):
 
     @swagger_auto_schema(
         operation_description="Register user details (PAN, Aadhaar, ICAI number, etc.) based on user type.",
+        tags=["UsersKYC"],
         request_body=UsersKYCSerializer,
         responses={
             201: "User details saved successfully.",
@@ -840,6 +844,7 @@ class UsersKYCDetailView(APIView):
 
     @swagger_auto_schema(
         operation_description="Retrieve user details.",
+        tags=["UsersKYC"],
         manual_parameters=[
             openapi.Parameter(
                 'Authorization',
@@ -868,6 +873,7 @@ class UsersKYCDetailView(APIView):
 
     @swagger_auto_schema(
         operation_description="Update user details.",
+        tags=["UsersKYC"],
         request_body=UsersKYCSerializer,
         manual_parameters=[
             openapi.Parameter(
@@ -900,6 +906,7 @@ class UsersKYCDetailView(APIView):
 
     @swagger_auto_schema(
         operation_description="Delete user details.",
+        tags=["UsersKYC"],
         manual_parameters=[
             openapi.Parameter(
                 'Authorization',
@@ -931,6 +938,7 @@ class FirmKYCView(APIView):
 
     @swagger_auto_schema(
         operation_description="Retrieve the FirmKYC details of the authenticated user.",
+        tags=["FirmKYC"],
         responses={
             200: FirmKYCSerializer,
             404: "FirmKYC details not found."
@@ -958,6 +966,7 @@ class FirmKYCView(APIView):
 
     @swagger_auto_schema(
         operation_description="Create FirmKYC details for the authenticated user.",
+        tags=["FirmKYC"],
         request_body=FirmKYCSerializer,
         responses={
             201: "FirmKYC details created successfully.",
@@ -985,6 +994,7 @@ class FirmKYCView(APIView):
 
     @swagger_auto_schema(
         operation_description="Update FirmKYC details for the authenticated user.",
+        tags=["FirmKYC"],
         request_body=FirmKYCSerializer,
         responses={
             200: "FirmKYC details updated successfully.",
@@ -1017,6 +1027,7 @@ class FirmKYCView(APIView):
 
     @swagger_auto_schema(
         operation_description="Delete FirmKYC details for the authenticated user.",
+        tags=["FirmKYC"],
         responses={
             204: "FirmKYC details deleted successfully.",
             404: "FirmKYC details not found."
@@ -1149,30 +1160,27 @@ def partial_update_user(request):
 #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ServicesMasterDataAPIView(APIView):
+class ServicesMasterDataListAPIView(APIView):
     permission_classes = [AllowAny]
+
     @swagger_auto_schema(
-        operation_description="Retrieve a list of all services or details of a specific service by ID.",
+        operation_description="Retrieve a list of all services.",
+        tags=["ServicesMasterData"],
         responses={
-            200: "List of services retrieved successfully or service details found.",
-            404: "Service not found (for detail view)."
+            200: ServicesMasterDataSerializer(many=True),
+            404: "No services found."
         }
     )
-    def get(self, request, pk=None):
-        if pk:
-            try:
-                service = ServicesMasterData.objects.get(pk=pk)
-                serializer = ServicesMasterDataSerializer(service)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            except ServicesMasterData.DoesNotExist:
-                return Response({"error": "Service not found"}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            services = ServicesMasterData.objects.all()
-            serializer = ServicesMasterDataSerializer(services, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+    def get(self, request):
+        services = ServicesMasterData.objects.all()
+        if not services.exists():
+            return Response({"error": "No services found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = ServicesMasterDataSerializer(services, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="Bulk create or add multiple services.",
+        tags=["ServicesMasterData"],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -1207,8 +1215,29 @@ class ServicesMasterDataAPIView(APIView):
             status=status.HTTP_201_CREATED
         )
 
+
+class ServicesMasterDataDetailAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Retrieve details of a specific service by ID.",
+        tags=["ServicesMasterData"],
+        responses={
+            200: ServicesMasterDataSerializer,
+            404: "Service not found."
+        }
+    )
+    def get(self, request, pk):
+        try:
+            service = ServicesMasterData.objects.get(pk=pk)
+            serializer = ServicesMasterDataSerializer(service)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except ServicesMasterData.DoesNotExist:
+            return Response({"error": "Service not found"}, status=status.HTTP_404_NOT_FOUND)
+
     @swagger_auto_schema(
         operation_description="Update an existing service by ID.",
+        tags=["ServicesMasterData"],
         request_body=ServicesMasterDataSerializer,
         responses={
             200: "Service updated successfully.",
@@ -1230,6 +1259,7 @@ class ServicesMasterDataAPIView(APIView):
 
     @swagger_auto_schema(
         operation_description="Delete a service by ID.",
+        tags=["ServicesMasterData"],
         responses={
             204: "Service deleted successfully.",
             404: "Service not found."
@@ -1286,6 +1316,7 @@ class VisaApplicationDetailAPIView(APIView):
 
     @swagger_auto_schema(
         operation_description="Retrieve details of a specific visa application by ID.",
+        tags=["VisaApplication"],
         responses={
             200: "Visa application details retrieved successfully.",
             404: "Visa application not found."
@@ -1301,6 +1332,7 @@ class VisaApplicationDetailAPIView(APIView):
 
     @swagger_auto_schema(
         operation_description="Update an existing visa application by ID.",
+        tags=["VisaApplication"],
         request_body=VisaApplicationsSerializer,
         responses={
             200: "Visa application updated successfully.",
@@ -1322,6 +1354,7 @@ class VisaApplicationDetailAPIView(APIView):
 
     @swagger_auto_schema(
         operation_description="Delete a visa application by ID.",
+        tags=["VisaApplication"],
         responses={
             204: "Visa application deleted successfully.",
             404: "Visa application not found."
@@ -1339,6 +1372,7 @@ class VisaApplicationDetailAPIView(APIView):
 @swagger_auto_schema(
     method='post',
     operation_description="Create a new visa application or add multiple services to a visa application.",
+    tags=["VisaApplication"],
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
@@ -1391,6 +1425,7 @@ def manage_visa_applications(request):
 @swagger_auto_schema(
     methods=['get'],
     operation_description="Retrieve a list of all visa clients with their applications.",
+    tags=["VisaApplicantsList"],
     responses={
         200: VisaClientUserListSerializer(many=True),
         403: "Unauthorized Access. Only Service Provider Admins can access this resource."
@@ -1423,6 +1458,62 @@ def get_visa_clients_users_list(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     return Response({"error": "Unauthorized access."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@swagger_auto_schema(
+    methods=['get'],
+    operation_description="Retrieve a list of all visa clients with their applications and count the services based on status (progress, in progress, completed).",
+    tags=["VisaApplicantsOverallStatus"],
+    responses={
+        200: openapi.Response(
+            description="Counts of services based on status.",
+            examples={
+                "application/json": {
+                    "progress": 1,
+                    "in_progress": 0,
+                    "completed": 0
+                }
+            }
+        ),
+        403: "Unauthorized Access. Only Service Provider Admins can access this resource."
+    },
+    manual_parameters=[
+        openapi.Parameter(
+            'Authorization',
+            openapi.IN_HEADER,
+            description="Bearer <JWT Token>",
+            type=openapi.TYPE_STRING,
+        ),
+    ],
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def service_status(request):
+    if request.user.user_type == "ServiceProviderAdmin":
+        # Get all VisaApplications for the current ServiceProviderAdmin
+        created_by_id = request.user.id
+        users = User.objects.filter(created_by=created_by_id)
+        visa_applications = VisaApplications.objects.filter(user__in=users)
+
+        # Use VisaClientUserListSerializer for the serialization
+        serializer = VisaClientUserListSerializer(visa_applications, many=True)
+
+        # Initialize counters
+        counts = {'progress': 0, 'in_progress': 0, 'completed': 0}
+
+        # Calculate counts based on service status
+        for item in serializer.data:
+            for service in item['services']:
+                if service['status'] == 'created':
+                    counts['progress'] += 1
+                elif service['status'] == 'in_progress':
+                    counts['in_progress'] += 1
+                elif service['status'] == 'completed':
+                    counts['completed'] += 1
+
+        return Response(counts, status=status.HTTP_200_OK)
+
+    return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
 
 
 

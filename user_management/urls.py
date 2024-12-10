@@ -29,15 +29,17 @@ urlpatterns = [
 
     path('update-users-info', views.partial_update_user, name='partial_update_user'),
 
-    path('services/', ServicesMasterDataAPIView.as_view()),  # For GET (list) and POST
+    path('services/', ServicesMasterDataListAPIView.as_view()),  # For GET (list) and POST
 
-    path('services/<int:pk>/', ServicesMasterDataAPIView.as_view()),  # For GET (detail), PUT, DELETE
+    path('services/<int:pk>/', ServicesMasterDataDetailAPIView.as_view()),  # For GET (detail), PUT, DELETE
 
     # Endpoint for specific visa application actions (GET, PUT, DELETE)
     path('visa-applicants/<int:pk>/', VisaApplicationDetailAPIView.as_view(), name='visa-applications-detail-update-delete'),
 
     path('visa-applicants/', manage_visa_applications, name='manage_visa_applications'),
 
-    path('visa-clients/', get_visa_clients_users_list, name='visa_clients_list')
+    path('visa-clients/', get_visa_clients_users_list, name='visa_clients_list'),
+
+    path('visa-clients/dashboard-status/', service_status, name='service-status'),
 
 ]

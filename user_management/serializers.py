@@ -231,10 +231,12 @@ class ServicesMasterDataSerializer(serializers.ModelSerializer):
 class ServiceDetailsSerializer(serializers.ModelSerializer):
     service_type = serializers.PrimaryKeyRelatedField(queryset=ServicesMasterData.objects.all())
     visa_application = serializers.PrimaryKeyRelatedField(queryset=VisaApplications.objects.all(), required=True)  # Include this line
+    service_name = serializers.ReadOnlyField(source='service_type.service_name')
 
     class Meta:
         model = ServiceDetails
-        fields = ['id', 'service_type', 'date', 'status', 'comments', 'quantity', 'visa_application']  # Add 'visa_application' field
+        fields = ['id', 'service_type', 'service_name', 'date', 'status', 'comments', 'quantity',
+                  'visa_application']  # Ensure service_name is included
 
 
 
