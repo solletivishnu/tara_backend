@@ -1500,8 +1500,8 @@ def service_status(request):
 
         # Initialize counters and data containers
         counts = {
-            'progress': 0,
-            'progress_data': [],
+            'pending': 0,
+            'pending_data': [],
             'in_progress': 0,
             'in_progress_data': [],
             'completed': 0,
@@ -1521,8 +1521,8 @@ def service_status(request):
                 }
 
                 if service['status'] == 'created':
-                    counts['progress'] += 1
-                    counts['progress_data'].append(service_data)
+                    counts['pending'] += 1
+                    counts['pending_data'].append(service_data)
                 elif service['status'] == 'in_progress':
                     counts['in_progress'] += 1
                     counts['in_progress_data'].append(service_data)
