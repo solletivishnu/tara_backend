@@ -42,6 +42,8 @@ urlpatterns = [
 
     path('visa-clients/dashboard-status/', service_status, name='service-status'),
 
-    path('visa-applicants/all-tasks-data/', all_service_data, name='all_service_data')
+    path('visa-applicants/all-tasks-data/', all_service_data, name='all_service_data'),
+
+    path('service-details/<int:pk>/', ServiceDetailsAPIView.as_view(), name='service-details'),
 
 ]

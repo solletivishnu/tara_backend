@@ -47,16 +47,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Check if UserKYC is completed
         user_kyc = False
+        user_name = None
         if hasattr(user, 'userkyc'):  # Assuming `UserKYC` has a one-to-one or foreign key to `User`
             user_kyc_instance = user.userkyc
+            user_name = user_kyc_instance.name
             if user_kyc_instance.is_completed:  # Assuming `is_completed` indicates KYC completion
                 user_kyc = True
+        # Extract the date from created_on
+        created_on_date = user.date_joined.date()
 
         # Customize the response data
         data = {
             'id': user.id,
             'email': user.email,
             'mobile_number': user.mobile_number,
+            'name': user_name,
+            'created_on': created_on_date,
             'user_type': user.user_type,
             'user_kyc': user_kyc,
             'refresh': str(refresh),

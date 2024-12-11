@@ -1403,24 +1403,28 @@ class VisaApplicationDetailAPIView(APIView):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def manage_visa_applications(request):
-    visaapplication_id = request.data.get('visaapplication_id')
-    services_data = request.data.get('services', [])
-    print("****************")
+    try:
+        visaapplication_id = request.data.get('visaapplication_id')
+        services_data = request.data.get('services', [])
+        print("****************")
 
-    if visaapplication_id and services_data:
-        # Add services to an existing visa application
-        visa_application = get_object_or_404(VisaApplications, id=visaapplication_id)
-        for service in services_data:
-            service['visa_application'] = visa_application.id
-            service_serializer = ServiceDetailsSerializer(data=service)
-            if service_serializer.is_valid():
-                service_serializer.save()
-            else:
-                return Response(service_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"message": "Services added successfully."}, status=status.HTTP_201_CREATED)
+        if visaapplication_id and services_data:
+            # Add services to an existing visa application
+            visa_application = get_object_or_404(VisaApplications, id=visaapplication_id)
+            for service in services_data:
+                service['visa_application'] = visa_application.id
+                service_serializer = ServiceDetailsSerializer(data=service)
+                if service_serializer.is_valid():
+                    service_serializer.save()
+                else:
+                    return Response(service_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Services added successfully."}, status=status.HTTP_201_CREATED)
 
-    return Response({"error": "Invalid request. Provide either 'new_application_data' or both 'visaapplication_id' and 'services'."},
-                    status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Invalid request. Provide either 'new_application_data' or both 'visaapplication_id' and 'services'."},
+                        status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error processing visa applicants: {str(e)}", exc_info=True)
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @swagger_auto_schema(
     methods=['get'],
@@ -1615,3 +1619,67 @@ def all_service_data(request):
         return Response(all_services, status=status.HTTP_200_OK)
 
     return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
+
+auth_header = openapi.Parameter(
+    'Authorization',
+    in_=openapi.IN_HEADER,
+    description="Bearer <JWT Token>",
+    type=openapi.TYPE_STRING,
+    required=True
+)
+
+class ServiceDetailsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Retrieve a specific ServiceDetails instance by ID.",
+        tags=["VisaServiceTasks"],
+        manual_parameters=[auth_header],
+        responses={
+            200: ServiceDetailsSerializer(),
+            401: "Unauthorized - Missing or invalid token.",
+            404: "Service not found.",
+        },
+    )
+    def get(self, request, pk):
+        """Retrieve a specific ServiceDetails instance by ID."""
+        service = get_object_or_404(ServiceDetails, pk=pk)
+        serializer = ServiceDetailsSerializer(service)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Partially update a specific ServiceDetails instance (partial=True).",
+        tags=["VisaServiceTasks"],
+        manual_parameters=[auth_header],
+        request_body=ServiceDetailsSerializer,
+        responses={
+            200: ServiceDetailsSerializer(),
+            400: "Validation error.",
+            401: "Unauthorized - Missing or invalid token.",
+            404: "Service not found.",
+        },
+    )
+    def put(self, request, pk):
+        """Partially update a specific ServiceDetails instance (partial=True)."""
+        service = get_object_or_404(ServiceDetails, pk=pk)
+        serializer = ServiceDetailsSerializer(service, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_description="Delete a specific ServiceDetails instance by ID.",
+        tags=["VisaServiceTasks"],
+        manual_parameters=[auth_header],
+        responses={
+            204: "Service deleted successfully.",
+            401: "Unauthorized - Missing or invalid token.",
+            404: "Service not found.",
+        },
+    )
+    def delete(self, request, pk):
+        """Delete a specific ServiceDetails instance."""
+        service = get_object_or_404(ServiceDetails, pk=pk)
+        service.delete()
+        return Response({"message": "Service deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
