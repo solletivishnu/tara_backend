@@ -1536,7 +1536,82 @@ def service_status(request):
 
     return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
 
+@swagger_auto_schema(
+    method='get',
+    operation_description="Retrieve all service data irrespective of their statuses"
+                          " (pending, in-progress, completed, etc.) for "
+                          "Visa Applications under the logged-in ServiceProviderAdmin.",
+    tags=["VisaApplicantsAllTasks"],
+    responses={
+        200: openapi.Response(
+            description="A list of all services.",
+            examples={
+                "application/json": [
+                    {
+                        "service_id": 1,
+                        "service_type": "Visa Renewal",
+                        "service_name": "Renewal Service",
+                        "visa_application_name": "John Doe",
+                        "comments": "Urgent processing required",
+                        "quantity": 1,
+                        "date": "2024-12-11",
+                        "status": "in_progress"
+                    },
+                    {
+                        "service_id": 2,
+                        "service_type": "New Visa",
+                        "service_name": "New Application Service",
+                        "visa_application_name": "Jane Smith",
+                        "comments": "",
+                        "quantity": 1,
+                        "date": "2024-12-10",
+                        "status": "completed"
+                    }
+                ]
+            }
+        ),
+        403: openapi.Response("Unauthorized access."),
+    },
+    manual_parameters=[
+        openapi.Parameter(
+            'Authorization',
+            openapi.IN_HEADER,
+            description="Bearer <JWT Token>",
+            type=openapi.TYPE_STRING,
+            required=True
+        )
+    ]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def all_service_data(request):
+    if request.user.user_type == "ServiceProviderAdmin":
+        # Get all VisaApplications for the current ServiceProviderAdmin
+        created_by_id = request.user.id
+        users = User.objects.filter(created_by=created_by_id)
+        visa_applications = VisaApplications.objects.filter(user__in=users)
 
+        # Use VisaClientUserListSerializer for the serialization
+        serializer = VisaClientUserListSerializer(visa_applications, many=True)
 
+        # Initialize data container
+        all_services = []
 
+        # Collect all services data
+        for item in serializer.data:
+            for service in item['services']:
+                service_data = {
+                    'service_id': service['id'],
+                    'service_type': service['service_type'],
+                    'service_name': service['service_name'],
+                    'visa_application_name':  item['first_name']+' '+item['last_name'],  # Assuming 'user_name' holds the name of the visa applicant
+                    'comments': service.get('comments', ''),
+                    'quantity': service.get('quantity', 0),
+                    'date': service.get('date', ''),
+                    'status': service['status']
+                }
+                all_services.append(service_data)
 
+        return Response(all_services, status=status.HTTP_200_OK)
+
+    return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
