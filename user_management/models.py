@@ -171,7 +171,7 @@ class ServiceDetails(models.Model):
         ('pending', 'Pending'),
     ]
 
-    service_type = models.OneToOneField(ServicesMasterData, on_delete=models.CASCADE, related_name="service_details")
+    service_type = models.ForeignKey(ServicesMasterData, on_delete=models.CASCADE, related_name="service_details")
     date = models.DateField(default=timezone.now)
     status = models.CharField(
         max_length=40,
