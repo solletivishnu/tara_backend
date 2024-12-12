@@ -257,11 +257,11 @@ class VisaApplicationsGetSerializer(serializers.ModelSerializer):
         model = VisaApplications
         fields = "__all__"
 
-    def get_user_email(self, obj):
+    def get_email(self, obj):
         # Assuming the related User model has the email field
         return obj.user.email if obj.user else None
 
-    def get_user_mobile_number(self, obj):
+    def get_mobile_number(self, obj):
         # Assuming the related User model has the mobile_number field
         return obj.user.mobile_number if obj.user else None
 
