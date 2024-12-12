@@ -1526,7 +1526,7 @@ def service_status(request):
                     'status': service['status']
                 }
 
-                if service['status'] == 'created':
+                if service['status'] == 'pending':
                     counts['pending'] += 1
                     counts['pending_data'].append(service_data)
                 elif service['status'] == 'in_progress':
