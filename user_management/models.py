@@ -176,7 +176,7 @@ class ServiceDetails(models.Model):
     status = models.CharField(
         max_length=40,
         choices=STATUS_CHOICES,
-        default='created'
+        default='pending'
     )
     comments = models.CharField(max_length=256, blank=True, null=True)
     quantity = models.IntegerField(null=False)
