@@ -181,6 +181,7 @@ class ServiceDetails(models.Model):
     comments = models.CharField(max_length=256, blank=True, null=True)
     quantity = models.IntegerField(null=False)
     visa_application = models.ForeignKey('VisaApplications', related_name='services', on_delete=models.CASCADE)
+    last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Service for {self.visa_application.first_name} {self.visa_application.last_name}"

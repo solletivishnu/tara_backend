@@ -1604,15 +1604,32 @@ def all_service_data(request):
         # Collect all services data
         for item in serializer.data:
             for service in item['services']:
+                last_updated = service.get('last_updated', None)
+                last_updated_date = ''
+                if last_updated:
+                    try:
+                        # Parse the string to a datetime object using strptime
+                        # Assuming the format is "YYYY-MM-DDTHH:MM:SS"
+                        last_updated_date = datetime.strptime(last_updated, '%Y-%m-%dT%H:%M:%S.%fZ').date()
+                        print(last_updated_date)
+                    except ValueError as e:
+                        print(f"Error parsing last_updated: {e}")
+                        # Handle cases where the date string is invalid
+                        last_updated_date = ''
                 service_data = {
-                    'service_id': service['id'],
+                    'email': item.get('email', None),
+                    'mobile_number': item.get('mobile_number', None),
+                    'id': service['id'],
                     'service_type': service['service_type'],
                     'service_name': service['service_name'],
-                    'visa_application_name':  item['first_name']+' '+item['last_name'],  # Assuming 'user_name' holds the name of the visa applicant
+                    'first_name': item['first_name'],
+                    'last_name': item['last_name'],  # Assuming 'user_name' holds the name of the visa applicant
                     'comments': service.get('comments', ''),
                     'quantity': service.get('quantity', 0),
                     'date': service.get('date', ''),
-                    'status': service['status']
+                    'last_updated': last_updated_date,
+                    'status': service['status'],
+                    'passport': item.get('passport_number', None)
                 }
                 all_services.append(service_data)
 

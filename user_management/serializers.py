@@ -236,7 +236,7 @@ class ServiceDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceDetails
         fields = ['id', 'service_type', 'service_name', 'date', 'status', 'comments', 'quantity',
-                  'visa_application']  # Ensure service_name is included
+                  'visa_application', 'last_updated']  # Ensure service_name is included
 
 
 
@@ -250,8 +250,8 @@ class VisaApplicationsSerializer(serializers.ModelSerializer):
 
 class VisaApplicationsGetSerializer(serializers.ModelSerializer):
     services = ServiceDetailsSerializer(many=True)
-    user_email = serializers.SerializerMethodField()
-    user_mobile_number = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    mobile_number = serializers.SerializerMethodField()
 
     class Meta:
         model = VisaApplications
