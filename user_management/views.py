@@ -269,8 +269,13 @@ def users_creation(request):
     """
     if request.method != 'POST':
         return Response({"error": "Invalid HTTP method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    admin_roles = [
+        'Business_Owner', 'CA_Admin', 'Business_Admin',
+        'ServiceProvider_Owner', 'ServiceProvider_Admin',
+        'Tara_SuperAdmin', 'Tara_Admin'
+    ]
 
-    if request.user.user_type != 'Admin':
+    if request.user.user_role not in admin_roles:
         return Response(
             {'error_message': 'Unauthorized Access. Only admins can create users.', 'status_cd': 1},
             status=status.HTTP_401_UNAUTHORIZED
@@ -290,7 +295,8 @@ def users_creation(request):
             'mobile_number': mobile_number,
             'password': Autogenerate_password(),
             'created_by': request.user.id,
-            'user_type': request.data.get('user_type', '')
+            'user_type': request.data.get('user_type', ''),
+            'user_role': request.data.get('user_role', '')
         }
 
         with transaction.atomic():
@@ -367,7 +373,12 @@ def visa_users_creation(request):
     if request.method != 'POST':
         return Response({"error": "Invalid HTTP method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    if request.user.user_type != 'ServiceProviderAdmin':
+    service_provider_admin_roles = [
+        'ServiceProvider_Owner', 'ServiceProvider_Admin',
+        'Tara_SuperAdmin', 'Tara_Admin'
+    ]
+
+    if request.user.user_type not in service_provider_admin_roles:
         return Response(
             {'error_message': 'Unauthorized Access. Only ServiceProviderAdmin can create visa users.', 'status_cd': 1},
             status=status.HTTP_401_UNAUTHORIZED
@@ -388,7 +399,8 @@ def visa_users_creation(request):
             'mobile_number': mobile_number,
             'password': Autogenerate_password(),
             'created_by': request.user.id,
-            'user_type': 'VisaUser',
+            'user_type': 'ServiceProvider',
+            'user_role': 'Individual_User'
         }
 
         with transaction.atomic():
@@ -1420,7 +1432,8 @@ def manage_visa_applications(request):
                     return Response(service_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             return Response({"message": "Services added successfully."}, status=status.HTTP_201_CREATED)
 
-        return Response({"error": "Invalid request. Provide either 'new_application_data' or both 'visaapplication_id' and 'services'."},
+        return Response({"error": "Invalid request. Provide either 'new_application_data' or "
+                                  "both 'visaapplication_id' and 'services'."},
                         status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.error(f"Error processing visa applicants: {str(e)}", exc_info=True)
@@ -1446,7 +1459,7 @@ def manage_visa_applications(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_visa_clients_users_list(request):
-    if request.user.user_type == "ServiceProviderAdmin":
+    if request.user.user_role == "ServiceProvider_Admin":
         # Retrieve the ID of the VisaUser created by the current ServiceProviderAdmin
         created_by_id = request.user.id
 
@@ -1466,7 +1479,8 @@ def get_visa_clients_users_list(request):
 
 @swagger_auto_schema(
     methods=['get'],
-    operation_description="Retrieve a list of all visa clients with their applications and count the services based on status (progress, in progress, completed).",
+    operation_description="Retrieve a list of all visa clients with their applications and "
+                          "count the services based on status (progress, in progress, completed).",
     tags=["VisaApplicantsOverallStatus"],
     responses={
         200: openapi.Response(
@@ -1493,7 +1507,7 @@ def get_visa_clients_users_list(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def service_status(request):
-    if request.user.user_type == "ServiceProviderAdmin":
+    if request.user.user_role == "ServiceProvider_Admin":
         # Get all VisaApplications for the current ServiceProviderAdmin
         created_by_id = request.user.id
         users = User.objects.filter(created_by=created_by_id)
@@ -1589,7 +1603,7 @@ def service_status(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def all_service_data(request):
-    if request.user.user_type == "ServiceProviderAdmin":
+    if request.user.user_role == "ServiceProvider_Admin":
         # Get all VisaApplications for the current ServiceProviderAdmin
         created_by_id = request.user.id
         users = User.objects.filter(created_by=created_by_id)

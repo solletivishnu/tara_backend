@@ -13,10 +13,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     mobile_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
     user_type = serializers.CharField(required=False, allow_null=True)
+    user_role = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ('email', 'mobile_number', 'password', 'created_by', 'user_type')
+        fields = ('email', 'mobile_number', 'password', 'created_by', 'user_type', 'user_role')
 
     def validate(self, attrs):
         email = attrs.get('email')
@@ -45,13 +46,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         mobile_number = validated_data.get('mobile_number', None)
         password = validated_data.get('password')
         user_type = validated_data.get('user_type', None)
+        user_role = validated_data.get('user_role', None)
 
         # Create the user with the provided data
         user = User.objects.create_user(
             email=email,
             password=password,
             mobile_number=mobile_number,
-            user_type =user_type
+            user_type=user_type,
+            user_role=user_role
         )
 
         # Assign created_by to the user

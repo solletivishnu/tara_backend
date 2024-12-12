@@ -75,15 +75,35 @@ class AddressModel(models.Model):
         abstract = True
 
 
+USER_ROLE_CHOICES = [
+    ('CA_Admin', 'CA Admin'),
+    ('CA_Partner', 'CA Partner'),
+    ('CA_Manager', 'CA Manager'),
+    ('CA_Employee', 'CA Employee'),
+    ('Individual_User', 'Individual User'),
+    ('Business_Owner', 'Business Owner'),
+    ('Business_Admin', 'Business Admin'),
+    ('Business_Team Owner', 'Business Team Owner'),
+    ('Business_Employee', 'Business Employee'),
+    ('Business_TeamAssociate', 'Business Team Associate'),
+    ('ServiceProvider_Owner', 'Service Provider Owner'),
+    ('ServiceProvider_Admin', 'Service Provider Admin'),
+    ('ServiceProvider_Employee', 'Service Provider Employee'),
+    ('Tara_SuperAdmin', 'Tara Super Admin'),
+    ('Tara_Admin', 'Tara Admin'),
+    ('Tara_Editor', 'Tara Editor'),
+    ('Tara_Developer', 'Tara Developer'),
+    ('Tara_Tester', 'Tara Tester'),
+]
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     USER_TYPE_CHOICES = [
-        ('individual', 'Individual'),
-        ('cafirm', 'Chartered Accountant Firm'),
-        ('business', 'Business/Corporate'),
-        ('service_provider', 'ServiceProvider'),
-        ('service_provider_admin', 'ServiceProviderAdmin')
+        ('Individual', 'Individual'),
+        ('CA', 'Chartered Accountant Firm'),
+        ('Business', 'Business/Corporate'),
+        ('ServiceProvider', 'ServiceProvider')
     ]
-
     email_or_mobile = models.CharField(max_length=120, unique=True, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     mobile_number = models.CharField(max_length=15, null=True, blank=True)
@@ -93,6 +113,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     user_type = models.CharField(
         max_length=40,
         choices=USER_TYPE_CHOICES,
+        default=None,  # Default value set to None
+        null=True,  # Allows storing NULL in the database
+        blank=True  # Allows leaving the field blank in forms
+    )
+    user_role = models.CharField(
+        max_length=40,
+        choices=USER_ROLE_CHOICES,
         default=None,  # Default value set to None
         null=True,  # Allows storing NULL in the database
         blank=True  # Allows leaving the field blank in forms

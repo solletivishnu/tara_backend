@@ -69,6 +69,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'name': user_name,
             'created_on': created_on_date,
             'user_type': user.user_type,
+            'user_role': user.user_role,
             'user_kyc': user_kyc,
             'refresh': str(refresh),
             'access': str(refresh.access_token),
