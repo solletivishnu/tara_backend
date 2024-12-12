@@ -235,11 +235,18 @@ class ServiceDetailsSerializer(serializers.ModelSerializer):
     service_type = serializers.PrimaryKeyRelatedField(queryset=ServicesMasterData.objects.all())
     visa_application = serializers.PrimaryKeyRelatedField(queryset=VisaApplications.objects.all(), required=True)  # Include this line
     service_name = serializers.ReadOnlyField(source='service_type.service_name')
+    last_updated_date = serializers.SerializerMethodField()
 
     class Meta:
         model = ServiceDetails
         fields = ['id', 'service_type', 'service_name', 'date', 'status', 'comments', 'quantity',
-                  'visa_application', 'last_updated']  # Ensure service_name is included
+                  'visa_application', 'last_updated_date']  # Ensure service_name is included
+
+    def get_last_updated_date(self, obj):
+        if obj.last_updated:
+            # Get only the date part from the datetime field
+            return obj.last_updated.date()
+        return None
 
 
 

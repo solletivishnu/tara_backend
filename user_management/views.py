@@ -1416,6 +1416,15 @@ class VisaApplicationDetailAPIView(APIView):
 @permission_classes([AllowAny])
 def manage_visa_applications(request):
     try:
+        if request.user.user_role not in ["ServiceProvider_Admin",
+                                          "Individual_User"] or request.user.user_type != "ServiceProvider":
+            return Response(
+                {
+                    'error_message': 'Unauthorized Access. Only Service Providers with specific roles (ServiceProvider_Admin, Individual_User) can add visa users.',
+                    'status_cd': 1},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         visaapplication_id = request.data.get('visaapplication_id')
         services_data = request.data.get('services', [])
         print("****************")
@@ -1459,22 +1468,41 @@ def manage_visa_applications(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_visa_clients_users_list(request):
-    if request.user.user_role == "ServiceProvider_Admin":
-        # Retrieve the ID of the VisaUser created by the current ServiceProviderAdmin
-        created_by_id = request.user.id
+    try:
+        # Check if the user is a ServiceProvider_Admin with the correct type
+        if request.user.user_role == "ServiceProvider_Admin" and request.user.user_type == "ServiceProvider":
+            # Get all users created by the current ServiceProviderAdmin
+            created_by_id = request.user.id
+            users = User.objects.filter(created_by=created_by_id)
 
-        # Get all users created by the current ServiceProviderAdmin
-        users = User.objects.filter(created_by=created_by_id)
+            # Retrieve and serialize VisaApplications for these users
+            visa_applications = VisaApplications.objects.filter(user__in=users)
+            serializer = VisaClientUserListSerializer(visa_applications, many=True)
 
-        # Retrieve and serialize all VisaApplications in one query
-        visa_applications = VisaApplications.objects.filter(user__in=users)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
-        # Use VisaClientUserListSerializer for the serialization
-        serializer = VisaClientUserListSerializer(visa_applications, many=True)
+        # Check if the user is an Individual_User with the ServiceProvider type
+        elif request.user.user_role == "Individual_User" and request.user.user_type == "ServiceProvider":
+            visa_applications = VisaApplications.objects.filter(user=request.user)
+            serializer = VisaClientUserListSerializer(visa_applications, many=True)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
-    return Response({"error": "Unauthorized access."}, status=status.HTTP_400_BAD_REQUEST)
+        # If the user is unauthorized
+        return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
+
+    except User.DoesNotExist:
+        # User not found
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    except VisaApplications.DoesNotExist:
+        # Visa applications not found
+        return Response({"error": "No visa applications found."}, status=status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
+        # Catch any other unexpected errors
+        return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 @swagger_auto_schema(
@@ -1507,52 +1535,118 @@ def get_visa_clients_users_list(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def service_status(request):
-    if request.user.user_role == "ServiceProvider_Admin":
-        # Get all VisaApplications for the current ServiceProviderAdmin
-        created_by_id = request.user.id
-        users = User.objects.filter(created_by=created_by_id)
-        visa_applications = VisaApplications.objects.filter(user__in=users)
+    try:
+        # Check if the user has the appropriate role and type
+        if request.user.user_role in ["ServiceProvider_Admin", "Individual_User"] and request.user.user_type == "ServiceProvider":
+            # Determine the users and VisaApplications based on the role
+            if request.user.user_role == "ServiceProvider_Admin":
+                created_by_id = request.user.id
+                users = User.objects.filter(created_by=created_by_id)
+                visa_applications = VisaApplications.objects.filter(user__in=users)
+            elif request.user.user_role == "Individual_User":
+                visa_applications = VisaApplications.objects.filter(user=request.user)
 
-        # Use VisaClientUserListSerializer for the serialization
-        serializer = VisaClientUserListSerializer(visa_applications, many=True)
+            # Serialize the VisaApplications data
+            serializer = VisaClientUserListSerializer(visa_applications, many=True)
 
-        # Initialize counters and data containers
-        counts = {
-            'pending': 0,
-            'pending_data': [],
-            'in_progress': 0,
-            'in_progress_data': [],
-            'completed': 0,
-            'completed_data': []
-        }
+            # Initialize counters and data containers
+            counts = {
+                'pending': 0,
+                'pending_data': [],
+                'in_progress': 0,
+                'in_progress_data': [],
+                'completed': 0,
+                'completed_data': []
+            }
 
-        # Calculate counts and organize data
-        for item in serializer.data:
-            for service in item['services']:
+            # Process each serialized item
+            for item in serializer.data:
+                for service in item['services']:
+                    service_data = {
+                        'service_id': service['id'],
+                        'visa_applicant_name': item['first_name'] + ' ' + item['last_name'],
+                        'service_type': service['service_type'],
+                        'service_name': service['service_name'],
+                        'comments': service.get('comments', ''),
+                        'quantity': service.get('quantity', 0),
+                        'date': service.get('date', ''),
+                        'status': service['status']
+                    }
+
+                    # Categorize based on the service status
+                    if service['status'] == 'pending':
+                        counts['pending'] += 1
+                        counts['pending_data'].append(service_data)
+                    elif service['status'] == 'in_progress':
+                        counts['in_progress'] += 1
+                        counts['in_progress_data'].append(service_data)
+                    elif service['status'] == 'completed':
+                        counts['completed'] += 1
+                        counts['completed_data'].append(service_data)
+
+            return Response(counts, status=status.HTTP_200_OK)
+
+        # If user is unauthorized
+        return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
+
+    except User.DoesNotExist:
+        # Handle the case where the user is not found
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    except VisaApplications.DoesNotExist:
+        # Handle the case where visa applications are not found
+        return Response({"error": "No visa applications found."}, status=status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
+        # Handle other unexpected errors
+        return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def parse_last_updated_date(last_updated):
+    """
+    Helper function to parse the last_updated field.
+    """
+    try:
+        # Parse the string to a datetime object using strptime
+        return datetime.strptime(last_updated, '%Y-%m-%dT%H:%M:%S.%fZ').date()
+    except (ValueError, TypeError) as e:
+        logger.error(f"Error parsing last_updated: {e}")
+        # Return an empty string if the date parsing fails
+        return ''
+
+
+def collect_service_data(serializer_data):
+    """
+    Helper function to collect and format service data.
+    """
+    all_services = []
+    for item in serializer_data:
+        for service in item['services']:
+            try:
+                last_updated_date = parse_last_updated_date(service.get('last_updated'))
                 service_data = {
-                    'service_id': service['id'],
-                    'visa_applicant_name': item['first_name']+' '+item['last_name'],
+                    'email': item.get('email'),
+                    'mobile_number': item.get('mobile_number'),
+                    'id': service['id'],
                     'service_type': service['service_type'],
                     'service_name': service['service_name'],
+                    'first_name': item['first_name'],
+                    'last_name': item['last_name'],
                     'comments': service.get('comments', ''),
                     'quantity': service.get('quantity', 0),
                     'date': service.get('date', ''),
-                    'status': service['status']
+                    'last_updated': last_updated_date,
+                    'status': service['status'],
+                    'passport': item.get('passport_number'),
                 }
-
-                if service['status'] == 'pending':
-                    counts['pending'] += 1
-                    counts['pending_data'].append(service_data)
-                elif service['status'] == 'in_progress':
-                    counts['in_progress'] += 1
-                    counts['in_progress_data'].append(service_data)
-                elif service['status'] == 'completed':
-                    counts['completed'] += 1
-                    counts['completed_data'].append(service_data)
-
-        return Response(counts, status=status.HTTP_200_OK)
-
-    return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
+                all_services.append(service_data)
+            except KeyError as e:
+                logger.error(f"Missing key in service data: {e}")
+                return {"error": f"Missing key in service data: {e}"}, False
+            except Exception as e:
+                logger.error(f"Unexpected error while processing service data: {e}")
+                return {"error": f"Unexpected error: {e}"}, False
+    return all_services, True
 
 @swagger_auto_schema(
     method='get',
@@ -1603,53 +1697,43 @@ def service_status(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def all_service_data(request):
-    if request.user.user_role == "ServiceProvider_Admin":
-        # Get all VisaApplications for the current ServiceProviderAdmin
-        created_by_id = request.user.id
-        users = User.objects.filter(created_by=created_by_id)
-        visa_applications = VisaApplications.objects.filter(user__in=users)
+    user_role = request.user.user_role
 
-        # Use VisaClientUserListSerializer for the serialization
+    try:
+        if user_role == "ServiceProvider_Admin":
+            # Get all VisaApplications for the current ServiceProviderAdmin
+            created_by_id = request.user.id
+            users = User.objects.filter(created_by=created_by_id)
+            visa_applications = VisaApplications.objects.filter(user__in=users)
+
+        elif user_role == "Individual_User":
+            # Get all VisaApplications for the current Individual User
+            user_id = request.user.id
+            visa_applications = VisaApplications.objects.filter(user=user_id)
+
+        else:
+            return Response(
+                {"error": "Unauthorized access."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Serialize the data
         serializer = VisaClientUserListSerializer(visa_applications, many=True)
 
-        # Initialize data container
-        all_services = []
-
-        # Collect all services data
-        for item in serializer.data:
-            for service in item['services']:
-                last_updated = service.get('last_updated', None)
-                last_updated_date = ''
-                if last_updated:
-                    try:
-                        # Parse the string to a datetime object using strptime
-                        # Assuming the format is "YYYY-MM-DDTHH:MM:SS"
-                        last_updated_date = datetime.strptime(last_updated, '%Y-%m-%dT%H:%M:%S.%fZ').date()
-                        print(last_updated_date)
-                    except ValueError as e:
-                        print(f"Error parsing last_updated: {e}")
-                        # Handle cases where the date string is invalid
-                        last_updated_date = ''
-                service_data = {
-                    'email': item.get('email', None),
-                    'mobile_number': item.get('mobile_number', None),
-                    'id': service['id'],
-                    'service_type': service['service_type'],
-                    'service_name': service['service_name'],
-                    'first_name': item['first_name'],
-                    'last_name': item['last_name'],  # Assuming 'user_name' holds the name of the visa applicant
-                    'comments': service.get('comments', ''),
-                    'quantity': service.get('quantity', 0),
-                    'date': service.get('date', ''),
-                    'last_updated': last_updated_date,
-                    'status': service['status'],
-                    'passport': item.get('passport_number', None)
-                }
-                all_services.append(service_data)
+        # Collect and format all services data
+        all_services, success = collect_service_data(serializer.data)
+        if not success:
+            return Response(all_services, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(all_services, status=status.HTTP_200_OK)
 
-    return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
+    except Exception as e:
+        logger.error(f"Unexpected error in all_service_data: {e}")
+        return Response(
+            {"error": f"An unexpected error occurred: {e}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
 
 auth_header = openapi.Parameter(
     'Authorization',
@@ -1661,6 +1745,15 @@ auth_header = openapi.Parameter(
 
 class ServiceDetailsAPIView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def has_permission(self, user):
+        """
+        Check if the user has the required role and type.
+        """
+        return (
+                user.user_role in ['ServiceProvider_Admin', 'Individual_User'] and
+                user.user_type == 'ServiceProvider'
+        )
 
     @swagger_auto_schema(
         operation_description="Retrieve a specific ServiceDetails instance by ID.",
@@ -1674,6 +1767,11 @@ class ServiceDetailsAPIView(APIView):
     )
     def get(self, request, pk):
         """Retrieve a specific ServiceDetails instance by ID."""
+        if not self.has_permission(request.user):
+            return Response(
+                {"error": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         service = get_object_or_404(ServiceDetails, pk=pk)
         serializer = ServiceDetailsSerializer(service)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1692,6 +1790,11 @@ class ServiceDetailsAPIView(APIView):
     )
     def put(self, request, pk):
         """Partially update a specific ServiceDetails instance (partial=True)."""
+        if not self.has_permission(request.user):
+            return Response(
+                {"error": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         service = get_object_or_404(ServiceDetails, pk=pk)
         serializer = ServiceDetailsSerializer(service, data=request.data, partial=True)
         if serializer.is_valid():
@@ -1711,6 +1814,11 @@ class ServiceDetailsAPIView(APIView):
     )
     def delete(self, request, pk):
         """Delete a specific ServiceDetails instance."""
+        if not self.has_permission(request.user):
+            return Response(
+                {"error": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         service = get_object_or_404(ServiceDetails, pk=pk)
         service.delete()
         return Response({"message": "Service deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
