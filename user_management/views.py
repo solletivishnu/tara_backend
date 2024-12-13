@@ -1613,19 +1613,29 @@ def get_visa_clients_users_list(request):
                     "user": visa_app['user'],
                 }
 
-            # Add the service details for the current visa application
+            # Check if services list is empty
             services = visa_app['services']
-            for service in services:
-                user_data_map[user]["services"].append({
-                    "id": service['id'],
-                    "service_type": service['service_type'],
-                    "service_name": service['service_name'],
-                    "date": service['date'],
-                    "status": service['status'],
-                    "comments": service['comments'],
-                    "quantity": service['quantity'],
-                    "visa_application": visa_app['id'],
-                    "last_updated_date": service['last_updated_date'],
+            if len(services) > 0:
+                for service in services:
+                    user_data_map[user]["services"].append({
+                        "id": service['id'],
+                        "service_type": service['service_type'],
+                        "service_name": service['service_name'],
+                        "date": service['date'],
+                        "status": service['status'],
+                        "comments": service['comments'],
+                        "quantity": service['quantity'],
+                        "visa_application": visa_app['id'],
+                        "last_updated_date": service['last_updated_date'],
+                        "passport_number": visa_app['passport_number'],
+                        "purpose": visa_app['purpose'],
+                        "visa_type": visa_app['visa_type'],
+                        "destination_country": visa_app['destination_country'],
+                        'user_id': visa_app['user']
+                    })
+            else:
+                # If no services, add specific fields directly to user data
+                user_data_map[user].update({
                     "passport_number": visa_app['passport_number'],
                     "purpose": visa_app['purpose'],
                     "visa_type": visa_app['visa_type'],
@@ -1646,6 +1656,7 @@ def get_visa_clients_users_list(request):
 
     except Exception as e:
         return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
