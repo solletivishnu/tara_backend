@@ -14,10 +14,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
     user_type = serializers.CharField(required=False, allow_null=True)
     user_role = serializers.CharField(required=False, allow_null=True)
+    first_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ('email', 'mobile_number', 'password', 'created_by', 'user_type', 'user_role')
+        fields = ('email', 'mobile_number', 'password', 'created_by', 'user_type',
+                  'user_role', 'first_name', 'last_name')
 
     def validate(self, attrs):
         email = attrs.get('email')
@@ -47,6 +50,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         password = validated_data.get('password')
         user_type = validated_data.get('user_type', None)
         user_role = validated_data.get('user_role', None)
+        first_name = validated_data.get('first_name', '')
+        last_name = validated_data.get('last_name', '')
 
         # Create the user with the provided data
         user = User.objects.create_user(
@@ -54,7 +59,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=password,
             mobile_number=mobile_number,
             user_type=user_type,
-            user_role=user_role
+            user_role=user_role,
+            first_name=first_name,
+            last_name=last_name
         )
 
         # Assign created_by to the user
@@ -297,6 +304,9 @@ class VisaClientUserListSerializer(serializers.ModelSerializer):
     services = ServiceDetailsSerializer(many=True)
     email = serializers.SerializerMethodField()
     mobile_number = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
 
     class Meta:
         model = VisaApplications
@@ -309,3 +319,15 @@ class VisaClientUserListSerializer(serializers.ModelSerializer):
     def get_mobile_number(self, obj):
         # Assuming the related User model has the mobile_number field
         return obj.user.mobile_number if obj.user else None
+
+    def get_first_name(self, obj):
+        # Assuming the related User model has the email field
+        return obj.user.first_name if obj.user else None
+
+    def get_last_name(self, obj):
+        # Assuming the related User model has the mobile_number field
+        return obj.user.last_name if obj.user else None
+
+    def get_user(self, obj):
+        # Assuming the related User model has the mobile_number field
+        return obj.user.id if obj.user else None

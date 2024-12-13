@@ -25,6 +25,17 @@ class EncryptedField(models.Field):
             return None
         return self.cipher.decrypt(value.encode()).decode()
 
+    def to_python(self, value):
+        """Override to decrypt data when deserializing from the database"""
+        if value is None:
+            return None
+        try:
+            decrypted_value = self.cipher.decrypt(value.encode()).decode()
+            return decrypted_value
+        except Exception as e:
+            print(f"Decryption failed with error: {str(e)}")
+            return None
+
 
 class CustomAccountManager(BaseUserManager):
     def create_user(self, email=None, password=None, mobile_number=None, created_by=None, **extra_fields):
@@ -107,6 +118,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     email_or_mobile = models.CharField(max_length=120, unique=True, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     mobile_number = models.CharField(max_length=15, null=True, blank=True)
+    first_name = models.CharField(max_length=40, null=True, blank=True)
+    last_name = models.CharField(max_length=40, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
     otp = models.IntegerField(null=True)
@@ -216,15 +229,13 @@ class ServiceDetails(models.Model):
 
 class VisaApplications(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="visa_applications")
-    first_name = models.CharField(max_length=40)
-    last_name = models.CharField(max_length=40)
-    passport_number = EncryptedField(max_length=20, blank=True, null=True)
+    passport_number = models.CharField(max_length=20, blank=True, null=True)
     purpose = models.CharField(max_length=20, blank=True, null=True)
     visa_type = models.CharField(max_length=15, blank=True, null=True)
     destination_country = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:
-        unique_together = ("purpose", "visa_type", "destination_country")
+        unique_together = ("purpose", "visa_type", "destination_country", "passport_number")
 
     def __str__(self):
         return f"{self.user.email} - {self.visa_type}"

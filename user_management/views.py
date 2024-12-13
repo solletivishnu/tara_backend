@@ -378,7 +378,7 @@ def visa_users_creation(request):
         'Tara_SuperAdmin', 'Tara_Admin'
     ]
 
-    if request.user.user_type not in service_provider_admin_roles:
+    if request.user.user_role not in service_provider_admin_roles:
         return Response(
             {'error_message': 'Unauthorized Access. Only ServiceProviderAdmin can create visa users.', 'status_cd': 1},
             status=status.HTTP_401_UNAUTHORIZED
@@ -400,7 +400,9 @@ def visa_users_creation(request):
             'password': Autogenerate_password(),
             'created_by': request.user.id,
             'user_type': 'ServiceProvider',
-            'user_role': 'Individual_User'
+            'user_role': 'Individual_User',
+            'first_name': request.data.get('first_name'),
+            'last_name': request.data.get('last_name'),
         }
 
         with transaction.atomic():
@@ -413,8 +415,6 @@ def visa_users_creation(request):
 
             # Step 2: Create visa application details
             visa_applications_data = {
-                'first_name': request.data.get('first_name'),
-                'last_name': request.data.get('last_name'),
                 'passport_number': request.data.get('passport_number'),
                 'purpose': request.data.get('purpose'),
                 'visa_type': request.data.get('visa_type'),
@@ -1383,55 +1383,158 @@ class VisaApplicationDetailAPIView(APIView):
 
 @swagger_auto_schema(
     method='post',
-    operation_description="Create a new visa application or add multiple services to a visa application.",
+    operation_description="Create a new visa application or add multiple services to an existing visa application.",
     tags=["VisaApplication"],
+    manual_parameters=[
+        openapi.Parameter(
+            'Authorization',
+            openapi.IN_HEADER,
+            description="Bearer <JWT Token>",
+            type=openapi.TYPE_STRING,
+            required=True,  # Mark as required
+        ),
+    ],
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
-            'visaapplication_id': openapi.Schema(
+            'user_id': openapi.Schema(
                 type=openapi.TYPE_INTEGER,
-                description="ID of the existing visa application to add services to (optional)."
+                description="ID of the user creating the visa application (required for creating a new visa application)."
+            ),
+            'passport_number': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description="Passport number of the applicant (required for creating a new visa application)."
+            ),
+            'purpose': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description="Purpose of the visa application (required for creating a new visa application)."
+            ),
+            'visa_type': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description="Type of visa (required for creating a new visa application)."
+            ),
+            'destination_country': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description="Destination country for the visa application (required for creating a new visa application)."
             ),
             'services': openapi.Schema(
                 type=openapi.TYPE_ARRAY,
                 items=openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'service_type': openapi.Schema(type=openapi.TYPE_INTEGER, description="Type of the service."),
-                        'comments': openapi.Schema(type=openapi.TYPE_STRING, description="Comments about the service."),
-                        'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description="Quantity of the service.")
-                    }
+                        'service_type': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description="Type of the service (e.g., Visa Stamping, Processing)."
+                        ),
+                        'comments': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description="Comments or additional information about the service."
+                        ),
+                        'quantity': openapi.Schema(
+                            type=openapi.TYPE_INTEGER,
+                            description="Quantity of the service."
+                        )
+                    },
+                    required=['service_type', 'quantity']  # Required properties for each service
                 ),
-                description="List of services to add (required if adding services)."
+                description="List of services to add to the visa application (optional)."
             )
         },
-        required=['visaapplication_id', 'services']  # Only these should be provided
+        required=['user_id', 'passport_number', 'purpose', 'visa_type', 'destination_country'],  # Mandatory fields for new visa application
     ),
     responses={
-        201: "New visa application or services added successfully.",
-        400: "Invalid data provided."
+        201: openapi.Response(
+            description="Successfully created a new visa application or added services.",
+            examples={
+                "application/json": {
+                    "message": "Visa application and services added successfully."
+                }
+            }
+        ),
+        400: openapi.Response(
+            description="Invalid data provided.",
+            examples={
+                "application/json": {
+                    "error": "Missing required fields. Provide 'user_id', 'passport_number', 'purpose', 'visa_type', and 'destination_country'."
+                }
+            }
+        ),
+        401: openapi.Response(
+            description="Unauthorized access.",
+            examples={
+                "application/json": {
+                    "error_message": "Unauthorized Access. Only Service Providers with roles (ServiceProvider_Admin, Individual_User) can add visa users.",
+                    "status_cd": 1
+                }
+            }
+        ),
+        500: openapi.Response(
+            description="Internal server error.",
+            examples={
+                "application/json": {
+                    "error": "An internal error occurred. Please try again later."
+                }
+            }
+        )
     }
 )
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def manage_visa_applications(request):
     try:
-        if request.user.user_role not in ["ServiceProvider_Admin",
-                                          "Individual_User"] or request.user.user_type != "ServiceProvider":
+        # Authorization check
+        if request.user.user_role not in ["ServiceProvider_Admin", "Individual_User"] or request.user.user_type != "ServiceProvider":
             return Response(
                 {
-                    'error_message': 'Unauthorized Access. Only Service Providers with specific roles (ServiceProvider_Admin, Individual_User) can add visa users.',
-                    'status_cd': 1},
+                    'error_message': 'Unauthorized Access. Only Service Providers with roles '
+                                     '(ServiceProvider_Admin, Individual_User) can add visa users.',
+                    'status_cd': 1
+                },
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        visaapplication_id = request.data.get('visaapplication_id')
-        services_data = request.data.get('services', [])
-        print("****************")
+        # Extract required fields from request data
+        user_id = request.data.get('user_id')
+        passport_number = request.data.get('passport_number')
+        purpose = request.data.get('purpose')
+        visa_type = request.data.get('visa_type')
+        destination_country = request.data.get('destination_country')
 
-        if visaapplication_id and services_data:
-            # Add services to an existing visa application
-            visa_application = get_object_or_404(VisaApplications, id=visaapplication_id)
+
+        # Validate required fields
+        if not all([user_id, passport_number, purpose, visa_type, destination_country]):
+            return Response(
+                {"error": "Missing required fields. Provide 'user_id', 'passport_number', "
+                          "'purpose', 'visa_type', and 'destination_country'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if the visa application already exists
+        visa_applications = VisaApplications.objects.filter(
+            visa_type=visa_type, user_id=user_id, purpose=purpose, destination_country=destination_country,
+            passport_number=passport_number
+        )
+        if visa_applications.exists():
+            visa_application = visa_applications.first()
+        else:
+            # Create a new visa application
+            visa_data = {
+                'user': user_id,
+                'passport_number': passport_number,
+                'purpose': purpose,
+                'visa_type': visa_type,
+                'destination_country': destination_country
+            }
+            visa_serializer = VisaApplicationsSerializer(data=visa_data)
+            if visa_serializer.is_valid():
+                visa_serializer.save()
+                visa_application = VisaApplications.objects.get(id=visa_serializer.data['id'])
+            else:
+                return Response(visa_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Process services data
+        services_data = request.data.get('services', [])
+        if services_data:
             for service in services_data:
                 service['visa_application'] = visa_application.id
                 service_serializer = ServiceDetailsSerializer(data=service)
@@ -1439,14 +1542,19 @@ def manage_visa_applications(request):
                     service_serializer.save()
                 else:
                     return Response(service_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            return Response({"message": "Services added successfully."}, status=status.HTTP_201_CREATED)
 
-        return Response({"error": "Invalid request. Provide either 'new_application_data' or "
-                                  "both 'visaapplication_id' and 'services'."},
-                        status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Visa application and services added successfully."}, status=status.HTTP_201_CREATED)
+
+        return Response(
+            {"error": "No services provided. Provide 'services' data to add to the visa application."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     except Exception as e:
-        logger.error(f"Error processing visa applicants: {str(e)}", exc_info=True)
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.error(f"Error managing visa applications: {str(e)}", exc_info=True)
+        return Response({"error": "An internal error occurred. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 @swagger_auto_schema(
     methods=['get'],
@@ -1570,7 +1678,12 @@ def service_status(request):
                         'comments': service.get('comments', ''),
                         'quantity': service.get('quantity', 0),
                         'date': service.get('date', ''),
-                        'status': service['status']
+                        'status': service['status'],
+                        'passport_number': item.get('passport_number'),
+                        'visa_type': item.get('visa_type'),
+                        'destination_country': item.get('destination_country'),
+                        'purpose': item.get('purpose'),
+                        'user': item.get('user')
                     }
 
                     # Categorize based on the service status
@@ -1627,6 +1740,10 @@ def collect_service_data(serializer_data):
                 service_data = {
                     'email': item.get('email'),
                     'mobile_number': item.get('mobile_number'),
+                    'passport_number': item.get('passport_number'),
+                    'visa_type': item.get('visa_type'),
+                    'destination_country': item.get('destination_country'),
+                    'purpose': item.get('purpose'),
                     'id': service['id'],
                     'service_type': service['service_type'],
                     'service_name': service['service_name'],
@@ -1638,6 +1755,7 @@ def collect_service_data(serializer_data):
                     'last_updated': last_updated_date,
                     'status': service['status'],
                     'passport': item.get('passport_number'),
+                    'user': item.get('user')
                 }
                 all_services.append(service_data)
             except KeyError as e:
@@ -1776,11 +1894,42 @@ class ServiceDetailsAPIView(APIView):
         serializer = ServiceDetailsSerializer(service)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    request_body = openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'visa_application': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'user': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'passport_number': openapi.Schema(type=openapi.TYPE_STRING),
+                    'purpose': openapi.Schema(type=openapi.TYPE_STRING),
+                    'visa_type': openapi.Schema(type=openapi.TYPE_STRING),
+                    'destination_country': openapi.Schema(type=openapi.TYPE_STRING)
+                },
+                required=['user', 'passport_number', 'purpose', 'visa_type', 'destination_country']
+            ),
+            'service': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'service_type_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'date': openapi.Schema(type=openapi.FORMAT_DATETIME),
+                    'status': openapi.Schema(type=openapi.TYPE_STRING),
+                    'comments': openapi.Schema(type=openapi.TYPE_STRING),
+                    'quantity': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'last_updated': openapi.Schema(type=openapi.FORMAT_DATETIME),
+                },
+                required=['id', 'service_type_id', 'date', 'status', 'comments', 'quantity', 'last_updated']
+            ),
+        },
+        required=['visa_application', 'service']
+    )
+
     @swagger_auto_schema(
         operation_description="Partially update a specific ServiceDetails instance (partial=True).",
         tags=["VisaServiceTasks"],
         manual_parameters=[auth_header],
-        request_body=ServiceDetailsSerializer,
+        request_body=request_body,
         responses={
             200: ServiceDetailsSerializer(),
             400: "Validation error.",
@@ -1796,7 +1945,37 @@ class ServiceDetailsAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
         service = get_object_or_404(ServiceDetails, pk=pk)
-        serializer = ServiceDetailsSerializer(service, data=request.data, partial=True)
+        service = ServiceDetails.objects.get(id=pk)
+
+        visa_data = request.data.get('visa_application', {})
+        # Check if the VisaApplication exists
+        user_id = visa_data.get('user')
+        passport_number= visa_data.get('passport_number')
+        purpose= visa_data.get('purpose')
+        visa_type = visa_data.get('visa_type')
+        destination_country = visa_data.get('destination_country')
+        visa_application = VisaApplications.objects.filter(
+            user_id=visa_data.get('user'),
+            passport_number=visa_data.get('passport_number'),
+            purpose=visa_data.get('purpose'),
+            visa_type=visa_data.get('visa_type'),
+            destination_country=visa_data.get('destination_country')
+        ).first()
+        if visa_application:
+            # Update existing VisaApplication with provided data
+            service_data = request.data.get('service', {})
+            service_data['visa_application'] = visa_application.id  # Set the existing visa application ID
+        else:
+            visa_application_serializer = VisaApplicationsSerializer(data=visa_data)
+            if visa_application_serializer.is_valid():
+                visa_application_ = visa_application_serializer.save()
+                service_data = request.data.get('service', {})
+                service_data['visa_application'] = visa_application_.id
+            else:
+                return Response(visa_application_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                # Update the ServiceDetails instance
+        service = get_object_or_404(ServiceDetails, id=request.data.get('service').get('id'))
+        serializer = ServiceDetailsSerializer(service, data=service_data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
