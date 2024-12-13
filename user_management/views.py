@@ -1583,33 +1583,69 @@ def get_visa_clients_users_list(request):
             created_by_id = request.user.id
             users = User.objects.filter(created_by=created_by_id)
 
-            # Retrieve and serialize VisaApplications for these users
+            # Retrieve VisaApplications for these users
             visa_applications = VisaApplications.objects.filter(user__in=users)
             serializer = VisaClientUserListSerializer(visa_applications, many=True)
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        # Check if the user is an Individual_User with the ServiceProvider type
         elif request.user.user_role == "Individual_User" and request.user.user_type == "ServiceProvider":
             visa_applications = VisaApplications.objects.filter(user=request.user)
             serializer = VisaClientUserListSerializer(visa_applications, many=True)
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
 
-        # If the user is unauthorized
-        return Response({"error": "Unauthorized access."}, status=status.HTTP_403_FORBIDDEN)
+        # Grouping visa applications and services by user
+        response_data = []
+        user_data_map = {}
+
+        for visa_app in serializer.data:  # Use serializer.data to get the serialized data
+            user = visa_app['email']
+
+            if user not in user_data_map:
+                # Add user data to the map if not already added
+                user_data_map[user] = {
+                    "email": visa_app['email'],
+                    "mobile_number": visa_app['mobile_number'],
+                    "first_name": visa_app['first_name'],
+                    "last_name": visa_app['last_name'],
+                    "services": [],
+                    "user": visa_app['user'],
+                }
+
+            # Add the service details for the current visa application
+            services = visa_app['services']
+            for service in services:
+                user_data_map[user]["services"].append({
+                    "id": service['id'],
+                    "service_type": service['service_type'],
+                    "service_name": service['service_name'],
+                    "date": service['date'],
+                    "status": service['status'],
+                    "comments": service['comments'],
+                    "quantity": service['quantity'],
+                    "visa_application": visa_app['id'],
+                    "last_updated_date": service['last_updated_date'],
+                    "passport_number": visa_app['passport_number'],
+                    "purpose": visa_app['purpose'],
+                    "visa_type": visa_app['visa_type'],
+                    "destination_country": visa_app['destination_country'],
+                    'user_id': visa_app['user']
+                })
+
+        # Convert the user data map to a list
+        response_data = list(user_data_map.values())
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
     except User.DoesNotExist:
-        # User not found
         return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
     except VisaApplications.DoesNotExist:
-        # Visa applications not found
         return Response({"error": "No visa applications found."}, status=status.HTTP_404_NOT_FOUND)
 
     except Exception as e:
-        # Catch any other unexpected errors
         return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
