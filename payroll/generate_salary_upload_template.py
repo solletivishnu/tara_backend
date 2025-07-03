@@ -67,7 +67,7 @@ def generate_salary_upload_template(request, payroll_id):
             payroll=payroll
         ).annotate(
             has_salary=Exists(EmployeeSalaryDetails.objects.filter(employee=OuterRef('pk')))
-        ).filter(has_salary=False)
+        ).filter(has_salary=False).order_by('id')
         serializer = EmployeeSimpleSerializer(employees, many=True)
 
         base_columns = ['employee_id', 'associate_id', 'full_name', 'annual_ctc', 'tax_regime_opted', 'valid_from']
