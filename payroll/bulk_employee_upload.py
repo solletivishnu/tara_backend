@@ -231,7 +231,8 @@ def upload_employee_excel(request):
                     payroll_id=payroll_obj_id,
                     defaults={
                         'first_name': row['first_name'],
-                        'middle_name': row.get('middle_name', None) or None,
+                        'middle_name': None if pd.isna(row.get('middle_name')) or str(
+                            row.get('middle_name')).strip().lower() == 'nan' or None else row.get('middle_name'),
                         'last_name': row['last_name'],
                         'doj': parse_excel_date(row.get('doj')),
                         'work_email': row['work_email'],
