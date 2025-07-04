@@ -1,5 +1,5 @@
 from collections import defaultdict
-from docwallet.models import Document
+from .models import Document
 
 
 class TrieNode:
