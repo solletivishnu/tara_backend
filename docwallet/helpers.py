@@ -1,5 +1,4 @@
 from collections import defaultdict
-from .models import Document
 
 
 class TrieNode:
@@ -39,6 +38,7 @@ class Trie:
 context_tries = defaultdict(Trie)
 
 def build_context_tries():
+    from .models import Document
     context_tries.clear()
     all_docs = Document.objects.select_related('folder__wallet__context')
 
