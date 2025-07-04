@@ -5,7 +5,6 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from storages.backends.s3boto3 import S3Boto3Storage
 from Tara.settings.default import AWS_PRIVATE_BUCKET_NAME
-from .helpers import context_tries
 # Create your models here.
 
 
@@ -113,12 +112,6 @@ def update_file_name_in_s3(sender, instance, **kwargs):
             instance.file.name = new_path  # Update DB path
             instance.name = new_filename
 
-
-@receiver(post_save, sender=Document)
-def update_trie_on_new_document(sender, instance, created, **kwargs):
-    if created:
-        context_id = instance.folder.wallet.context_id
-        context_tries[context_id].insert(instance.name)
 
 
 
