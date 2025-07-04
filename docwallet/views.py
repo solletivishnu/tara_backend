@@ -442,6 +442,7 @@ def fetch_document_data(request):
 @api_view(['GET'])
 def context_file_autocomplete(request):
     query = request.GET.get("q", "").strip()
+    print("Testing the Use case")
     context_id = request.user.active_context_id  # or however you access current context
 
     if not query:
