@@ -442,8 +442,7 @@ def fetch_document_data(request):
 @api_view(['GET'])
 def context_file_autocomplete(request):
     query = request.GET.get("q", "").strip()
-    print("Testing the Use case")
-    context_id = request.user.active_context_id  # or however you access current context
+    context_id = request.user.active_context_id
 
     if not query:
         return Response({"results": []})
@@ -451,8 +450,19 @@ def context_file_autocomplete(request):
     if not context_id or context_id not in context_tries:
         return Response({"results": [], "message": "No trie found for context"}, status=404)
 
+    # Step 1: Get suggested names from Trie
     suggestions = context_tries[context_id].search_prefix(query, limit=10)
-    return Response({"results": suggestions})
+
+    # Step 2: Fetch matching documents from DB
+    documents = Document.objects.filter(
+        folder__wallet__context_id=context_id,
+        name__in=suggestions
+    ).select_related('folder', 'folder__wallet')
+
+    # Step 3: Serialize results
+    serializer = DocumentSerializer(documents, many=True)
+    return Response({"results": serializer.data})
+
 
 @api_view(['GET'])
 def context_file_filter(request):
