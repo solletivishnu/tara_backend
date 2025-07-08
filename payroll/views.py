@@ -416,31 +416,17 @@ class PayrollOrgBusinessDetailView(APIView):
 # List all WorkLocations
 @api_view(['GET'])
 def work_location_list(request):
-    business_id = request.query_params.get('business_id')
     payroll_id = request.query_params.get('payroll_id')
+
+    if not payroll_id:
+        return Response({"error": "payroll_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
-        if payroll_id:
-            # Retrieve Work Locations for given payroll
-            payroll_org = PayrollOrg.objects.get(id=payroll_id)
-            business = payroll_org.business  # Fetch business linked to PayrollOrg
+        payroll_org = PayrollOrg.objects.get(id=payroll_id)
 
-            work_locations = WorkLocations.objects.filter(payroll=payroll_org)
-            work_location_data = WorkLocationSerializer(work_locations, many=True).data
-
-            # Add employee count for each work location
-            for i, loc in enumerate(work_locations):
-                employee_count = EmployeeManagement.objects.filter(
-                    payroll=payroll_org,
-                    work_location=loc,
-                ).count()
-                work_location_data[i]['employee_count'] = employee_count
-
-            return Response(work_location_data, status=status.HTTP_200_OK)
-
-        return Response({"error": "Either business_id or payroll_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-    except Business.DoesNotExist:
-        return Response({"error": "Invalid Business ID"}, status=status.HTTP_404_NOT_FOUND)
+        work_locations = WorkLocations.objects.filter(payroll=payroll_org).order_by('-id')
+        serializer = WorkLocationSerializer(work_locations, many=True, context={'payroll_id': payroll_id})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     except PayrollOrg.DoesNotExist:
         return Response({"error": "Invalid Payroll ID"}, status=status.HTTP_404_NOT_FOUND)
@@ -582,27 +568,18 @@ def work_location_delete(request, pk):
 @api_view(['GET', 'POST'])
 def department_list(request):
     if request.method == 'GET':
-        payroll_id = request.query_params.get('payroll_id')  # Get payroll_id from query parameters
+        payroll_id = request.query_params.get('payroll_id')
 
         if payroll_id:
-            # Filter departments by payroll_id
-            departments = Departments.objects.filter(payroll_id=payroll_id).order_by('-id')
+            departments = Departments.objects.filter(payroll_id=payroll_id)
         else:
-            # Retrieve all departments if no payroll_id is provided
-            departments = Departments.objects.all().order_by('-id')
+            departments = Departments.objects.all()
 
-        serializer = DepartmentsSerializer(departments, many=True)
-        data = serializer.data
+        # Optional: annotate if you want to optimize DB hits for large datasets
+        departments = departments.order_by('-id')
 
-        # Add employee count for each department
-        for i, dept in enumerate(departments):
-            employee_count = EmployeeManagement.objects.filter(
-                payroll_id=payroll_id,
-                department=dept,
-            ).count()
-            data[i]['employee_count'] = employee_count
-
-        return Response(data, status=status.HTTP_200_OK)
+        serializer = DepartmentsSerializer(departments, many=True, context={'payroll_id': payroll_id})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
         try:
@@ -768,18 +745,10 @@ def designation_list(request):
             # Retrieve all designations if no payroll_id is provided
             designations = Designation.objects.all().order_by('-id')
 
-        serializer = DesignationSerializer(designations, many=True)
+        serializer = DesignationSerializer(designations, many=True, context={'payroll_id': payroll_id})
         data = serializer.data
 
-        # Add employee count for each designation
-        for i, designation in enumerate(designations):
-            employee_count = EmployeeManagement.objects.filter(
-                payroll_id=payroll_id,
-                designation=designation,
-            ).count()
-            data[i]['employee_count'] = employee_count
-
-        return Response(data,status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
         try:
