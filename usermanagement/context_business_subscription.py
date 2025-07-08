@@ -158,6 +158,16 @@ def create_business_context(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def add_subscription_to_business(request):
+    """
+        Add a subscription plan to an existing business context.
+        Expected request data:
+        {
+            "context_id": 1,
+            "module_id": 1,
+            "subscription_plan_id": 1,
+            "added_by": 1  # User ID of the person adding the subscription
+        }
+    """
     context_id = request.data.get('context_id')
     module_id = request.data.get('module_id')
     subscription_plan_id = request.data.get('subscription_plan_id')
@@ -165,7 +175,9 @@ def add_subscription_to_business(request):
 
     if not all([context_id, module_id, subscription_plan_id, added_by_id]):
         return Response(
-            {"error": "Missing required fields."},
+            {
+                "error": "Missing required fields. Please provide context_id, "
+                         "module_id, subscription_plan_id, and added_by."},
             status=status.HTTP_400_BAD_REQUEST
         )
 
