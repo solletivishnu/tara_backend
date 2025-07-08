@@ -28,7 +28,7 @@ import json
 from Tara.settings.default import *
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
-from datetime import datetime
+from datetime import datetime, timezone
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import NotFound
@@ -46,6 +46,7 @@ from django.db.models.functions import TruncDate
 from .usage_limits import *
 # Create loggers for general and error logs
 logger = logging.getLogger(__name__)
+
 
 
 class Constants:
