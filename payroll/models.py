@@ -934,7 +934,7 @@ class PayrollWorkflow(models.Model):
     bonuses = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
     salary_revision = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
     tds = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
-
+    loans_and_advances = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
     finalize = models.BooleanField(default=False)  # Whether payroll is finalized
     created_on = models.DateField(auto_now_add=True)  # Automatically set when created
 
