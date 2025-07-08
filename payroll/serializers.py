@@ -905,3 +905,9 @@ class EmployeeSimpleSerializer(serializers.ModelSerializer):
         middle_part = f" {middle}" if middle and str(middle).lower() != 'nan' else ''
         return f"{obj.first_name}{middle_part} {obj.last_name}".strip()
 
+
+class PayrollWorkflowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PayrollWorkflow
+        fields = '__all__'
+
