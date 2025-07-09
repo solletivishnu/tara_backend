@@ -2,6 +2,11 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+
+    path('document-drafts-exists/<int:context_id>/', views.user_document_draft_is_exist, name='document-drafts-exists'),
+    path('document-drafts-create', views.user_document_draft_list_create),
+    path('document-drafts/<int:pk>/', views.user_document_draft_detail),
+
     # Category and Event URLs
     path('categories/', views.category_list_create),
     path('categories/<int:pk>/', views.category_detail),
@@ -15,5 +20,6 @@ urlpatterns = [
 
     path('document-fields/', views.document_fields_list_create),
     path('document-fields/<int:pk>/', views.document_fields_detail),
-    path('document-fields-template/<int:document_id>/fields/', views.document_fields_by_document),
+    path('document-fields-template/<int:document_id>/', views.document_fields_by_document),
+
 ]
