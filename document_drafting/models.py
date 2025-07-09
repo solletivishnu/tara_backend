@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import JSONField
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from usermanagement.models import Context
+from usermanagement.models import Context, Users
 from .helpers import draft_document_file, document_template_path
 from docwallet.models import PrivateS3Storage
 
@@ -142,13 +142,17 @@ class ContextWiseEventAndDocument(models.Model):
         EventInstance,
         on_delete=models.CASCADE,
         related_name='documents',
-        help_text="Event instance this document belongs to"
+        help_text="Event instance this document belongs to",
+        null = True,
+        blank = True
     )
     document = models.ForeignKey(
         Document,
         on_delete=models.CASCADE,
         related_name='event_documents',
-        help_text="Document template being used"
+        help_text="Document template being used",
+        null=True,
+        blank=True
     )
     category = models.ForeignKey(
         Category,
@@ -169,11 +173,10 @@ class ContextWiseEventAndDocument(models.Model):
         default='yet_to_start',
         help_text="Current status of this document"
     )
+    created_by = models.OneToOneField(Users, on_delete=models.CASCADE, related_name='created_event_documents',
+                                      help_text="User who created this event document", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ('event_instance', 'document')
 
     def __str__(self):
         return "{} for {}".format(self.document.document_name, self.event_instance)

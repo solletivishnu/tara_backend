@@ -6,6 +6,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .serializers import *
 from .models import *
+from .helpers import process_and_generate_draft_pdf
 
 @api_view(['GET', 'POST'])
 def category_list_create(request):
@@ -174,8 +175,9 @@ def document_fields_by_document(request, document_id):
 
         fields = document.fields.all()
         document = DocumentSerializer(document)
+        print(document.data['template'])
         serializer = DocumentFieldsSerializer(fields, many=True)
-        return Response({'fields':serializer.data, 'template': document.data})
+        return Response({'fields':serializer.data, 'template': document.data['template']}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -188,9 +190,10 @@ def document_template_and_fields(request, id):
         return Response({'error': 'Data not found'}, status=status.HTTP_404_NOT_FOUND)
 
     fields = context.document.fields.all()
+    document = DocumentSerializer(context.document)
     serializer = DocumentFieldsSerializer(fields, many=True)
     return Response({
-        'template': context.document.template,
+        'template': document.data['template'],
         'fields': serializer.data
     })
 
@@ -213,6 +216,7 @@ def user_document_draft_list_create(request):
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({'message': 'User document draft already exists for this context'})
+
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def user_document_draft_detail(request, pk):
@@ -282,41 +286,32 @@ def context_wise_event_and_document(request, context_id):
 
 
 @api_view(['GET', 'POST'])
-def draft_document_create(request):
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def draft_document_details_create(request):
     if request.method == 'GET':
         drafts = DocumentDraftDetail.objects.all()
-        serializer = ContextWiseEventAndDocumentSerializer(drafts, many=True)
-        return Response(serializer.data)
+        serializer = DocumentDraftDetailSerializer(drafts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        serializer = ContextWiseEventAndDocumentSerializer(data=request.data)
+        data = request.data.copy()
+        draft_data = data.get('draft_data')
+
+        if isinstance(draft_data, str):
+            try:
+                data['draft_data'] = json.dumps(json.loads(draft_data))
+            except json.JSONDecodeError:
+                return Response({'error': 'Invalid JSON for draft_data'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = DocumentDraftDetailSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            instance = serializer.save()
+            if instance.data['status'] == 'completed':
+                # Process the draft and generate PDF if status is completed
+                process_and_generate_draft_pdf(instance)
+            return Response(DocumentDraftDetailSerializer(instance).data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['GET', 'PUT', 'DELETE'])
-def draft_document_detail(request, pk):
-    try:
-        draft = DocumentDraftDetail.objects.get(pk=pk)
-    except DocumentDraftDetail.DoesNotExist:
-        return Response({'error': 'Draft document not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'GET':
-        serializer = ContextWiseEventAndDocumentSerializer(draft)
-        return Response(serializer.data)
-
-    elif request.method == 'PUT':
-        serializer = ContextWiseEventAndDocumentSerializer(draft, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    elif request.method == 'DELETE':
-        draft.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['GET', 'POST'])
@@ -384,24 +379,6 @@ def draft_document_by_event(request, event_instance_id):
 
 
 @api_view(['GET', 'POST'])
-def draft_document_details_create(request):
-    if request.method == 'GET':
-        drafts = DocumentDraftDetail.objects.all()
-        serializer = DocumentDraftDetailSerializer(drafts, many=True)
-        return Response(serializer.data)
-
-    elif request.method == 'POST':
-        data = request.data.copy()
-
-
-        serializer = DocumentDraftDetailSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['GET', 'POST'])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def draft_document_details_create(request):
     if request.method == 'GET':
@@ -430,7 +407,7 @@ def draft_document_details_create(request):
 
 @api_view(['GET', 'PUT', 'DELETE'])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
-def draft_document_details_detail(request, pk):
+def draft_document_details(request, pk):
     try:
         draft = DocumentDraftDetail.objects.get(pk=pk)
     except DocumentDraftDetail.DoesNotExist:
@@ -479,3 +456,62 @@ def user_document_draft_is_exist(request, context_id):
         return Response({'error': 'User document draft not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
+@api_view(['GET'])
+def document_status_list(request):
+    try:
+        queryset = ContextWiseEventAndDocument.objects.select_related(
+            'category',
+            'event_instance__event',
+            'created_by'
+        ).all()
+
+        serializer = ContextWiseEventAndDocumentStatusSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'POST'])
+def context_wise_event_and_document_list_create(request):
+    if request.method == 'GET':
+        queryset = ContextWiseEventAndDocument.objects.select_related(
+            'category',
+            'event_instance__event',
+            'created_by'
+        ).all()
+        serializer = ContextWiseEventAndDocumentSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    elif request.method == 'POST':
+        try:
+            serializer = ContextWiseEventAndDocumentSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def context_wise_event_and_document_detail(request, pk):
+    try:
+        instance = ContextWiseEventAndDocument.objects.get(pk=pk)
+    except ContextWiseEventAndDocument.DoesNotExist:
+        return Response({'error': 'ContextWiseEventAndDocument not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = ContextWiseEventAndDocumentSerializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    elif request.method == 'PUT':
+        serializer = ContextWiseEventAndDocumentSerializer(instance, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
