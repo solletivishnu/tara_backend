@@ -3806,82 +3806,82 @@ def bonus_incentive_detail(request, pk):
                         status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['GET'])
-def bonus_by_payroll_month_year(request):
-    """
-    Returns all BonusIncentives for a given payroll_id, month, and year.
-    Excludes employees without current bonus records for the given month.
-    """
-    try:
-        payroll_id = request.query_params.get('payroll_id')
-        month = request.query_params.get('month')
-        financial_year = request.query_params.get('financial_year')
-
-        if not all([payroll_id, month, financial_year]):
-            return Response(
-                {'error': 'Missing parameters: payroll_id, month, financial_year required.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            month = int(month)
-        except ValueError:
-            return Response({'error': 'Invalid month. Must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Get bonuses for the payroll ID
-        bonuses = BonusIncentive.objects.filter(
-            employee__payroll=payroll_id,
-            financial_year=financial_year
-        ).select_related('employee')
-
-        employee_ids = set(bonuses.values_list('employee_id', flat=True))
-
-        results = []
-        for emp_id in employee_ids:
-            emp_bonuses = bonuses.filter(employee_id=emp_id)
-            current_bonus = emp_bonuses.filter(month=month).first()
-
-            # Only include employees with a current bonus entry for the given month
-            if not current_bonus:
-                continue
-
-            ytd_bonus = emp_bonuses.filter(month__lte=month).aggregate(total=Sum('amount'))['total'] or 0
-
-            employee = current_bonus.employee
-            salary = EmployeeSalaryDetails.objects.filter(employee=employee, valid_to__isnull=True).first()
-
-            committed_bonus = 0
-            if salary:
-                for earning in salary.earnings:
-                    if (
-                        earning.get("component_name") == "Bonus"
-                        and earning.get("component_type") == "Variable"
-                    ):
-                        calc_type = earning.get("calculation_type", {})
-                        if calc_type.get("type") == "Flat Amount":
-                            committed_bonus = calc_type.get("value", 0)
-                            break
-
-            results.append({
-                'id': current_bonus.id,
-                'employee_id': employee.id,
-                'associate_id': employee.associate_id,
-                'department': employee.department.dept_name if employee.department else '',
-                'designation': employee.designation.designation_name if employee.designation else '',
-                'type': current_bonus.bonus_type,
-                'employee_name': employee.first_name,
-                'current_bonus': current_bonus.amount,
-                'committed_bonus': committed_bonus,
-                'ytd_bonus_paid': ytd_bonus,
-                'month': current_bonus.month,
-                'financial_year': current_bonus.financial_year,
-                'remarks': current_bonus.remarks or ''
-            })
-
-        return Response(results, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# @api_view(['GET'])
+# def bonus_by_payroll_month_year(request):
+#     """
+#     Returns all BonusIncentives for a given payroll_id, month, and year.
+#     Excludes employees without current bonus records for the given month.
+#     """
+#     try:
+#         payroll_id = request.query_params.get('payroll_id')
+#         month = request.query_params.get('month')
+#         financial_year = request.query_params.get('financial_year')
+#
+#         if not all([payroll_id, month, financial_year]):
+#             return Response(
+#                 {'error': 'Missing parameters: payroll_id, month, financial_year required.'},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+#
+#         try:
+#             month = int(month)
+#         except ValueError:
+#             return Response({'error': 'Invalid month. Must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         # Get bonuses for the payroll ID
+#         bonuses = BonusIncentive.objects.filter(
+#             employee__payroll=payroll_id,
+#             financial_year=financial_year
+#         ).select_related('employee')
+#
+#         employee_ids = set(bonuses.values_list('employee_id', flat=True))
+#
+#         results = []
+#         for emp_id in employee_ids:
+#             emp_bonuses = bonuses.filter(employee_id=emp_id)
+#             current_bonus = emp_bonuses.filter(month=month).first()
+#
+#             # Only include employees with a current bonus entry for the given month
+#             if not current_bonus:
+#                 continue
+#
+#             ytd_bonus = emp_bonuses.filter(month__lte=month).aggregate(total=Sum('amount'))['total'] or 0
+#
+#             employee = current_bonus.employee
+#             salary = EmployeeSalaryDetails.objects.filter(employee=employee, valid_to__isnull=True).first()
+#
+#             committed_bonus = 0
+#             if salary:
+#                 for earning in salary.earnings:
+#                     if (
+#                         earning.get("component_name") == "Bonus"
+#                         and earning.get("component_type") == "Variable"
+#                     ):
+#                         calc_type = earning.get("calculation_type", {})
+#                         if calc_type.get("type") == "Flat Amount":
+#                             committed_bonus = calc_type.get("value", 0)
+#                             break
+#
+#             results.append({
+#                 'id': current_bonus.id,
+#                 'employee_id': employee.id,
+#                 'associate_id': employee.associate_id,
+#                 'department': employee.department.dept_name if employee.department else '',
+#                 'designation': employee.designation.designation_name if employee.designation else '',
+#                 'type': current_bonus.bonus_type,
+#                 'employee_name': employee.first_name,
+#                 'current_bonus': current_bonus.amount,
+#                 'committed_bonus': committed_bonus,
+#                 'ytd_bonus_paid': ytd_bonus,
+#                 'month': current_bonus.month,
+#                 'financial_year': current_bonus.financial_year,
+#                 'remarks': current_bonus.remarks or ''
+#             })
+#
+#         return Response(results, status=status.HTTP_200_OK)
+#
+#     except Exception as e:
+#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
