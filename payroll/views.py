@@ -32,6 +32,8 @@ from datetime import datetime
 import io
 from rest_framework.permissions import AllowAny
 from django.utils.dateparse import parse_date
+from rest_framework.permissions import IsAuthenticated
+from usermanagement.usage_limits import get_usage_entry, increment_usage
 
 
 def upload_to_s3(pdf_data, bucket_name, object_key):
@@ -416,31 +418,17 @@ class PayrollOrgBusinessDetailView(APIView):
 # List all WorkLocations
 @api_view(['GET'])
 def work_location_list(request):
-    business_id = request.query_params.get('business_id')
     payroll_id = request.query_params.get('payroll_id')
+
+    if not payroll_id:
+        return Response({"error": "payroll_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
-        if payroll_id:
-            # Retrieve Work Locations for given payroll
-            payroll_org = PayrollOrg.objects.get(id=payroll_id)
-            business = payroll_org.business  # Fetch business linked to PayrollOrg
+        payroll_org = PayrollOrg.objects.get(id=payroll_id)
 
-            work_locations = WorkLocations.objects.filter(payroll=payroll_org)
-            work_location_data = WorkLocationSerializer(work_locations, many=True).data
-
-            # Add employee count for each work location
-            for i, loc in enumerate(work_locations):
-                employee_count = EmployeeManagement.objects.filter(
-                    payroll=payroll_org,
-                    work_location=loc,
-                ).count()
-                work_location_data[i]['employee_count'] = employee_count
-
-            return Response(work_location_data, status=status.HTTP_200_OK)
-
-        return Response({"error": "Either business_id or payroll_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-    except Business.DoesNotExist:
-        return Response({"error": "Invalid Business ID"}, status=status.HTTP_404_NOT_FOUND)
+        work_locations = WorkLocations.objects.filter(payroll=payroll_org).order_by('-id')
+        serializer = WorkLocationSerializer(work_locations, many=True, context={'payroll_id': payroll_id})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     except PayrollOrg.DoesNotExist:
         return Response({"error": "Invalid Payroll ID"}, status=status.HTTP_404_NOT_FOUND)
@@ -582,27 +570,18 @@ def work_location_delete(request, pk):
 @api_view(['GET', 'POST'])
 def department_list(request):
     if request.method == 'GET':
-        payroll_id = request.query_params.get('payroll_id')  # Get payroll_id from query parameters
+        payroll_id = request.query_params.get('payroll_id')
 
         if payroll_id:
-            # Filter departments by payroll_id
-            departments = Departments.objects.filter(payroll_id=payroll_id).order_by('-id')
+            departments = Departments.objects.filter(payroll_id=payroll_id)
         else:
-            # Retrieve all departments if no payroll_id is provided
-            departments = Departments.objects.all().order_by('-id')
+            departments = Departments.objects.all()
 
-        serializer = DepartmentsSerializer(departments, many=True)
-        data = serializer.data
+        # Optional: annotate if you want to optimize DB hits for large datasets
+        departments = departments.order_by('-id')
 
-        # Add employee count for each department
-        for i, dept in enumerate(departments):
-            employee_count = EmployeeManagement.objects.filter(
-                payroll_id=payroll_id,
-                department=dept,
-            ).count()
-            data[i]['employee_count'] = employee_count
-
-        return Response(data, status=status.HTTP_200_OK)
+        serializer = DepartmentsSerializer(departments, many=True, context={'payroll_id': payroll_id})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
         try:
@@ -768,18 +747,10 @@ def designation_list(request):
             # Retrieve all designations if no payroll_id is provided
             designations = Designation.objects.all().order_by('-id')
 
-        serializer = DesignationSerializer(designations, many=True)
+        serializer = DesignationSerializer(designations, many=True, context={'payroll_id': payroll_id})
         data = serializer.data
 
-        # Add employee count for each designation
-        for i, designation in enumerate(designations):
-            employee_count = EmployeeManagement.objects.filter(
-                payroll_id=payroll_id,
-                designation=designation,
-            ).count()
-            data[i]['employee_count'] = employee_count
-
-        return Response(data,status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
         try:
@@ -1915,25 +1886,59 @@ def holiday_management_detail_update_delete(request, holiday_id):
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def employee_list(request):
     if request.method == 'GET':
         payroll_id = request.query_params.get('payroll_id')
         if payroll_id:
             employees = EmployeeManagement.objects.filter(payroll_id=payroll_id).order_by('-id')
         else:
-            employees = EmployeeManagement.objects.all()
+            employees = EmployeeManagement.objects.all().order_by('-id')
         serializer = EmployeeDataSerializer(employees, many=True)
         return Response(serializer.data)
 
     elif request.method == 'POST':
+        payroll_id = request.data.get("payroll")
+        context_id = None
+
+        # Step 1: Resolve context via payroll -> business -> context
+        try:
+            payroll = PayrollOrg.objects.select_related('business').get(id=payroll_id)
+            context = Context.objects.filter(business=payroll.business).first()
+            context_id = context.id if context else None
+        except PayrollOrg.DoesNotExist:
+            return Response(
+                {"error": "Invalid payroll ID provided."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Step 2: Fallback to user's active context
+        if not context_id and request.user.active_context:
+            context_id = request.user.active_context.id
+
+        if not context_id:
+            return Response(
+                {"error": "No valid context found to track usage."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Step 3: Usage check
+        usage_entry, error_response = get_usage_entry(context_id, 'employees_count', module_id=1)
+        if error_response:
+            return error_response
+
+        # Step 4: Save employee
         serializer = EmployeeManagementSerializer(data=request.data)
         if serializer.is_valid():
             try:
                 serializer.save()
+                increment_usage(usage_entry)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             except Exception as e:
-                return Response({"error":str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -3714,32 +3719,100 @@ def employee_monthly_salary_template(request):
         return Response({'error': str(e)}, status=500)
 
 
-@api_view(['GET', 'POST'])
+@api_view(['GET'])
 def bonus_incentive_list(request):
     """
-    List all bonus incentives or filter by employee ID.
-    Create a new bonus incentive.
+    GET:
+        - Input: payroll_id, month, financial_year
+        - Returns all bonus incentives (existing + newly created).
+        - Creates zero-amount entries only for eligible employees missing bonus record.
     """
-    if request.method == 'GET':
-        employee_id = request.query_params.get('employee_id')
+    try:
+        payroll_id = request.query_params.get('payroll_id')
+        month = request.query_params.get('month')
+        financial_year = request.query_params.get('financial_year')
 
-        if employee_id:
-            bonuses = BonusIncentive.objects.filter(employee=employee_id)
-        else:
-            bonuses = BonusIncentive.objects.all()
+        if not all([payroll_id, month, financial_year]):
+            return Response(
+                {"error": "Missing query params: payroll_id, month, financial_year are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        serializer = BonusIncentiveSerializer(bonuses, many=True)
+        try:
+            month = int(month)
+            start_year, end_year = map(int, financial_year.split('-'))
+            computed_year = start_year if month >= 4 else end_year
+            bonus_cycle_date = date(computed_year, month, 1)
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "Invalid format for month or financial_year. Use month=1-12, financial_year='YYYY-YYYY'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        employees = list(EmployeeManagement.objects.filter(payroll_id=payroll_id))
+        if not employees:
+            return Response({"error": "No employees found for the given payroll_id."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Fetch eligible salary records with variable bonus
+        salary_details = list(
+            EmployeeSalaryDetails.objects.filter(
+                employee__in=employees,
+                is_variable_bonus=True,
+                valid_to__isnull=True,
+                valid_from__lte=bonus_cycle_date
+            ).select_related('employee')
+        )
+
+        if not salary_details:
+            return Response(
+                {"message": "No employees with variable bonus active during this month."},
+                status=status.HTTP_204_NO_CONTENT
+            )
+
+        # Get existing bonuses for the requested month/year
+        existing_bonuses = BonusIncentive.objects.filter(
+            employee__in=[s.employee for s in salary_details],
+            month=month,
+            financial_year=financial_year
+        )
+        existing_employee_ids = set(existing_bonuses.values_list('employee_id', flat=True))
+
+        # Filter only those who don't already have a bonus entry
+        missing_bonus_salaries = [
+            s for s in salary_details if s.employee.id not in existing_employee_ids
+        ]
+
+        # Create new bonus records
+        bonus_data = [
+            BonusIncentive(
+                employee=record.employee,
+                amount=0,
+                financial_year=financial_year,
+                month=month,
+                year=computed_year,
+                bonus_type="Variable Bonus"
+            )
+            for record in missing_bonus_salaries
+        ]
+
+        if bonus_data:
+            with transaction.atomic():
+                BonusIncentive.objects.bulk_create(bonus_data)
+
+        # Return all bonus records for the month (existing + new)
+        all_bonuses = BonusIncentive.objects.filter(
+            employee__in=[s.employee for s in salary_details],
+            month=month,
+            financial_year=financial_year
+        )
+        serializer = BonusIncentiveSerializer(all_bonuses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    elif request.method == 'POST':
-        serializer = BonusIncentiveSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response(
+            {"error": "Unexpected error occurred.", "details": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -3769,82 +3842,82 @@ def bonus_incentive_detail(request, pk):
                         status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['GET'])
-def bonus_by_payroll_month_year(request):
-    """
-    Returns all BonusIncentives for a given payroll_id, month, and year.
-    Excludes employees without current bonus records for the given month.
-    """
-    try:
-        payroll_id = request.query_params.get('payroll_id')
-        month = request.query_params.get('month')
-        financial_year = request.query_params.get('financial_year')
-
-        if not all([payroll_id, month, financial_year]):
-            return Response(
-                {'error': 'Missing parameters: payroll_id, month, financial_year required.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            month = int(month)
-        except ValueError:
-            return Response({'error': 'Invalid month. Must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Get bonuses for the payroll ID
-        bonuses = BonusIncentive.objects.filter(
-            employee__payroll=payroll_id,
-            financial_year=financial_year
-        ).select_related('employee')
-
-        employee_ids = set(bonuses.values_list('employee_id', flat=True))
-
-        results = []
-        for emp_id in employee_ids:
-            emp_bonuses = bonuses.filter(employee_id=emp_id)
-            current_bonus = emp_bonuses.filter(month=month).first()
-
-            # Only include employees with a current bonus entry for the given month
-            if not current_bonus:
-                continue
-
-            ytd_bonus = emp_bonuses.filter(month__lte=month).aggregate(total=Sum('amount'))['total'] or 0
-
-            employee = current_bonus.employee
-            salary = EmployeeSalaryDetails.objects.filter(employee=employee, valid_to__isnull=True).first()
-
-            committed_bonus = 0
-            if salary:
-                for earning in salary.earnings:
-                    if (
-                        earning.get("component_name") == "Bonus"
-                        and earning.get("component_type") == "Variable"
-                    ):
-                        calc_type = earning.get("calculation_type", {})
-                        if calc_type.get("type") == "Flat Amount":
-                            committed_bonus = calc_type.get("value", 0)
-                            break
-
-            results.append({
-                'id': current_bonus.id,
-                'employee_id': employee.id,
-                'associate_id': employee.associate_id,
-                'department': employee.department.dept_name if employee.department else '',
-                'designation': employee.designation.designation_name if employee.designation else '',
-                'type': current_bonus.bonus_type,
-                'employee_name': employee.first_name,
-                'current_bonus': current_bonus.amount,
-                'committed_bonus': committed_bonus,
-                'ytd_bonus_paid': ytd_bonus,
-                'month': current_bonus.month,
-                'financial_year': current_bonus.financial_year,
-                'remarks': current_bonus.remarks or ''
-            })
-
-        return Response(results, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# @api_view(['GET'])
+# def bonus_by_payroll_month_year(request):
+#     """
+#     Returns all BonusIncentives for a given payroll_id, month, and year.
+#     Excludes employees without current bonus records for the given month.
+#     """
+#     try:
+#         payroll_id = request.query_params.get('payroll_id')
+#         month = request.query_params.get('month')
+#         financial_year = request.query_params.get('financial_year')
+#
+#         if not all([payroll_id, month, financial_year]):
+#             return Response(
+#                 {'error': 'Missing parameters: payroll_id, month, financial_year required.'},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+#
+#         try:
+#             month = int(month)
+#         except ValueError:
+#             return Response({'error': 'Invalid month. Must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         # Get bonuses for the payroll ID
+#         bonuses = BonusIncentive.objects.filter(
+#             employee__payroll=payroll_id,
+#             financial_year=financial_year
+#         ).select_related('employee')
+#
+#         employee_ids = set(bonuses.values_list('employee_id', flat=True))
+#
+#         results = []
+#         for emp_id in employee_ids:
+#             emp_bonuses = bonuses.filter(employee_id=emp_id)
+#             current_bonus = emp_bonuses.filter(month=month).first()
+#
+#             # Only include employees with a current bonus entry for the given month
+#             if not current_bonus:
+#                 continue
+#
+#             ytd_bonus = emp_bonuses.filter(month__lte=month).aggregate(total=Sum('amount'))['total'] or 0
+#
+#             employee = current_bonus.employee
+#             salary = EmployeeSalaryDetails.objects.filter(employee=employee, valid_to__isnull=True).first()
+#
+#             committed_bonus = 0
+#             if salary:
+#                 for earning in salary.earnings:
+#                     if (
+#                         earning.get("component_name") == "Bonus"
+#                         and earning.get("component_type") == "Variable"
+#                     ):
+#                         calc_type = earning.get("calculation_type", {})
+#                         if calc_type.get("type") == "Flat Amount":
+#                             committed_bonus = calc_type.get("value", 0)
+#                             break
+#
+#             results.append({
+#                 'id': current_bonus.id,
+#                 'employee_id': employee.id,
+#                 'associate_id': employee.associate_id,
+#                 'department': employee.department.dept_name if employee.department else '',
+#                 'designation': employee.designation.designation_name if employee.designation else '',
+#                 'type': current_bonus.bonus_type,
+#                 'employee_name': employee.first_name,
+#                 'current_bonus': current_bonus.amount,
+#                 'committed_bonus': committed_bonus,
+#                 'ytd_bonus_paid': ytd_bonus,
+#                 'month': current_bonus.month,
+#                 'financial_year': current_bonus.financial_year,
+#                 'remarks': current_bonus.remarks or ''
+#             })
+#
+#         return Response(results, status=status.HTTP_200_OK)
+#
+#     except Exception as e:
+#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
