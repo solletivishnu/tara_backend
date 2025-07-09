@@ -70,8 +70,6 @@ class EventInstanceSerializer(serializers.ModelSerializer):
 
 
 class ContextWiseEventAndDocumentSerializer(serializers.ModelSerializer):
-    event = EventsSerializer(read_only=True)
-    document = DocumentSerializer(read_only=True)
 
     class Meta:
         model = ContextWiseEventAndDocument
@@ -83,4 +81,44 @@ class DocumentDraftDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentDraftDetail
         fields = '__all__'
+
+
+from rest_framework import serializers
+from .models import ContextWiseEventAndDocument
+
+class ContextWiseEventAndDocumentStatusSerializer(serializers.ModelSerializer):
+    created_date = serializers.DateTimeField(source='created_at', format="%d/%m/%y")
+    last_edited = serializers.DateTimeField(source='updated_at', format="%d/%m/%y")
+    category = serializers.SerializerMethodField()
+    event = serializers.CharField(source='event_instance.event.event_name')
+    creator = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContextWiseEventAndDocument
+        fields = ['created_date', 'category', 'event', 'status', 'last_edited', 'creator']
+
+    def get_category(self, obj):
+        return obj.category.category_name if obj.category else ""
+
+    def get_creator(self, obj):
+        user = obj.created_by
+        if not user:
+            return ""
+
+        first = user.first_name if user.first_name else ""
+        middle = user.middle_name if hasattr(user, 'middle_name') and user.middle_name else ""
+        last = user.last_name if user.last_name else ""
+
+        full_name = " ".join(part for part in [first, middle, last] if part)
+        return full_name or ""
+
+    def get_status(self, obj):
+        status_map = {
+            'completed': 'Completed',
+            'in_progress': 'Processed',
+            'draft': 'Declined',
+            'yet_to_start': 'Yet to Start',
+        }
+        return status_map.get(obj.status, obj.status.title())
 
