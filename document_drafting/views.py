@@ -6,7 +6,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .serializers import *
 from .models import *
-from .helpers import process_and_generate_draft_pdf
+# from .helpers import process_and_generate_draft_pdf
 
 @api_view(['GET', 'POST'])
 def category_list_create(request):
@@ -306,9 +306,9 @@ def draft_document_details_create(request):
         serializer = DocumentDraftDetailSerializer(data=data)
         if serializer.is_valid():
             instance = serializer.save()
-            if instance.data['status'] == 'completed':
-                # Process the draft and generate PDF if status is completed
-                process_and_generate_draft_pdf(instance)
+            # if instance.data['status'] == 'completed':
+            #     # Process the draft and generate PDF if status is completed
+            #     process_and_generate_draft_pdf(instance)
             return Response(DocumentDraftDetailSerializer(instance).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
