@@ -91,7 +91,7 @@
             padding-top: 1.5rem;
             padding-bottom: 1.5rem;
             font-size: 0.875rem;
-            line-height: 1.25rem;
+            line-height: 1rem;
           "
         >
           <table
@@ -103,7 +103,7 @@
                   <div
                     style="
                       font-size: 0.875rem;
-                      line-height: 1.25rem;
+                      line-height: 1rem;
                       color: #525252;
                     "
                   >
@@ -122,7 +122,7 @@
                   <div
                     style="
                       font-size: 0.875rem;
-                      line-height: 1.25rem;
+                      line-height: 1rem;
                       color: #525252;
                     "
                   >
@@ -143,10 +143,10 @@
           style="
             padding-left: 3.5rem;
             padding-right: 3.5rem;
-            padding-top: 2.5rem;
-            padding-bottom: 2.5rem;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
             font-size: 0.875rem;
-            line-height: 1.25rem;
+            line-height: 1rem;
             color: #404040;
           "
         >
@@ -536,6 +536,39 @@
                                 </td>
                               </tr>
                               {% endif %}
+                              {% if shipping_tax != "0" and shipping_tax != "0.00" and shipping_tax != 0 %}
+                              <tr>
+                                <td
+                                  style="
+                                    border-bottom-width: 1px;
+                                    padding: 0.75rem;
+                                  "
+                                >
+                                  <div
+                                    style="white-space: nowrap; color: #94a3b8"
+                                  >
+                                    SHIPPING Tax:
+                                  </div>
+                                </td>
+                                <td
+                                  style="
+                                    border-bottom-width: 1px;
+                                    padding: 0.75rem;
+                                    text-align: right;
+                                  "
+                                >
+                                  <div
+                                    style="
+                                      white-space: nowrap;
+                                      font-weight: 700;
+                                      color: #5c6ac4;
+                                    "
+                                  >
+                                    {{shipping_tax}}
+                                  </div>
+                                </td>
+                              </tr>
+                              {% endif %}
                               {% if cgst != "0" and cgst != "0.00" and cgst != 0 %}
                               <tr>
                                 <td style="padding: 0.75rem">
@@ -675,7 +708,7 @@
               padding-left: 3.5rem;
               padding-right: 3.5rem;
               font-size: 0.875rem;
-              line-height: 1.25rem;
+              line-height: 1rem;
               color: #404040;
             "
           >
@@ -691,7 +724,7 @@
               padding-left: 3.5rem;
               padding-right: 3.5rem;
               font-size: 0.875rem;
-              line-height: 1.25rem;
+              line-height: 1rem;
               color: #404040;
               text-align: right;
             "
@@ -710,10 +743,10 @@
           style="
             padding-left: 3.5rem;
             padding-right: 3.5rem;
-            padding-top: 2.5rem;
-            padding-bottom: 2.5rem;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
             font-size: 0.875rem;
-            line-height: 1.25rem;
+            line-height: 1rem;
             color: #404040;
             text-align: center;
           "
@@ -746,6 +779,20 @@
             >|</span
           >
           {{registration_number}}
+          {% if company_email != "NA" and company_email is not none %}
+            <span
+                style="color: #cbd5e1; padding-left: 0.5rem; padding-right: 0.5rem"
+                >|</span
+                >
+            {{company_email}}
+          {% endif %}
+          {% if company_mobile_number != "NA" and company_mobile_number is not none %}
+            <span
+                style="color: #cbd5e1; padding-left: 0.5rem; padding-right: 0.5rem"
+                >|</span
+                >
+            {{company_mobile_number}}
+          {% endif %}
         </footer>
       </div>
     </div>
