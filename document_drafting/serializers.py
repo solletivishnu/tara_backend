@@ -2,18 +2,24 @@ from rest_framework import serializers
 from .models import *
 import json
 
+
+class EventsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Events
+        fields = '__all__'
+
+
 class CategorySerializer(serializers.ModelSerializer):
+    events = EventsSerializer(many=True, read_only=True)
+
+
     class Meta:
         model = Category
         fields = "__all__"
 
 
-class EventsSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
 
-    class Meta:
-        model = Events
-        fields = '__all__'
 
 
 class DocumentFieldsSerializer(serializers.ModelSerializer):

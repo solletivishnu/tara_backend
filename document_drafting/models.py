@@ -3,7 +3,7 @@ from django.db.models import JSONField
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from usermanagement.models import Context
-from .helpers import draft_document_file
+from .helpers import draft_document_file, document_template_path
 from docwallet.models import PrivateS3Storage
 
 
@@ -47,7 +47,8 @@ class Document(models.Model):
     event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='documents',
                              help_text="Event associated with the document", null=True, blank=True)
     description = models.TextField(blank=True, null=True, help_text="Description of the document")
-    template = models.TextField(blank=True, null=True, help_text="Template for the document")
+    template = models.FileField(upload_to=document_template_path, blank=True, null=True,
+                                help_text="Template for the document")
     metadata = JSONField(blank=True, null=True, help_text="Additional metadata related to the document")
     created_at = models.DateField(auto_now_add=True, help_text="Timestamp when the document was created")
     updated_at = models.DateField(auto_now=True, help_text="Timestamp when the document was last updated")
@@ -106,7 +107,7 @@ class UserFavouriteDocument(models.Model):
     )
 
     def __str__(self):
-        return "{}".format(self.document.document_name)
+        return "{}".format(self.document)
 
 
 class EventInstance(models.Model):
@@ -120,33 +121,11 @@ class EventInstance(models.Model):
         related_name='instances',
         help_text="The base event template"
     )
-    title = models.CharField(
-        max_length=255,
-        help_text="Custom title for this event instance",
-        blank=True,
-        null=True
-    )
-    description = models.TextField(
-        blank=True,
-        null=True,
-        help_text="Custom description for this event instance"
-    )
-    status = models.CharField(
-        max_length=50,
-        choices=[
-            ('draft', 'Draft'),
-            ('yet_to_start', 'Yet to be Started'),
-            ('in_progress', 'In Progress'),
-            ('completed', 'Completed'),
-        ],
-        default='yet_to_start',
-        help_text="Current status of the event instance."
-    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.event.event_name} - {self.context.name} ({self.pk})"
+        return "{} - ({})".format(self.event.event_name, self.pk)
 
 
 class ContextWiseEventAndDocument(models.Model):
@@ -197,7 +176,7 @@ class ContextWiseEventAndDocument(models.Model):
         unique_together = ('event_instance', 'document')
 
     def __str__(self):
-        return f"{self.document.document_name} for {self.event_instance}"
+        return "{} for {}".format(self.document.document_name, self.event_instance)
 
 
 class DocumentDraftDetail(models.Model):
@@ -222,7 +201,7 @@ class DocumentDraftDetail(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Draft for {self.draft}"
+        return "Draft for {}".format(self.draft)
 
 
 @receiver(post_save, sender=DocumentDraftDetail)
