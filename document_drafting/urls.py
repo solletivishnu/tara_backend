@@ -16,5 +16,4 @@ urlpatterns = [
     path('document-fields/', views.document_fields_list_create),
     path('document-fields/<int:pk>/', views.document_fields_detail),
     path('document-fields-template/<int:document_id>/fields/', views.document_fields_by_document),
-    path('document-fields-and-template/<int:id>')
 ]
