@@ -591,7 +591,7 @@ def department_list(request):
                     serializer.save()
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
                 except Exception as e:
-                    return Response({"error": "Department with this name/code already exists."},
+                    return Response({"error": "Department with this name/code already exists.{}".format(str(e))},
                                     status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
