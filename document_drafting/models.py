@@ -42,9 +42,9 @@ class Document(models.Model):
     Model to store document details.
     """
     document_name = models.CharField(max_length=255, help_text="Name of the document")
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='documents',
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='document_category',
                                 help_text="Category associated with the document", null=True, blank=True)
-    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='documents',
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='document_event',
                              help_text="Event associated with the document", null=True, blank=True)
     description = models.TextField(blank=True, null=True, help_text="Description of the document")
     template = models.FileField(upload_to=document_template_path, blank=True, null=True,
@@ -121,6 +121,20 @@ class EventInstance(models.Model):
         related_name='instances',
         help_text="The base event template"
     )
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ('yet_to_start', 'Yet to be Started'),
+            ('in_progress', 'In Progress'),
+            ('completed', 'Completed'),
+        ],
+        default='yet_to_start',
+        help_text="Current status of this event instance"
+    )
+    progress = models.FloatField(
+        default=0.0,
+        help_text="Progress percentage of this event instance"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -141,7 +155,7 @@ class ContextWiseEventAndDocument(models.Model):
     event_instance = models.ForeignKey(
         EventInstance,
         on_delete=models.CASCADE,
-        related_name='documents',
+        related_name='events_instance_documents',
         help_text="Event instance this document belongs to",
         null = True,
         blank = True
@@ -149,7 +163,7 @@ class ContextWiseEventAndDocument(models.Model):
     document = models.ForeignKey(
         Document,
         on_delete=models.CASCADE,
-        related_name='event_documents',
+        related_name='documents_context',
         help_text="Document template being used",
         null=True,
         blank=True
@@ -157,7 +171,7 @@ class ContextWiseEventAndDocument(models.Model):
     category = models.ForeignKey(
         Category,
         on_delete=models.CASCADE,
-        related_name='event_documents',
+        related_name='category_documents',
         help_text="Category associated with this document",
         null=True,
         blank=True
@@ -173,8 +187,14 @@ class ContextWiseEventAndDocument(models.Model):
         default='yet_to_start',
         help_text="Current status of this document"
     )
-    created_by = models.OneToOneField(Users, on_delete=models.CASCADE, related_name='created_event_documents',
-                                      help_text="User who created this event document", null=True, blank=True)
+    created_by = models.ForeignKey(
+        Users,
+        on_delete=models.CASCADE,
+        related_name='created_documents',
+        help_text="User who created this document",
+        null=True,
+        blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -200,6 +220,17 @@ class DocumentDraftDetail(models.Model):
         help_text="File associated with the draft (optional)",
         storage=PrivateS3Storage()
     )
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ('yet_to_start', 'Yet to be Started'),
+            ('draft', 'Draft'),
+            ('in_progress', 'In Progress'),
+            ('completed', 'Completed'),
+        ],
+        default='draft',
+        help_text="Current status of this draft"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -213,6 +244,38 @@ def update_document_status(sender, instance, created, **kwargs):
     Signal to update the document status when a draft is created or updated.
     """
     # Update the EventDocument status based on draft changes
-    if instance.event_document.status != 'draft':
-        instance.event_document.status = 'draft'
-        instance.event_document.save()
+    if instance.status != instance.draft.status:
+        instance.draft.status = instance.status
+        instance.draft.save()
+
+
+@receiver(post_save, sender=ContextWiseEventAndDocument)
+def update_event_instance_progress(sender, instance, **kwargs):
+    event_instance = instance.event_instance
+    if not event_instance:
+        return  # Ignore if event_instance is null
+
+    # Get all documents related to this event instance
+    related_docs = ContextWiseEventAndDocument.objects.filter(event_instance=event_instance)
+
+    total = related_docs.count()
+    completed = related_docs.filter(status='completed').count()
+
+    # Calculate new progress
+    progress = (completed / total) * 100 if total > 0 else 0
+
+    # Determine new status
+    if completed == total:
+        status = 'completed'
+    elif completed > 0:
+        status = 'in_progress'
+    else:
+        status = 'yet_to_start'
+
+    # Update and save only if changed
+    if event_instance.progress != progress or event_instance.status != status:
+        event_instance.progress = progress
+        event_instance.status = status
+        event_instance.save()
+
+

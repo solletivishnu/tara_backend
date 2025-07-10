@@ -6,7 +6,12 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .serializers import *
 from .models import *
-# from .helpers import process_and_generate_draft_pdf
+from .helpers import process_and_generate_draft_pdf
+from django.db import transaction
+from django.db.models import Count
+from collections import defaultdict
+
+
 
 @api_view(['GET', 'POST'])
 def category_list_create(request):
@@ -154,7 +159,7 @@ def document_fields_detail(request, pk):
         return Response(serializer.data)
 
     elif request.method == 'PUT':
-        serializer = DocumentFieldsSerializer(field, data=request.data)
+        serializer = DocumentFieldsSerializer(field, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -242,47 +247,36 @@ def user_document_draft_detail(request, pk):
 
 
 @api_view(['GET'])
-def context_wise_event_and_document(request, context_id):
+def context_wise_event_and_document(request, event_instance):
+    """
+    Returns event instance details, base event info, and all related documents.
+    """
     try:
-        draft = UserDocumentDraft.objects.get(context=context_id)
-        context = draft.context
-    except UserDocumentDraft.DoesNotExist:
-        return Response({'error': 'Context not found'}, status=status.HTTP_404_NOT_FOUND)
+        # 1. Get event instance
+        instance = EventInstance.objects.select_related('event').get(pk=event_instance)
 
-    # Get all distinct event instances linked to this context via ContextWiseEventAndDocument
-    event_instances = EventInstance.objects.filter(
-        documents__context=context  # related_name='documents' in ContextWiseEventAndDocument
-    ).distinct()
+        # 2. Get all related documents
+        documents = ContextWiseEventAndDocument.objects.filter(event_instance=instance)
 
-    response_data = []
+        if not documents.exists():
+            return Response({'error': 'No documents found for this event instance'}, status=status.HTTP_404_NOT_FOUND)
 
-    for instance in event_instances:
-        # Get all documents for this event instance and context
-        linked_documents = instance.documents.filter(context=context)
+        # 3. Serialize results
+        event_instance_data = EventInstanceSerializer(instance).data
+        document_data = ContextWiseEventAndDocumentEventSerializer(documents, many=True).data
 
-        documents_data = []
-        for doc_map in linked_documents:
-            documents_data.append({
-                'document_id': doc_map.document.id,
-                'document_name': doc_map.document.document_name,
-                'category': doc_map.category.category_name if doc_map.category else None,
-                'status': doc_map.status,
-                'created_at': doc_map.created_at,
-                'updated_at': doc_map.updated_at
-            })
+        # 4. Structure response
+        response = {
+            'event_instance': event_instance_data,
+            'documents': document_data
+        }
 
-        response_data.append({
-            'event_instance_id': instance.id,
-            'event_name': instance.event.event_name,
-            'custom_title': instance.title,
-            'description': instance.description,
-            'status': instance.status,
-            'created_at': instance.created_at,
-            'updated_at': instance.updated_at,
-            'documents': documents_data
-        })
+        return Response(response, status=status.HTTP_200_OK)
 
-    return Response(response_data, status=status.HTTP_200_OK)
+    except EventInstance.DoesNotExist:
+        return Response({'error': 'Event instance not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET', 'POST'])
@@ -306,101 +300,10 @@ def draft_document_details_create(request):
         serializer = DocumentDraftDetailSerializer(data=data)
         if serializer.is_valid():
             instance = serializer.save()
-            # if instance.data['status'] == 'completed':
-            #     # Process the draft and generate PDF if status is completed
-            #     process_and_generate_draft_pdf(instance)
+            if instance.data['status'] == 'completed':
+                # Process the draft and generate PDF if status is completed
+                process_and_generate_draft_pdf(instance)
             return Response(DocumentDraftDetailSerializer(instance).data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['GET', 'POST'])
-def draft_document_by_event(request, event_instance_id):
-    if request.method == 'GET':
-        event_instance = get_object_or_404(EventInstance, pk=event_instance_id)
-        documents = ContextWiseEventAndDocument.objects.filter(event_instance=event_instance)
-        serializer = ContextWiseEventAndDocumentSerializer(documents, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    elif request.method == 'POST':
-        event_id = request.data.get('event_id')
-        if not event_id:
-            return Response({'error': 'Event ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Create the event instance
-        try:
-            event = get_object_or_404(Events, pk=event_id)
-            event_instance = EventInstance.objects.create(
-                event=event,
-                title=request.data.get('title', ''),
-                description=request.data.get('description', ''),
-                status='yet_to_start',
-            )
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        data = request.data.copy()
-        data['event_instance'] = event_instance.id
-        documents = json.dumps(json.loads(data.pop('documents', [])))
-
-        if not documents:
-            return Response({'error': 'At least one document is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not isinstance(documents, list):
-            documents = [documents]
-
-        created = []
-        errors = []
-
-        for doc_id in documents:
-            try:
-                document = Document.objects.get(pk=doc_id)
-                record_data = data.copy()
-                record_data['document'] = document.id
-                serializer = ContextWiseEventAndDocumentSerializer(data=record_data)
-                if serializer.is_valid():
-                    serializer.save()
-                    created.append(serializer.data)
-                else:
-                    errors.append({f'document_id_{doc_id}': serializer.errors})
-            except Document.DoesNotExist:
-                errors.append({f'document_id_{doc_id}': 'Document does not exist'})
-
-        response_payload = {
-            'event_instance_id': event_instance.id,
-            'created': created
-        }
-
-        if errors:
-            response_payload['errors'] = errors
-            return Response(response_payload, status=status.HTTP_207_MULTI_STATUS)
-
-        return Response(response_payload, status=status.HTTP_201_CREATED)
-
-
-@api_view(['GET', 'POST'])
-@parser_classes([MultiPartParser, FormParser, JSONParser])
-def draft_document_details_create(request):
-    if request.method == 'GET':
-        drafts = DocumentDraftDetail.objects.all()
-        serializer = DocumentDraftDetailSerializer(drafts, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    elif request.method == 'POST':
-        data = request.data.copy()
-
-        # Ensure 'draft_data' is a proper Python dict (in case it's sent as a JSON string)
-        draft_data = data.get('draft_data')
-        if isinstance(draft_data, str):
-            try:
-                data['draft_data'] = json.dumps(json.loads(draft_data))
-            except json.JSONDecodeError:
-                return Response({'error': 'Invalid JSON for draft_data'}, status=status.HTTP_400_BAD_REQUEST)
-
-        serializer = DocumentDraftDetailSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -418,15 +321,83 @@ def draft_document_details(request, pk):
         return Response(serializer.data)
 
     elif request.method == 'PUT':
-        serializer = DocumentDraftDetailSerializer(draft, data=request.data)
+        data = request.data.copy()
+        draft_data = data.get('draft_data')
+
+        if isinstance(draft_data, str):
+            try:
+                data['draft_data'] = json.dumps(json.loads(draft_data))
+            except json.JSONDecodeError:
+                return Response({'error': 'Invalid JSON for draft_data'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = DocumentDraftDetailSerializer(draft, data=data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            instance = serializer.save()
+
+            if data.get('status') == 'completed':
+                # Process the draft and generate PDF if status is completed
+                process_and_generate_draft_pdf(instance)
+            return Response(DocumentDraftDetailSerializer(instance).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
         draft.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+def draft_document_by_event(request):
+    if request.method == 'POST':
+        event_id = request.data.get('event')
+        if not event_id:
+            return Response({'error': 'Event ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+
+            # Create the event instance
+            try:
+                event = get_object_or_404(Events, pk=event_id)
+                event_instance = EventInstance.objects.create(
+                    event=event
+                )
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            data = request.data.copy()
+            data['event_instance'] = event_instance.id
+            documents = data.pop('documents', [])
+
+            if not documents:
+                return Response({'error': 'At least one document is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if not isinstance(documents, list):
+                documents = [documents]
+
+            created = []
+            errors = []
+
+            for doc_id in documents:
+                try:
+                    document = Document.objects.get(pk=doc_id)
+                    record_data = data.copy()
+                    record_data['document'] = document.id
+                    serializer = ContextWiseEventAndDocumentSerializer(data=record_data)
+                    if serializer.is_valid():
+                        serializer.save()
+                        created.append(serializer.data)
+                    else:
+                        errors.append({f'document_id_{doc_id}': serializer.errors})
+                except Document.DoesNotExist:
+                    errors.append({f'document_id_{doc_id}': 'Document does not exist'})
+
+            response_payload = {
+                'event_instance_id': event_instance.id,
+                'created': created
+            }
+
+            if errors:
+                response_payload['errors'] = errors
+                return Response(response_payload, status=status.HTTP_207_MULTI_STATUS)
+
+            return Response(response_payload, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])
@@ -437,6 +408,20 @@ def event_and_category_list(request):
     if request.method == 'GET':
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    return Response({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+@api_view(['GET'])
+def event_list(request):
+    """
+    Returns a list of all events.
+    """
+    if request.method == 'GET':
+        events = Events.objects.all()
+        serializer = EventsSerializer(events, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -457,13 +442,9 @@ def user_document_draft_is_exist(request, context_id):
 
 
 @api_view(['GET'])
-def document_status_list(request):
+def document_status_list(request, context_id):
     try:
-        queryset = ContextWiseEventAndDocument.objects.select_related(
-            'category',
-            'event_instance__event',
-            'created_by'
-        ).all()
+        queryset = ContextWiseEventAndDocument.objects.filter(context=context_id).order_by('-id')
 
         serializer = ContextWiseEventAndDocumentStatusSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -515,3 +496,109 @@ def context_wise_event_and_document_detail(request, pk):
     elif request.method == 'DELETE':
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+def category_filter_events(request, category_id):
+    """
+    Returns a list of events filtered by category.
+    """
+    if request.method == 'GET':
+        try:
+            category = Category.objects.get(pk=category_id)
+            events = category.events.all()
+            serializer = EventsSerializer(events, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Category.DoesNotExist:
+            return Response({'error': 'Category not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+@api_view(['GET'])
+def category_or_event_wise_document_list(request):
+    """
+    Returns a list of documents associated with a specific event instance.
+    """
+    if request.method == 'GET':
+        try:
+            event_id = request.query_params.get('event_id', None)
+            category_id = request.query_params.get('category_id', None)
+            filter_fields ={}
+            if event_id:
+                filter_fields['event'] = event_id
+            if category_id:
+                filter_fields['category'] = category_id
+            documents = Document.objects.filter(**filter_fields)
+            serializer = DocumentSerializer(documents, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except EventInstance.DoesNotExist:
+            return Response({'error': 'Event instance not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+@api_view(['GET'])
+def my_events_list(request):
+    """
+    Returns a list of event instances associated with the user's context.
+    """
+    context_id = request.query_params.get('doc_drafts_id', None)
+    if not context_id:
+        return Response({'error': 'Context is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Fetch all documents linked to this context
+        drafts = ContextWiseEventAndDocument.objects.filter(context_id=context_id)
+        if not drafts.exists():
+            return Response({'error': 'No documents found for this context'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Extract unique event_instance IDs
+        event_instance_ids = drafts.values_list('event_instance_id', flat=True).distinct()
+
+        # Fetch corresponding event instances
+        event_instances = EventInstance.objects.filter(id__in=event_instance_ids)
+
+        serializer = EventInstanceSerializer(event_instances, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def document_summary_by_context(request):
+    """
+    Returns summarized document status counts for a given context.
+    Summary includes: Total Document, Draft, Finalized, Action Pending.
+    """
+    context_id = request.query_params.get('doc_draft_id')
+
+    if not context_id:
+        return Response({'error': 'Context ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Group and count documents by status
+        status_counts = ContextWiseEventAndDocument.objects.filter(
+            context_id=context_id
+        ).values('status').annotate(count=Count('id'))
+
+        count_map = defaultdict(int)
+        for entry in status_counts:
+            count_map[entry['status']] = entry['count']
+
+        draft = count_map['draft']
+        finalized = count_map['completed']
+        action_pending = count_map['yet_to_start'] + count_map['in_progress']
+        total = sum(count_map.values())
+
+        return Response({
+            "Total Document": total,
+            "Draft": draft,
+            "Finalized": finalized,
+            "Action Pending": action_pending
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
