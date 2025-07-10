@@ -74,7 +74,7 @@ class DepartmentsSerializer(serializers.ModelSerializer):
         payroll_id = self.context.get('payroll_id')
         if payroll_id:
             return obj.employee_department.filter(payroll_id=payroll_id).count()
-        return obj.employeemanagement_set.count()
+        return obj.employee_department.count()
 
     def create(self, validated_data):
         """
