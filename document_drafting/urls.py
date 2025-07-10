@@ -43,6 +43,6 @@ urlpatterns = [
     path('my-events-list/', views.my_events_list, name='my-events-list'),
 
     path('documents-summary-by-context/', views.document_summary_by_context, name='documents-summary-by-context'),
-    # path('filtered-documents-by-status/', views.filter_documents_by_status, name='filtered-documents'),
+    path('filtered-documents-by-status/', views.filter_documents_by_status, name='filtered-documents'),
 
 ]

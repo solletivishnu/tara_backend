@@ -1385,8 +1385,8 @@ def get_statutory_settings(employee):
 def calculate_pf_contributions(pf_wage, basic_monthly):
     benefits = {
         "EPF Employer Contribution": {
-            "monthly": 0.12 * pf_wage / 12,
-            "annually": 0.12 * pf_wage,
+            "monthly": 0.12 * min(basic_monthly, 15000),
+            "annually": (0.12 * min(basic_monthly, 15000)) * 12,
             "calculation_type": "Percentage (12%) of PF wage"
         }
     }
@@ -1394,8 +1394,8 @@ def calculate_pf_contributions(pf_wage, basic_monthly):
     if basic_monthly <= 15000:
         for name in ["EDLI Employer Contribution", "EPF admin charges"]:
             benefits[name] = {
-                "monthly": 0.005 * pf_wage / 12,
-                "annually": 0.005 * pf_wage,
+                "monthly": 0.005 * basic_monthly,
+                "annually": (0.005 * basic_monthly) * 12,
                 "calculation_type": "Percentage (0.5%) of PF wage"
             }
     else:
@@ -1414,8 +1414,8 @@ def calculate_esi_contributions(pf_wage, basic_monthly, esi_enabled):
 
     if basic_monthly <= 21000:
         return {
-            "monthly": 0.0325 * pf_wage / 12,
-            "annually": 0.0325 * pf_wage,
+            "monthly": 0.0325 * basic_monthly,
+            "annually": (0.0325 * basic_monthly) * 12,
             "calculation_type": "Percentage (3.25%) of PF wage"
         }
     return {
@@ -1430,15 +1430,15 @@ def calculate_employee_deductions(pf_wage, basic_monthly, epf_enabled, esi_enabl
 
     # EPF Employee Contribution
     deductions["EPF Employee Contribution"] = {
-        "monthly": 0.12 * pf_wage / 12,
-        "annually": 0.12 * pf_wage,
+        "monthly": 0.12 * min(basic_monthly, 15000),
+        "annually": (0.12 * min(basic_monthly, 15000)) * 12,
         "calculation_type": "Percentage (12%) of PF wage"
     } if epf_enabled else {"monthly": "NA", "annually": "NA", "calculation_type": "Not Applicable"}
 
     # ESI Employee Contribution
     deductions["ESI Employee Contribution"] = {
-        "monthly": 0.0075 * pf_wage / 12,
-        "annually": 0.0075 * pf_wage,
+        "monthly": 0.0075 * basic_monthly,
+        "annually": (0.0075 * basic_monthly) * 12,
         "calculation_type": "Percentage (0.75%) of PF wage"
     } if esi_enabled and basic_monthly <= 21000 else (
         {"monthly": 0, "annually": 0, "calculation_type": "Not Applicable"}
