@@ -35,13 +35,14 @@ urlpatterns = [
     path('document-drafts-details/', views.draft_document_details_create),
     path('document-drafts-details/<int:pk>/', views.draft_document_details),
 
-    path('category-events-list/', views.event_and_category_list, name='category-events'),
-    path('events-list/',views.event_list, name='events-list'),
+
     path('category-wise-event-list/<int:category_id>/', views.category_filter_events, name='category-list'),
-    path('category-or-events-wise-document-list/', views.category_or_event_wise_document_list, name='event-wise-document-list'),
+    path('category-or-events-wise-document-list/', views.category_or_event_wise_document_list,
+         name='event-wise-document-list'),
     path('document-list/<int:context_id>/', views.document_status_list, name='document-status-list'),
     path('my-events-list/', views.my_events_list, name='my-events-list'),
 
     path('documents-summary-by-context/', views.document_summary_by_context, name='documents-summary-by-context'),
+    path('filtered-documents-by-status/', views.filter_documents_by_status, name='filtered-documents'),
 
 ]

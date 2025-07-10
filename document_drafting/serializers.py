@@ -103,9 +103,6 @@ class DocumentDraftDetailSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-from rest_framework import serializers
-from .models import ContextWiseEventAndDocument
-
 class ContextWiseEventAndDocumentStatusSerializer(serializers.ModelSerializer):
     created_date = serializers.DateTimeField(source='created_at', format="%d/%m/%y")
     last_edited = serializers.DateTimeField(source='updated_at', format="%d/%m/%y")
@@ -114,6 +111,7 @@ class ContextWiseEventAndDocumentStatusSerializer(serializers.ModelSerializer):
     creator = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     document = serializers.SerializerMethodField()
+    file = serializers.SerializerMethodField()
 
     class Meta:
         model = ContextWiseEventAndDocument
@@ -166,3 +164,10 @@ class ContextWiseEventAndDocumentStatusSerializer(serializers.ModelSerializer):
         }
         return status_map.get(obj.status, obj.status.title())
 
+    def get_file(self, obj):
+        if hasattr(obj, 'draft_details') and obj.draft_details.file:
+            request = self.context.get('request')
+            file_url = obj.draft_details.file.url
+            # Build absolute URL if request context is present
+            return request.build_absolute_uri(file_url) if request else file_url
+        return None
