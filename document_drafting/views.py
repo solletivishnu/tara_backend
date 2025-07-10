@@ -300,7 +300,7 @@ def draft_document_details_create(request):
         serializer = DocumentDraftDetailSerializer(data=data)
         if serializer.is_valid():
             instance = serializer.save()
-            if instance.data['status'] == 'completed':
+            if data.get('status') == 'completed':
                 # Process the draft and generate PDF if status is completed
                 process_and_generate_draft_pdf(instance)
             return Response(DocumentDraftDetailSerializer(instance).data, status=status.HTTP_201_CREATED)
