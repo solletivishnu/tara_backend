@@ -17,8 +17,7 @@ from .models import *
 from openpyxl import load_workbook
 from django.db.models import Exists, OuterRef
 from openpyxl.worksheet.datavalidation import DataValidation
-
-
+from openpyxl.styles import PatternFill
 # Sample default earnings (this can be moved to DB or settings)
 import pandas as pd
 from openpyxl import load_workbook
@@ -409,6 +408,9 @@ def generate_salary_upload_template(request, payroll_id):
         ).filter(has_salary=False).order_by('id')
         serializer = EmployeeSimpleSerializer(employees, many=True)
 
+        if not employees.exists():
+            return HttpResponse("No employees found without salary details.", status=204)
+
         # New column structure
         base_columns = ['Employee Id', 'Associate Id', 'Full name', 'Annual CTC', 'Tax Regime Opted']
 
@@ -480,6 +482,13 @@ def generate_salary_upload_template(request, payroll_id):
         wb = load_workbook(output)
         ws = wb.active
         ws.freeze_panes = "A2"
+
+        header_fill = PatternFill(start_color="BDD7EE", end_color="BDD7EE", fill_type="solid")
+
+        # Only apply styling if at least one row (i.e., headers) exists
+        if ws.max_row >= 1:
+            for cell in ws[1]:
+                cell.fill = header_fill
 
         # Set column widths
         for col in ws.columns:
