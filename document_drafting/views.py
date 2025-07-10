@@ -12,7 +12,6 @@ from django.db.models import Count
 from collections import defaultdict
 
 
-
 @api_view(['GET', 'POST'])
 def category_list_create(request):
     if request.method == 'GET':
@@ -194,12 +193,16 @@ def document_template_and_fields(request, id):
     except ContextWiseEventAndDocument.DoesNotExist:
         return Response({'error': 'Data not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    print(request.user)
+
     fields = context.document.fields.all()
     document = DocumentSerializer(context.document)
     serializer = DocumentFieldsSerializer(fields, many=True)
+    draft_info = DocumentDraftDetailSerializer(DocumentDraftDetail.objects.filter(draft=context), many=True).data
     return Response({
         'template': document.data['template'],
-        'fields': serializer.data
+        'fields': serializer.data,
+        'draft_info': draft_info
     })
 
 
@@ -401,34 +404,6 @@ def draft_document_by_event(request):
 
 
 @api_view(['GET'])
-def event_and_category_list(request):
-    """
-    Returns a list of all events with their categories.
-    """
-    if request.method == 'GET':
-        categories = Category.objects.all()
-        serializer = CategorySerializer(categories, many=True)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    return Response({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-@api_view(['GET'])
-def event_list(request):
-    """
-    Returns a list of all events.
-    """
-    if request.method == 'GET':
-        events = Events.objects.all()
-        serializer = EventsSerializer(events, many=True)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    return Response({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-@api_view(['GET'])
 def user_document_draft_is_exist(request, context_id):
     """
     Check if a user document draft exists for the given context.
@@ -551,7 +526,7 @@ def my_events_list(request):
         # Fetch all documents linked to this context
         drafts = ContextWiseEventAndDocument.objects.filter(context_id=context_id)
         if not drafts.exists():
-            return Response({'error': 'No documents found for this context'}, status=status.HTTP_404_NOT_FOUND)
+            return Response([])
 
         # Extract unique event_instance IDs
         event_instance_ids = drafts.values_list('event_instance_id', flat=True).distinct()
@@ -602,3 +577,25 @@ def document_summary_by_context(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+# @api_view(['GET'])
+# def filter_documents_by_status(request):
+#     """
+#     Returns documents filtered by status for a given context.
+#     """
+#     doc_status = request.query_params.get('status', None)  # renamed to avoid conflict
+#     context_id = request.query_params.get('doc_draft_id', None)
+#
+#     if not doc_status or not context_id:
+#         return Response({'error': 'Status and context ID are required'}, status=status.HTTP_400_BAD_REQUEST)
+#
+#     try:
+#         documents = ContextWiseEventAndDocument.objects.filter(
+#             status=doc_status,
+#             context_id=context_id
+#         )
+#         serializer = ContextWiseEventAndDocumentStatusSerializer(documents, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+#
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

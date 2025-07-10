@@ -1923,7 +1923,7 @@ def employee_list(request):
             )
 
         # Step 3: Usage check
-        usage_entry, error_response = get_usage_entry(context_id, 'employees_count', module_id=1)
+        usage_entry, error_response = get_usage_entry(context_id, 'employee_count', module_id=1)
         if error_response:
             return error_response
 
