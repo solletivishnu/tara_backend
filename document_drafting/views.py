@@ -120,14 +120,14 @@ def document_detail(request, pk):
         return Response(serializer.data)
 
     elif request.method == 'PUT':
-        serializer = DocumentSerializer(document, data=request.data)
+        serializer = DocumentSerializer(document, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        document.delete()
+        document.template.storage.delete(document.template.name)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -578,24 +578,24 @@ def document_summary_by_context(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# @api_view(['GET'])
-# def filter_documents_by_status(request):
-#     """
-#     Returns documents filtered by status for a given context.
-#     """
-#     doc_status = request.query_params.get('status', None)  # renamed to avoid conflict
-#     context_id = request.query_params.get('doc_draft_id', None)
-#
-#     if not doc_status or not context_id:
-#         return Response({'error': 'Status and context ID are required'}, status=status.HTTP_400_BAD_REQUEST)
-#
-#     try:
-#         documents = ContextWiseEventAndDocument.objects.filter(
-#             status=doc_status,
-#             context_id=context_id
-#         )
-#         serializer = ContextWiseEventAndDocumentStatusSerializer(documents, many=True)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-#
-#     except Exception as e:
-#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@api_view(['GET'])
+def filter_documents_by_status(request):
+    """
+    Returns documents filtered by status for a given context.
+    """
+    doc_status = request.query_params.get('status', None)  # renamed to avoid conflict
+    context_id = request.query_params.get('doc_draft_id', None)
+
+    if not doc_status or not context_id:
+        return Response({'error': 'Status and context ID are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        documents = ContextWiseEventAndDocument.objects.filter(
+            status=doc_status,
+            context_id=context_id
+        )
+        serializer = ContextWiseEventAndDocumentStatusSerializer(documents, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

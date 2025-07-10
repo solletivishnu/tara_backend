@@ -115,7 +115,7 @@ class ContextWiseEventAndDocumentStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ContextWiseEventAndDocument
-        fields = ['id', 'created_date', 'document','category', 'event', 'status', 'last_edited', 'creator']
+        fields = ['id', 'created_date', 'document','category', 'event', 'status', 'last_edited', 'creator', 'file']
 
     def get_category(self, obj):
         if obj.category:
