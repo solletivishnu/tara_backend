@@ -4,7 +4,6 @@ import json
 
 
 class EventsSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Events
         fields = '__all__'
@@ -13,13 +12,9 @@ class EventsSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     events = EventsSerializer(many=True, read_only=True)
 
-
     class Meta:
         model = Category
         fields = "__all__"
-
-
-
 
 
 class DocumentFieldsSerializer(serializers.ModelSerializer):
@@ -29,9 +24,6 @@ class DocumentFieldsSerializer(serializers.ModelSerializer):
 
 
 class DocumentSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
-    event = EventsSerializer(read_only=True)
-
     class Meta:
         model = Document
         fields = '__all__'
@@ -63,10 +55,19 @@ class UserFavouriteDocumentSerializer(serializers.ModelSerializer):
 
 
 class EventInstanceSerializer(serializers.ModelSerializer):
+    event_name = serializers.SerializerMethodField()
 
     class Meta:
         model = EventInstance
         fields = '__all__'
+
+    def get_event_name(self, obj):
+        if obj.event:
+            return {
+                'id': obj.event.id,
+                'event_name': obj.event.event_name,
+            }
+        return None
 
 
 class ContextWiseEventAndDocumentSerializer(serializers.ModelSerializer):
@@ -74,6 +75,25 @@ class ContextWiseEventAndDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContextWiseEventAndDocument
         fields = '__all__'
+
+
+class ContextWiseEventAndDocumentEventSerializer(serializers.ModelSerializer):
+    document = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContextWiseEventAndDocument
+        fields = ["id", "document", "status", "updated_at"]
+
+    def get_document(self, obj):
+        if obj.document:
+            return {
+                "id": obj.document.id,
+                "name": obj.document.document_name,
+                "description": obj.document.description,
+                "template": obj.document.template.url if obj.document.template else None,
+            }
+        return None
+
 
 
 class DocumentDraftDetailSerializer(serializers.ModelSerializer):
@@ -90,16 +110,40 @@ class ContextWiseEventAndDocumentStatusSerializer(serializers.ModelSerializer):
     created_date = serializers.DateTimeField(source='created_at', format="%d/%m/%y")
     last_edited = serializers.DateTimeField(source='updated_at', format="%d/%m/%y")
     category = serializers.SerializerMethodField()
-    event = serializers.CharField(source='event_instance.event.event_name')
+    event = serializers.SerializerMethodField()
     creator = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    document = serializers.SerializerMethodField()
 
     class Meta:
         model = ContextWiseEventAndDocument
-        fields = ['created_date', 'category', 'event', 'status', 'last_edited', 'creator']
+        fields = ['id', 'created_date', 'document','category', 'event', 'status', 'last_edited', 'creator']
 
     def get_category(self, obj):
-        return obj.category.category_name if obj.category else ""
+        if obj.category:
+            return {
+                "id": obj.category.id,
+                "name": obj.category.category_name
+            }
+        return None
+
+    def get_event(self, obj):
+        if obj.event_instance and obj.event_instance.event:
+            return {
+                "id": obj.event_instance.event.id,
+                "name": obj.event_instance.event.event_name,
+                "event_instance_id": obj.event_instance.id
+            }
+        return None
+
+    def get_document(self, obj):
+        if obj.document:
+            return {
+                "id": obj.document.id,
+                "name": obj.document.document_name,
+                "description": obj.document.description,
+            }
+        return None
 
     def get_creator(self, obj):
         user = obj.created_by
