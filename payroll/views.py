@@ -1502,6 +1502,9 @@ def calculate_payroll(request):
         if not basic_salary:
             return Response({"errorMessage": "Basic component is required"}, status=status.HTTP_400_BAD_REQUEST)
 
+        if basic_salary:
+            basic_salary_monthly = basic_salary["monthly"]
+
         basic_annual = gross_salary
         basic_monthly = basic_annual / 12
         pf_wage = min(basic_annual, 180000)
@@ -1521,7 +1524,7 @@ def calculate_payroll(request):
             pt_enabled = payroll.pt_details.exists() or False
 
         # Case 1: Basic salary < 15,000 and no statutory components
-        if basic_monthly < 15000 and not (epf_enabled or esi_enabled or pt_enabled):
+        if basic_salary_monthly < 15000 and not (epf_enabled or esi_enabled or pt_enabled):
             total_earnings = safe_sum(item["annually"] for item in earnings if item["component_name"] == "Basic")
             fixed_allowance = annual_ctc - total_earnings
 
@@ -1554,12 +1557,12 @@ def calculate_payroll(request):
             total_ctc = annual_ctc
         else:
             # Case 2: Regular calculation with statutory components
-            benefits = calculate_pf_contributions(pf_wage, basic_monthly) if epf_enabled else {
+            benefits = calculate_pf_contributions(pf_wage, basic_salary_monthly) if epf_enabled else {
                 name: {"monthly": "NA", "annually": "NA", "calculation_type": "Not Applicable"}
                 for name in ["EPF Employer Contribution", "EDLI Employer Contribution", "EPF admin charges"]
             }
 
-            benefits["ESI Employer Contribution"] = calculate_esi_contributions(pf_wage, basic_monthly, esi_enabled)
+            benefits["ESI Employer Contribution"] = calculate_esi_contributions(pf_wage, basic_salary_monthly, esi_enabled)
             total_benefits = safe_sum(item["annually"] for item in benefits.values() if isinstance(item, dict))
 
             total_earnings = safe_sum(
@@ -1575,7 +1578,7 @@ def calculate_payroll(request):
 
             gross_salary = safe_sum(item["annually"] for item in earnings)
 
-            deductions = calculate_employee_deductions(pf_wage, basic_monthly, epf_enabled, esi_enabled, pt_enabled)
+            deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly, epf_enabled, esi_enabled, pt_enabled)
             deductions["loan_emi"] = calculate_loan_deductions(employee_id) if employee_id else "NA"
 
             total_deductions = safe_sum(
