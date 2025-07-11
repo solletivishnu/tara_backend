@@ -120,8 +120,13 @@ def document_detail(request, pk):
         return Response(serializer.data)
 
     elif request.method == 'PUT':
+        if 'template' in request.data and document.template:
+            # Delete the old template file if it exists
+            document.template.storage.delete(document.template.name)
+            print(document.template.name)
         serializer = DocumentSerializer(document, data=request.data, partial=True)
         if serializer.is_valid():
+
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -305,6 +310,8 @@ def draft_document_details_create(request):
             instance = serializer.save()
             if data.get('status') == 'completed':
                 # Process the draft and generate PDF if status is completed
+                if instance.file:
+                    instance.file.storage.delete(instance.file.name)
                 process_and_generate_draft_pdf(instance)
             return Response(DocumentDraftDetailSerializer(instance).data, status=status.HTTP_201_CREATED)
 
@@ -338,6 +345,8 @@ def draft_document_details(request, pk):
 
             if data.get('status') == 'completed':
                 # Process the draft and generate PDF if status is completed
+                if instance.file:
+                    instance.file.storage.delete(instance.file.name)
                 process_and_generate_draft_pdf(instance)
             return Response(DocumentDraftDetailSerializer(instance).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -532,7 +541,7 @@ def my_events_list(request):
         event_instance_ids = drafts.values_list('event_instance_id', flat=True).distinct()
 
         # Fetch corresponding event instances
-        event_instances = EventInstance.objects.filter(id__in=event_instance_ids)
+        event_instances = EventInstance.objects.filter(id__in=event_instance_ids).order_by('-id')
 
         serializer = EventInstanceSerializer(event_instances, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
