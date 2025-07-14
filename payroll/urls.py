@@ -5,6 +5,7 @@ from . import generate_salary_upload_template
 from . import bulk_employee_upload
 from . import bulk_salary_details_upload
 from . import payroll_workflow
+from . import attendance_controller
 
 urlpatterns = [
     # URL for listing and creating PayrollOrg instances
@@ -199,5 +200,19 @@ urlpatterns = [
     path('payroll-workflows/<int:pk>/update/', payroll_workflow.payroll_workflow_update),
     path('payroll-workflows/<int:pk>/delete/', payroll_workflow.payroll_workflow_delete),
     path('payroll-workflows/detail-or-create/', payroll_workflow.payroll_workflow_detail_or_create),
+
+# Manual check-in/check-out
+
+    path('manual-checkin/', attendance_controller.manual_check_in, name='manual-check-in'),
+    path('manual-checkout/', attendance_controller.manual_check_out, name='manual-check-out'),
+
+    # Face recognition check-in/check-out
+    # path('face-checkin/', attendance_controller.face_checkin_checkout, name='face-checkin'),
+
+    # Get today's attendance
+    path('today/', attendance_controller.today_attendance_status, name='today-attendance'),
+
+    # Monthly report
+    path('report/', attendance_controller.monthly_attendance_report, name='monthly-report'),
 
 ]
