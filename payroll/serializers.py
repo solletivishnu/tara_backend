@@ -960,3 +960,21 @@ class PayrollWorkflowSerializer(serializers.ModelSerializer):
         model = PayrollWorkflow
         fields = '__all__'
 
+
+class AttendanceLogSerializer(serializers.ModelSerializer):
+    employee_id = serializers.CharField(source='employee.associate_id', read_only=True)
+
+    class Meta:
+        model = AttendanceLog
+        fields = [
+            'id',
+            'employee_id',
+            'date',
+            'check_in',
+            'check_out',
+            'check_in_type',
+            'location',
+            'device_info',
+            'verified',
+        ]
+        read_only_fields = ['check_in', 'check_out', 'employee_id']

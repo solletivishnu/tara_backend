@@ -620,9 +620,9 @@ def create_salary_revision_history(sender, instance, **kwargs):
                 
                 # Get or create revision history for current month/year
                 revision_history, created = EmployeeSalaryRevisionHistory.objects.get_or_create(
-                    employee = instance.employee,
-                    revision_month = payroll_month,
-                    revision_year = payroll_year,
+                    employee=instance.employee,
+                    revision_month=payroll_month,
+                    revision_year=payroll_year,
                     defaults={
                         'previous_ctc': old_instance.annual_ctc,
                         'current_ctc': instance.annual_ctc,
@@ -966,6 +966,32 @@ class PayrollWorkflow(models.Model):
 
     def __str__(self):
         return f"Payroll Workflow for {self.payroll.name} - {self.month}/{self.financial_year}"
+
+
+class AttendanceLog(models.Model):
+    CHECKIN_TYPES = [
+        ('manual', 'Manual'),
+        ('geo', 'Geo Location'),
+        ('face', 'Face Recognition'),
+        ('qr', 'QR Code'),
+        ('timesheet', 'Timesheet'),
+        ('biometric', 'Biometric Device'),
+        ('auto', 'System Auto'),
+    ]
+
+    employee = models.ForeignKey(EmployeeManagement, on_delete=models.CASCADE)
+    date = models.DateField()
+    check_in = models.DateTimeField()
+    check_out = models.DateTimeField(null=True, blank=True)
+    check_in_type = models.CharField(max_length=20, choices=CHECKIN_TYPES)
+    location = models.CharField(max_length=255, blank=True)
+    device_info = models.TextField(blank=True)
+    verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.employee.associate_id} - {self.date} ({self.check_in_type})"
+
+
 
 
 
