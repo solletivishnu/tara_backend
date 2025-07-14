@@ -427,14 +427,24 @@ def user_document_draft_is_exist(request, context_id):
 
 @api_view(['GET'])
 def document_status_list(request, context_id):
+    """
+    Returns documents related to a context.
+    Optionally filters by status if the 'status' query parameter is provided.
+    """
     try:
-        queryset = ContextWiseEventAndDocument.objects.filter(context=context_id).order_by('-id')
+        doc_status = request.query_params.get('status', None)
+
+        queryset = ContextWiseEventAndDocument.objects.filter(context=context_id)
+        if doc_status:
+            queryset = queryset.filter(status=doc_status)
+
+        queryset = queryset.order_by('-id')
 
         serializer = ContextWiseEventAndDocumentStatusSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET', 'POST'])
