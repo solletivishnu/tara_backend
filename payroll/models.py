@@ -549,7 +549,7 @@ class EmployeeSalaryDetails(models.Model):
                 raise ValidationError(f"Variable bonus must contain {required_bonus_fields}.")
 
             # Validate pay_cycle_frequency
-            valid_frequencies = {'monthly', 'quarterly', 'half-yearly', 'annually'}
+            valid_frequencies = {'Monthly', 'Quarterly', 'HalfYearly', 'Annually'}
             frequency = self.variable_bonus.get('pay_cycle_frequency')
 
             if frequency not in valid_frequencies:
@@ -966,6 +966,9 @@ class PayrollWorkflow(models.Model):
 
     def __str__(self):
         return f"Payroll Workflow for {self.payroll.name} - {self.month}/{self.financial_year}"
+
+
+
 
 
 
