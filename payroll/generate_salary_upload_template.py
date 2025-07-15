@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
-from .serializers import EmployeeSimpleSerializer
+from .serializers import EmployeeSimpleSerializer, EarningsSerializer
 from openpyxl.styles import Font
 from openpyxl.styles import Protection
 from .models import *
@@ -416,7 +416,8 @@ def generate_salary_upload_template(request, payroll_id):
 
         # Earnings columns - each has input column + monthly + annually
         earning_columns = []
-        for earning in default_earnings:
+        earnings = EarningsSerializer(Earnings.objects.filter(payroll=payroll), many=True).data
+        for earning in earnings:
             ct = earning['calculation_type']['type']
             if ct == "Percentage of CTC":
                 earning_columns.append(f"{earning['component_name']} (% of CTC)")
