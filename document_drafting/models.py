@@ -67,6 +67,7 @@ class DocumentFields(models.Model):
     label = models.CharField(max_length=255, help_text="Label for the field")
     field_type = models.CharField(max_length=50, help_text="Type of the field (e.g., text, number, date)")
     is_required = models.BooleanField(default=False, help_text="Indicates if the field is required")
+    metadata = JSONField(blank=True, null=True, help_text="Additional metadata related to the field")
     created_at = models.DateField(auto_now_add=True, help_text="Timestamp when the field was created")
     updated_at = models.DateField(auto_now=True, help_text="Timestamp when the field was last updated")
 
@@ -195,6 +196,12 @@ class ContextWiseEventAndDocument(models.Model):
         null=True,
         blank=True
     )
+    # file_name = models.CharField(
+    #     max_length=255,
+    #     blank=True,
+    #     null=True,
+    #     help_text="Name of the file associated with this document"
+    # )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

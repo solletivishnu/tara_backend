@@ -6,6 +6,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .serializers import *
 from .models import *
+from django.db.models import Prefetch
 from .helpers import process_and_generate_draft_pdf
 from django.db import transaction
 from django.db.models import Count
@@ -92,8 +93,23 @@ def events_detail(request, pk):
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def document_list_create(request):
     if request.method == 'GET':
-        documents = Document.objects.all()
-        serializer = DocumentSerializer(documents, many=True)
+        draft_id = request.query_params.get('draft_id')
+
+        # Prefetch related favorite records if draft_id is provided
+        if draft_id:
+            favorites_prefetch = Prefetch(
+                'favourited_by',
+                queryset=UserFavouriteDocument.objects.filter(draft_id=draft_id),
+                to_attr='user_favorites'
+            )
+            documents = Document.objects.prefetch_related(favorites_prefetch).all()
+        else:
+            documents = Document.objects.all()
+
+        serializer = DocumentSerializer(documents, many=True, context={
+            'draft_id': draft_id,
+            'request': request
+        })
         return Response(serializer.data)
 
     elif request.method == 'POST':
@@ -298,6 +314,7 @@ def draft_document_details_create(request):
     elif request.method == 'POST':
         data = request.data.copy()
         draft_data = data.get('draft_data')
+        # file_name = data.get('file_name')
 
         if isinstance(draft_data, str):
             try:
@@ -308,10 +325,15 @@ def draft_document_details_create(request):
         serializer = DocumentDraftDetailSerializer(data=data)
         if serializer.is_valid():
             instance = serializer.save()
+            # Save file_name to the related ContextWiseEventAndDocument
+            # if file_name:
+            #     instance.draft.file_name = file_name
+            #     instance.draft.save()
             if data.get('status') == 'completed':
                 # Process the draft and generate PDF if status is completed
                 if instance.file:
                     instance.file.storage.delete(instance.file.name)
+                # Pass file_name to the helper
                 process_and_generate_draft_pdf(instance)
             return Response(DocumentDraftDetailSerializer(instance).data, status=status.HTTP_201_CREATED)
 
@@ -339,10 +361,9 @@ def draft_document_details(request, pk):
                 data['draft_data'] = json.dumps(json.loads(draft_data))
             except json.JSONDecodeError:
                 return Response({'error': 'Invalid JSON for draft_data'}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = DocumentDraftDetailSerializer(draft, data=data)
+        serializer = DocumentDraftDetailSerializer(draft, data=data, partial=True)
         if serializer.is_valid():
             instance = serializer.save()
-
             if data.get('status') == 'completed':
                 # Process the draft and generate PDF if status is completed
                 if instance.file:

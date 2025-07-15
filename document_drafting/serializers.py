@@ -24,9 +24,36 @@ class DocumentFieldsSerializer(serializers.ModelSerializer):
 
 
 class DocumentSerializer(serializers.ModelSerializer):
+    is_favourite = serializers.SerializerMethodField()
+    favourite_data = serializers.SerializerMethodField()
+
     class Meta:
         model = Document
         fields = '__all__'
+
+    def get_is_favourite(self, obj):
+        if hasattr(obj, 'user_favorites') and obj.user_favorites:
+            return True
+        draft_id = self.context.get('draft_id')
+        if draft_id:
+            return UserFavouriteDocument.objects.filter(
+                document=obj,
+                draft_id=draft_id
+            ).exists()
+        return False
+
+    def get_favourite_data(self, obj):
+        if hasattr(obj, 'user_favorites') and obj.user_favorites:
+            return UserFavouriteDocumentSerializer(obj.user_favorites[0]).data
+        draft_id = self.context.get('draft_id')
+        if draft_id:
+            favourite = UserFavouriteDocument.objects.filter(
+                document=obj,
+                draft_id=draft_id
+            ).first()
+            if favourite:
+                return UserFavouriteDocumentSerializer(favourite).data.id
+        return None
 
 
 class UserDocumentDraftSerializer(serializers.ModelSerializer):
