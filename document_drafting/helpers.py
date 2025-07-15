@@ -32,32 +32,6 @@ def document_template_path(instance, filename):
     return os.path.join('document_drafting', 'document_templates', document_name, filename)
 
 
-def try_parse_date(value):
-    """
-    Try to parse a string to a date. Return formatted string if successful, else return original.
-    """
-    if isinstance(value, str):
-        try:
-            dt = parse_date(value, fuzzy=False)
-            return dt.strftime('%d-%m-%Y')
-        except (ValueError, TypeError):
-            return value
-    return value
-
-
-def format_dates_recursively(data):
-    """Recursively format all date/datetime fields in a dict/list to 'dd-mm-yyyy'."""
-    if isinstance(data, dict):
-        return {key: format_dates_recursively(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        return [format_dates_recursively(item) for item in data]
-    elif isinstance(data, (date, datetime)):
-        return data.strftime('%d-%m-%Y')
-    elif isinstance(data, str):
-        return try_parse_date(data)
-    return data
-
-
 def process_and_generate_draft_pdf(instance):
     """
     Fetch HTML template, render it using draft_data, convert to PDF, and save to instance.file.
@@ -90,8 +64,7 @@ def process_and_generate_draft_pdf(instance):
 
     try:
         # 3. Render HTML using Jinja2 with draft_data context
-        raw_context = instance.draft_data or {}
-        context = format_dates_recursively(raw_context)
+        context = instance.draft_data or {}
         template = Template(html_template)
         rendered_html = template.render(**context)
     except Exception as e:
