@@ -6,6 +6,7 @@ from . import bulk_employee_upload
 from . import bulk_salary_details_upload
 from . import payroll_workflow
 from . import attendance_controller
+from . import employeecredentials
 
 urlpatterns = [
     # URL for listing and creating PayrollOrg instances
@@ -213,6 +214,12 @@ urlpatterns = [
     path('today/', attendance_controller.today_attendance_status, name='today-attendance'),
 
     # Monthly report
-    path('report/', attendance_controller.monthly_attendance_report, name='monthly-report'),
+    path('report/', attendance_controller.truetime_monthly_view, name='monthly-report'),
+
+    path("credentials/", employeecredentials.credentials_list_create, name="credentials-list-create"),
+    path("credentials/<int:pk>/", employeecredentials.credentials_detail, name="credentials-detail"),
+
+    # ───────────── Employee Login (JWT) ─────────────
+    path("auth/employee-login/", employeecredentials.employee_login, name="employee-login"),
 
 ]

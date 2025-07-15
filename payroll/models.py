@@ -9,7 +9,7 @@ from collections import OrderedDict
 from django.db.models.signals import pre_save, post_save
 from dateutil.relativedelta import relativedelta
 from datetime import date, datetime
-
+from django.contrib.auth.hashers import make_password, check_password
 
 
 def validate_pincode(value):
@@ -419,7 +419,7 @@ class EmployeeManagement(BaseModel):
     employee_status = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.employee_id} ({self.gender})"
+        return f"{self.associate_id} ({self.gender})"
 
 
 @receiver(post_save, sender=EmployeeManagement)
@@ -924,7 +924,7 @@ class EmployeeSalaryHistory(models.Model):
     tds = models.FloatField(null=False)  # Tax Deducted at Source
     tds_ytd = models.FloatField(null=False)  # cummulative tds
     
-    annual_tds=models.FloatField(null=False) #Yearly Tds
+    annual_tds=models.FloatField(null=False) # Yearly Tds
     
     loan_emi = models.FloatField(null=False)  # Loan EMI
     other_deductions = models.FloatField(null=False)  # Other Deductions
@@ -968,6 +968,29 @@ class PayrollWorkflow(models.Model):
         return f"Payroll Workflow for {self.payroll.name} - {self.month}/{self.financial_year}"
 
 
+class EmployeeCredentials(models.Model):
+    employee = models.OneToOneField(
+        'EmployeeManagement', on_delete=models.CASCADE, related_name='employee_credentials'
+    )
+    username = models.CharField(max_length=150, unique=True)  # Unique username for the employee
+    password = models.CharField(max_length=128)  # Password field (hashed)
+    last_login = models.DateTimeField(null=True, blank=True)  # Last login timestamp
+
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
+
+    def __str__(self):
+        return f"{self.employee.associate_id} - {self.username}"
+
+    @property
+    def is_authenticated(self):
+        """Allows DRF to treat this object as an authenticated user"""
+        return True
+
+
 class AttendanceLog(models.Model):
     CHECKIN_TYPES = [
         ('manual', 'Manual'),
@@ -978,8 +1001,7 @@ class AttendanceLog(models.Model):
         ('biometric', 'Biometric Device'),
         ('auto', 'System Auto'),
     ]
-
-    employee = models.ForeignKey(EmployeeManagement, on_delete=models.CASCADE)
+    employee = models.ForeignKey(EmployeeCredentials, on_delete=models.CASCADE, related_name='attendance_logs')
     date = models.DateField()
     check_in = models.DateTimeField()
     check_out = models.DateTimeField(null=True, blank=True)
@@ -990,6 +1012,46 @@ class AttendanceLog(models.Model):
 
     def __str__(self):
         return f"{self.employee.associate_id} - {self.date} ({self.check_in_type})"
+
+
+# class LeaveApplication(models.Model):
+#     LEAVE_TYPE_CHOICES = [
+#         ('CL', 'Casual Leave'),
+#         ('SL', 'Sick Leave'),
+#         ('EL', 'Earned Leave'),
+#         ('LOP', 'Loss of Pay'),
+#     ]
+#
+#     STATUS_CHOICES = [
+#         ('pending', 'Pending'),
+#         ('approved', 'Approved'),
+#         ('rejected', 'Rejected'),
+#         ('cancelled', 'Cancelled'),
+#     ]
+#
+#     employee = models.ForeignKey(EmployeeCredentials, on_delete=models.CASCADE, related_name='leave_applications')
+#     leave_type = models.CharField(max_length=10, choices=LEAVE_TYPE_CHOICES)
+#     start_date = models.DateField()
+#     end_date = models.DateField()
+#     reason = models.TextField(blank=True)
+#
+#     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+#     applied_on = models.DateTimeField(auto_now_add=True)
+#
+#     reviewer = models.ForeignKey(
+#         EmployeeCredentials,
+#         on_delete=models.SET_NULL,
+#         null=True,
+#         blank=True,
+#         related_name='reviewed_leaves'
+#     )
+#     reviewed_on = models.DateTimeField(null=True, blank=True)
+#     reviewer_comment = models.TextField(blank=True)
+#
+#     def __str__(self):
+#         return f"{self.employee} - {self.leave_type} - {self.start_date} to {self.end_date}"
+
+
 
 
 

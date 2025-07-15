@@ -961,8 +961,34 @@ class PayrollWorkflowSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class EmployeeCredentialsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeCredentials
+        fields = ['id', 'employee', 'username', 'password', 'last_login']
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'last_login': {'read_only': True}
+        }
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        creds = EmployeeCredentials(**validated_data)
+        creds.set_password(password)
+        creds.save()
+        return creds
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+
 class AttendanceLogSerializer(serializers.ModelSerializer):
-    employee_id = serializers.CharField(source='employee.associate_id', read_only=True)
+    employee_id = serializers.CharField(source='employee.employee_credentials.associate_id', read_only=True)
 
     class Meta:
         model = AttendanceLog
