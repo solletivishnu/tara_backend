@@ -611,10 +611,12 @@ def generate_salary_upload_template(request, payroll_id):
                     total_other = " + ".join(other_earnings_sum + other_benefits_sum) if (other_earnings_sum + other_benefits_sum) else "0"
                     ws.cell(row=row_idx, column=monthly_col).value = (
                         f"=IF(ISNUMBER({annual_ctc_cell}), "
+                        f"IF(ABS(({annual_ctc_cell}/12) - ({total_other})) < 0.01, 0, "
                         f"IF(({annual_ctc_cell}/12) - ({total_other}) >= 0, "
                         f"({annual_ctc_cell}/12) - ({total_other}), "
-                        f"\"Error: Adjust earnings\"), \"\")"
+                        f"\"Error: Adjust earnings\")), \"\")"
                     )
+
                 # Annually = Monthly * 12 for all
                 ws.cell(row=row_idx, column=annually_col).value = (
                     f"=IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}*12, \"\")"
@@ -733,13 +735,17 @@ def generate_salary_upload_template(request, payroll_id):
                 deductions_sum.append(
                     f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
 
+            monthly_net_cell = get_column_letter(col_index('Net Salary (Monthly)'))
+            monthly_total_ctc = get_column_letter(col_index('Total CTC (Monthly)'))
+
             ws.cell(row=row_idx, column=col_index('Net Salary (Monthly)')).value = (
                 f"=IF(ISNUMBER({annual_ctc_cell}), "
-                f"{get_column_letter(col_index('Total CTC (Monthly)'))}{row_idx}-SUM({', '.join(benefits_sum + deductions_sum)}), \"\")"
+                f"MROUND({monthly_total_ctc}{row_idx}-SUM({', '.join(benefits_sum + deductions_sum)}), 1000), \"\")"
             )
+
             ws.cell(row=row_idx, column=col_index('Net Salary (Annually)')).value = (
-                f"=IF(ISNUMBER({get_column_letter(col_index('Net Salary (Monthly)'))}{row_idx}), "
-                f"{get_column_letter(col_index('Net Salary (Monthly)'))}{row_idx}*12, \"\")"
+                f"=IF(ISNUMBER({monthly_net_cell}{row_idx}), "
+                f"MROUND({monthly_net_cell}{row_idx}*12, 1000), \"\")"
             )
 
         # Add data validation for tax regime
