@@ -99,12 +99,12 @@ def document_list_create(request):
         if draft_id:
             favorites_prefetch = Prefetch(
                 'favourited_by',
-                queryset=UserFavouriteDocument.objects.filter(draft_id=draft_id),
+                queryset=UserFavouriteDocument.objects.filter(draft_id=draft_id).order_by('id'),
                 to_attr='user_favorites'
             )
-            documents = Document.objects.prefetch_related(favorites_prefetch).all()
+            documents = Document.objects.prefetch_related(favorites_prefetch).all().order_by('id')
         else:
-            documents = Document.objects.all()
+            documents = Document.objects.all().order_by('id')
 
         serializer = DocumentSerializer(documents, many=True, context={
             'draft_id': draft_id,
@@ -214,16 +214,15 @@ def document_template_and_fields(request, id):
     except ContextWiseEventAndDocument.DoesNotExist:
         return Response({'error': 'Data not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    print(request.user)
-
-    fields = context.document.fields.all()
+    fields = context.document.fields.all().order_by('id')
     document = DocumentSerializer(context.document)
     serializer = DocumentFieldsSerializer(fields, many=True)
     draft_info = DocumentDraftDetailSerializer(DocumentDraftDetail.objects.filter(draft=context), many=True).data
     return Response({
         'template': document.data['template'],
         'fields': serializer.data,
-        'draft_info': draft_info
+        'draft_info': draft_info,
+        'file_name': context.file_name,
     })
 
 
@@ -314,7 +313,7 @@ def draft_document_details_create(request):
     elif request.method == 'POST':
         data = request.data.copy()
         draft_data = data.get('draft_data')
-        # file_name = data.get('file_name')
+        file_name = data.get('file_name', None)
 
         if isinstance(draft_data, str):
             try:
@@ -326,15 +325,15 @@ def draft_document_details_create(request):
         if serializer.is_valid():
             instance = serializer.save()
             # Save file_name to the related ContextWiseEventAndDocument
-            # if file_name:
-            #     instance.draft.file_name = file_name
-            #     instance.draft.save()
+            if file_name:
+                instance.draft.file_name = file_name
+                instance.draft.save()
             if data.get('status') == 'completed':
                 # Process the draft and generate PDF if status is completed
                 if instance.file:
                     instance.file.storage.delete(instance.file.name)
                 # Pass file_name to the helper
-                process_and_generate_draft_pdf(instance)
+                process_and_generate_draft_pdf(instance, file_name=file_name)
             return Response(DocumentDraftDetailSerializer(instance).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -355,6 +354,7 @@ def draft_document_details(request, pk):
     elif request.method == 'PUT':
         data = request.data.copy()
         draft_data = data.get('draft_data')
+        file_name = data.get('file_name', None)
 
         if isinstance(draft_data, str):
             try:
@@ -364,11 +364,14 @@ def draft_document_details(request, pk):
         serializer = DocumentDraftDetailSerializer(draft, data=data, partial=True)
         if serializer.is_valid():
             instance = serializer.save()
+            if file_name:
+                instance.draft.file_name = file_name
+                instance.draft.save()
             if data.get('status') == 'completed':
                 # Process the draft and generate PDF if status is completed
                 if instance.file:
                     instance.file.storage.delete(instance.file.name)
-                process_and_generate_draft_pdf(instance)
+                process_and_generate_draft_pdf(instance, file_name=file_name)
             return Response(DocumentDraftDetailSerializer(instance).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -749,4 +752,118 @@ def recent_documents_by_context(request, context_id):
             break
 
     serializer = DocumentSerializer(unique_documents, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def file_name_is_already_exists_or_not(request):
+    """
+    Check if a file name already exists in the draft documents.
+    """
+    context = request.query_params.get('draft', None)
+    file_name = request.query_params.get('file_name', None)
+
+    if not file_name:
+        return Response({'error': 'File name is required'}, status=status.HTTP_400_BAD_REQUEST)
+    if not context:
+        return Response({'error': 'Draft context is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    exists = ContextWiseEventAndDocument.objects.filter(
+        file_name=file_name,
+        context=context
+    ).exists()
+
+    if exists:
+        return Response(
+            {
+                'message': 'A file with this name already exists in the specified draft context.',
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    else:
+        return Response(
+            {
+                'message': 'The file name is available.',
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+@api_view(['GET'])
+def get_filter_dropdown_data(request):
+    """
+    Returns lists for dropdown filters: document name, event name, category name (global),
+    and created_by (filtered by context).
+    Query param: context_id (required for created_by)
+    """
+    context_id = request.query_params.get('context_id')
+
+    # Global lists
+    document_names = list(Document.objects.values_list('document_name', flat=True).distinct())
+    event_names = list(Events.objects.values_list('event_name', flat=True).distinct())
+    category_names = list(Category.objects.values_list('category_name', flat=True).distinct())
+    # Statuses (from model choices or hardcoded)
+    statuses = ['yet_to_start', 'draft', 'in_progress', 'completed']
+
+    # created_by filtered by context
+    created_by = []
+    if context_id:
+        queryset = ContextWiseEventAndDocument.objects.filter(context_id=context_id)
+        created_by_users = queryset.values_list('created_by__first_name', 'created_by__middle_name', 'created_by__last_name')
+        for first, middle, last in created_by_users:
+            name = ' '.join(part for part in [first, middle, last] if part)
+            if name and name not in created_by:
+                created_by.append(name)
+
+    data = {
+        'document_names': [d for d in document_names if d],
+        'event_names': [e for e in event_names if e],
+        'category_names': [c for c in category_names if c],
+        'statuses': statuses,
+        'created_by': created_by,
+    }
+    serializer = FilterDropdownDataSerializer(data)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def get_filtered_documents(request):
+    """
+    Returns filtered documents based on selected filter values from dropdowns.
+    Query params: context_id (required), document_name, event_name, category_name, status, created_by, created_at
+    """
+    context_id = request.query_params.get('context_id')
+    document_name = request.query_params.get('document_name')
+    event_name = request.query_params.get('event_name')
+    category_name = request.query_params.get('category_name')
+    status_val = request.query_params.get('status')
+    created_by_val = request.query_params.get('created_by')
+    created_at = request.query_params.get('created_at')  # Expecting YYYY-MM-DD
+
+    if not context_id:
+        return Response({'error': 'context_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    queryset = ContextWiseEventAndDocument.objects.filter(context_id=context_id)
+
+    if document_name:
+        queryset = queryset.filter(document__document_name=document_name)
+    if event_name:
+        queryset = queryset.filter(event_instance__event__event_name=event_name)
+    if category_name:
+        queryset = queryset.filter(category__category_name=category_name)
+    if status_val:
+        queryset = queryset.filter(status=status_val)
+    if created_by_val:
+        # Split the name and filter by first, middle, last name
+        name_parts = created_by_val.split()
+        if len(name_parts) == 1:
+            queryset = queryset.filter(created_by__first_name=name_parts[0])
+        elif len(name_parts) == 2:
+            queryset = queryset.filter(created_by__first_name=name_parts[0], created_by__last_name=name_parts[1])
+        elif len(name_parts) == 3:
+            queryset = queryset.filter(created_by__first_name=name_parts[0], created_by__middle_name=name_parts[1], created_by__last_name=name_parts[2])
+    if created_at:
+        queryset = queryset.filter(created_at__date=created_at)
+
+    serializer = ContextWiseEventAndDocumentStatusSerializer(queryset, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)

@@ -177,6 +177,12 @@ class ContextWiseEventAndDocument(models.Model):
         null=True,
         blank=True
     )
+    file_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Name of the file associated with this document"
+    )
     status = models.CharField(
         max_length=50,
         choices=[
@@ -196,12 +202,6 @@ class ContextWiseEventAndDocument(models.Model):
         null=True,
         blank=True
     )
-    # file_name = models.CharField(
-    #     max_length=255,
-    #     blank=True,
-    #     null=True,
-    #     help_text="Name of the file associated with this document"
-    # )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
