@@ -138,16 +138,27 @@ class ContextWiseEventAndDocumentStatusSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     document = serializers.SerializerMethodField()
     file = serializers.SerializerMethodField()
+    file_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ContextWiseEventAndDocument
-        fields = ['id', 'created_date', 'document','category', 'event', 'status', 'last_edited', 'creator', 'file']
+        fields = ['id', 'created_date', 'document','category', 'event', 'status', 'last_edited', 'creator', 'file', 'file_name']
 
     def get_category(self, obj):
         if obj.category:
             return {
                 "id": obj.category.id,
                 "name": obj.category.category_name
+            }
+        if obj.event_instance and obj.event_instance.event and obj.event_instance.event.category:
+            return {
+                "id": obj.event_instance.event.category.id,
+                "name": obj.event_instance.event.category.category_name
+            }
+        if obj.document and obj.document.category:
+            return {
+                "id": obj.document.category.id,
+                "name": obj.document.category.category_name
             }
         return None
 
@@ -197,3 +208,18 @@ class ContextWiseEventAndDocumentStatusSerializer(serializers.ModelSerializer):
             # Build absolute URL if request context is present
             return request.build_absolute_uri(file_url) if request else file_url
         return None
+
+    def get_file_name(self, obj):
+        if obj.file_name:
+            return obj.file_name
+        if obj.document:
+            return obj.document.document_name
+        return None
+
+
+class FilterDropdownDataSerializer(serializers.Serializer):
+    document_names = serializers.ListField(child=serializers.CharField())
+    event_names = serializers.ListField(child=serializers.CharField())
+    category_names = serializers.ListField(child=serializers.CharField())
+    statuses = serializers.ListField(child=serializers.CharField())
+    created_by = serializers.ListField(child=serializers.CharField())
