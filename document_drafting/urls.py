@@ -61,5 +61,5 @@ urlpatterns = [
     # New filter dropdown data endpoint
     path('filter-dropdown-data/', views.get_filter_dropdown_data, name='filter-dropdown-data'),
     # New filtered documents endpoint
-    path('filtered-documents/', views.get_filtered_documents, name='filtered-documents'),
+    path('filtered-documents/<int:context_id>/', views.get_filtered_documents, name='filtered-documents'),
 ]

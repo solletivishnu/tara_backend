@@ -827,43 +827,41 @@ def get_filter_dropdown_data(request):
 
 
 @api_view(['GET'])
-def get_filtered_documents(request):
+def get_filtered_documents(request, context_id):
     """
     Returns filtered documents based on selected filter values from dropdowns.
-    Query params: context_id (required), document_name, event_name, category_name, status, created_by, created_at
+    Query params: document_name, event_name, category_name, status, created_by, created_at
     """
-    context_id = request.query_params.get('context_id')
-    document_name = request.query_params.get('document_name')
-    event_name = request.query_params.get('event_name')
-    category_name = request.query_params.get('category_name')
-    status_val = request.query_params.get('status')
+    filters = {
+        'document__document_name': request.query_params.get('document_name'),
+        'event_instance__event__event_name': request.query_params.get('event_name'),
+        'category__category_name': request.query_params.get('category_name'),
+        'status': request.query_params.get('status'),
+        'created_at__date': request.query_params.get('created_at'),
+    }
+
+    # Remove any None values from the filters
+    filters = {k: v for k, v in filters.items() if v}
+
+    queryset = ContextWiseEventAndDocument.objects.filter(context_id=context_id, **filters)
+
+    # Handle created_by (name split logic)
     created_by_val = request.query_params.get('created_by')
-    created_at = request.query_params.get('created_at')  # Expecting YYYY-MM-DD
-
-    if not context_id:
-        return Response({'error': 'context_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-    queryset = ContextWiseEventAndDocument.objects.filter(context_id=context_id)
-
-    if document_name:
-        queryset = queryset.filter(document__document_name=document_name)
-    if event_name:
-        queryset = queryset.filter(event_instance__event__event_name=event_name)
-    if category_name:
-        queryset = queryset.filter(category__category_name=category_name)
-    if status_val:
-        queryset = queryset.filter(status=status_val)
     if created_by_val:
-        # Split the name and filter by first, middle, last name
         name_parts = created_by_val.split()
         if len(name_parts) == 1:
-            queryset = queryset.filter(created_by__first_name=name_parts[0])
+            queryset = queryset.filter(created_by__first_name__icontains=name_parts[0])
         elif len(name_parts) == 2:
-            queryset = queryset.filter(created_by__first_name=name_parts[0], created_by__last_name=name_parts[1])
+            queryset = queryset.filter(
+                created_by__first_name__icontains=name_parts[0],
+                created_by__last_name__icontains=name_parts[1]
+            )
         elif len(name_parts) == 3:
-            queryset = queryset.filter(created_by__first_name=name_parts[0], created_by__middle_name=name_parts[1], created_by__last_name=name_parts[2])
-    if created_at:
-        queryset = queryset.filter(created_at__date=created_at)
+            queryset = queryset.filter(
+                created_by__first_name__icontains=name_parts[0],
+                created_by__middle_name__icontains=name_parts[1],
+                created_by__last_name__icontains=name_parts[2]
+            )
 
     serializer = ContextWiseEventAndDocumentStatusSerializer(queryset, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
