@@ -818,6 +818,8 @@ class BonusIncentiveSerializer(serializers.ModelSerializer):
 
     def get_remaining_balance(self, obj):
         committed = self.get_committed_bonus(obj)
+        if committed == 0:
+            return 0
         ytd = self.get_ytd(obj)
         return committed - ytd
 
