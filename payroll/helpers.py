@@ -207,6 +207,53 @@ default_earnings = [
 
 ]
 
+default_deductions = [
+    {
+        "deduction_name": "NPS Contribution",
+        "component_type": "Fixed",
+        "calculation_type": {
+            "type": "Flat Amount",
+            "value": 0
+        },
+        "is_active": True,
+        "includes_epf_contribution": True,
+        "includes_esi_contribution": True,
+      },
+    {
+        "deduction_name": "Group Insurance premium",
+        "component_type": "Fixed",
+        "calculation_type": {
+            "type": "Flat Amount",
+            "value": 0
+        },
+        "is_active": True,
+        "includes_epf_contribution": True,
+        "includes_esi_contribution": True,
+    },
+    {
+        "deduction_name": "Loan Repayment",
+        "component_type": "Fixed",
+        "calculation_type": {
+            "type": "Flat Amount",
+            "value": 0
+        },
+        "is_active": True,
+        "includes_epf_contribution": True,
+        "includes_esi_contribution": True,
+    },
+    {
+        "deduction_name": "Meal coupon deduction",
+        "component_type": "Fixed",
+        "calculation_type": {
+            "type": "Flat Amount",
+            "value": 0
+        },
+        "is_active": True,
+        "includes_epf_contribution": True,
+        "includes_esi_contribution": True,
+    }
+]
+
 
 default_leave_management = [
     {
