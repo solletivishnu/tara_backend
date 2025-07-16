@@ -3790,18 +3790,19 @@ def employee_monthly_salary_template(request):
 def bonus_incentive_list(request):
     """
     GET:
-        - Input: payroll_id, month, financial_year
-        - Returns all bonus incentives (existing + newly created).
-        - Creates zero-amount entries only for eligible employees missing bonus record.
+        - Input: payroll_id, month, financial_year, type [variable | adhoc]
+        - If type='variable': create zero-amount bonuses for missing employees
+        - If type='adhoc': return all bonus records where bonus_type != 'Variable Bonus'
     """
     try:
         payroll_id = request.query_params.get('payroll_id')
         month = request.query_params.get('month')
         financial_year = request.query_params.get('financial_year')
+        bonus_type = request.query_params.get('type', '').lower()
 
-        if not all([payroll_id, month, financial_year]):
+        if not all([payroll_id, month, financial_year, bonus_type]):
             return Response(
-                {"error": "Missing query params: payroll_id, month, financial_year are required."},
+                {"error": "Missing query params: payroll_id, month, financial_year, and type are required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -3816,70 +3817,86 @@ def bonus_incentive_list(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        employees = list(EmployeeManagement.objects.filter(payroll_id=payroll_id))
-        if not employees:
-            return Response({"error": "No employees found for the given payroll_id."}, status=status.HTTP_404_NOT_FOUND)
+        if bonus_type == "variable":
+            employees = list(EmployeeManagement.objects.filter(payroll_id=payroll_id))
+            if not employees:
+                return Response({"error": "No employees found for the given payroll_id."},
+                                status=status.HTTP_404_NOT_FOUND)
 
-        # Fetch eligible salary records with variable bonus
-        salary_details = list(
-            EmployeeSalaryDetails.objects.filter(
-                employee__in=employees,
-                is_variable_bonus=True,
-                valid_to__isnull=True,
-                valid_from__lte=bonus_cycle_date
-            ).select_related('employee')
-        )
-
-        if not salary_details:
-            return Response(
-                {"message": "No employees with variable bonus active during this month."},
-                status=status.HTTP_204_NO_CONTENT
+            salary_details = list(
+                EmployeeSalaryDetails.objects.filter(
+                    employee__in=employees,
+                    is_variable_bonus=True,
+                    valid_to__isnull=True,
+                    valid_from__lte=bonus_cycle_date
+                ).select_related('employee')
             )
 
-        # Get existing bonuses for the requested month/year
-        existing_bonuses = BonusIncentive.objects.filter(
-            employee__in=[s.employee for s in salary_details],
-            month=month,
-            financial_year=financial_year
-        )
-        existing_employee_ids = set(existing_bonuses.values_list('employee_id', flat=True))
+            if not salary_details:
+                return Response(
+                    {"message": "No employees with variable bonus active during this month."},
+                    status=status.HTTP_204_NO_CONTENT
+                )
 
-        # Filter only those who don't already have a bonus entry
-        missing_bonus_salaries = [
-            s for s in salary_details if s.employee.id not in existing_employee_ids
-        ]
-
-        # Create new bonus records
-        bonus_data = [
-            BonusIncentive(
-                employee=record.employee,
-                amount=0,
-                financial_year=financial_year,
+            existing_bonuses = BonusIncentive.objects.filter(
+                employee__in=[s.employee for s in salary_details],
                 month=month,
-                year=computed_year,
+                financial_year=financial_year,
                 bonus_type="Variable Bonus"
             )
-            for record in missing_bonus_salaries
-        ]
+            existing_employee_ids = set(existing_bonuses.values_list('employee_id', flat=True))
 
-        if bonus_data:
-            with transaction.atomic():
-                BonusIncentive.objects.bulk_create(bonus_data)
+            missing_bonus_salaries = [
+                s for s in salary_details if s.employee.id not in existing_employee_ids
+            ]
 
-        # Return all bonus records for the month (existing + new)
-        all_bonuses = BonusIncentive.objects.filter(
-            employee__in=[s.employee for s in salary_details],
-            month=month,
-            financial_year=financial_year
-        )
-        serializer = BonusIncentiveSerializer(all_bonuses, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            bonus_data = [
+                BonusIncentive(
+                    employee=record.employee,
+                    amount=0,
+                    financial_year=financial_year,
+                    month=month,
+                    year=computed_year,
+                    bonus_type="Variable Bonus"
+                )
+                for record in missing_bonus_salaries
+            ]
+
+            if bonus_data:
+                with transaction.atomic():
+                    BonusIncentive.objects.bulk_create(bonus_data)
+
+            all_bonuses = BonusIncentive.objects.filter(
+                employee__in=[s.employee for s in salary_details],
+                month=month,
+                financial_year=financial_year,
+                bonus_type="Variable Bonus"
+            )
+            serializer = BonusIncentiveSerializer(all_bonuses, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        elif bonus_type == "adhoc":
+            bonuses = BonusIncentive.objects.filter(
+                employee__payroll_id=payroll_id,
+                month=month,
+                financial_year=financial_year
+            ).exclude(bonus_type="Variable Bonus")
+
+            serializer = BonusIncentiveSerializer(bonuses, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        else:
+            return Response(
+                {"error": "Invalid type. Must be one of: variable, adhoc"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     except Exception as e:
         return Response(
             {"error": "Unexpected error occurred.", "details": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 
 @api_view(['POST'])
@@ -4305,3 +4322,27 @@ def salary_revision_list(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+def delete_employees_by_payroll(request):
+    """
+    DELETE all EmployeeManagement records associated with a given payroll_id.
+    """
+    payroll_id = request.query_params.get('payroll_id')
+
+    if not payroll_id:
+        return Response({"error": "payroll_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        payroll_instance = PayrollOrg.objects.get(id=payroll_id)
+    except PayrollOrg.DoesNotExist:
+        return Response({"error": "Invalid payroll_id"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Delete all employees under the given payroll
+    deleted_count, _ = EmployeeManagement.objects.filter(payroll=payroll_instance).delete()
+
+    return Response(
+        {"message": f"Deleted {deleted_count} employee(s) associated with payroll_id {payroll_id}."},
+        status=status.HTTP_200_OK
+    )

@@ -186,6 +186,8 @@ urlpatterns = [
 
     path("salary-revision", views.salary_revision_list, name="salary-revision-list"),
 
+    path("employees/delete/", views.delete_employees_by_payroll, name="delete-employees-by-payroll"),
+
     path('download-template/<int:payroll_id>/', employee_management.generate_employee_upload_template,
          name='download_employee_template'),
 
