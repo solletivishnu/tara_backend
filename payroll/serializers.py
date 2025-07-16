@@ -779,14 +779,13 @@ class BonusIncentiveSerializer(serializers.ModelSerializer):
     class Meta:
         model = BonusIncentive
         fields = [
-            'id',  # or whatever actual fields your model has
-            'employee', 'amount', 'financial_year', 'month', 'bonus_type',
+            'id', 'employee', 'amount', 'financial_year', 'month', 'bonus_type',
             'employee_name', 'department', 'designation', 'associate_id',
             'committed_bonus', 'ytd', 'remaining_balance', 'remarks'
         ]
 
     def get_employee_name(self, obj):
-        return f"{obj.employee.first_name} {obj.employee.middle_name} {obj.employee.last_name}".strip()
+        return f"{obj.employee.first_name} {obj.employee.middle_name or ''} {obj.employee.last_name}".strip()
 
     def get_department(self, obj):
         return obj.employee.department.dept_name
@@ -795,25 +794,28 @@ class BonusIncentiveSerializer(serializers.ModelSerializer):
         return obj.employee.designation.designation_name
 
     def get_committed_bonus(self, obj):
-        """Get committed bonus amount from EmployeeSalaryDetails if variable bonus is enabled"""
+        if obj.bonus_type != "Variable Bonus":
+            return None
         salary = EmployeeSalaryDetails.objects.filter(employee=obj.employee, valid_to__isnull=True).first()
         if salary and salary.is_variable_bonus:
             return salary.variable_bonus.get("bonus_amount", 0)
         return 0
 
     def get_ytd(self, obj):
-        """Get year-to-date total bonus paid to employee for the current financial year"""
+        if obj.bonus_type != "Variable Bonus":
+            return None
         total = BonusIncentive.objects.filter(
             employee=obj.employee,
-            financial_year=obj.financial_year
+            financial_year=obj.financial_year,
+            bonus_type="Variable Bonus"
         ).aggregate(total_bonus=Sum('amount'))['total_bonus']
         return total or 0
 
     def get_remaining_balance(self, obj):
-        committed = self.get_committed_bonus(obj)
-        if committed == 0:
-            return 0
-        ytd = self.get_ytd(obj)
+        if obj.bonus_type != "Variable Bonus":
+            return None
+        committed = self.get_committed_bonus(obj) or 0
+        ytd = self.get_ytd(obj) or 0
         return committed - ytd
 
 
