@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
-from .serializers import EmployeeSimpleSerializer, EarningsSerializer
+from .serializers import EmployeeSimpleSerializer, EarningsSerializer, DeductionSerializer
 from openpyxl.styles import Font
 from openpyxl.styles import Protection
 from .models import *
@@ -459,6 +459,19 @@ def generate_salary_upload_template(request, payroll_id):
             deduction_columns.append(f"Monthly ({deduction['component_name']})")
             deduction_columns.append(f"Annually ({deduction['component_name']})")
 
+        deduction_data = DeductionSerializer(Deduction.objects.filter(payroll=payroll).order_by('id'), many=True).data
+        for deduction_row in deduction_data:
+            ct = deduction_row['calculation_type']['type']
+            if ct == "Percentage of CTC":
+                deduction_columns.append(f"{deduction_row['deduction_name']} (% of CTC)")
+            elif ct == "Percentage of Basic":
+                deduction_columns.append(f"{deduction_row['deduction_name']} (% of Basic)")
+            elif ct == "Flat Amount":
+                deduction_columns.append(f"{deduction_row['deduction_name']} (Flat Amount)")
+
+            deduction_columns.append(f"Monthly ({deduction_row['deduction_name']})")
+            deduction_columns.append(f"Annually ({deduction_row['deduction_name']})")
+
         summary_columns = [
             'Gross Salary (Monthly)', 'Gross Salary (Annually)',
             'Total CTC (Monthly)', 'Total CTC (Annually)',
@@ -545,6 +558,10 @@ def generate_salary_upload_template(request, payroll_id):
                 editable_columns.append(f"{earning['component_name']} (% of Basic)")
             elif ct == "Flat Amount":
                 editable_columns.append(f"{earning['component_name']} (Flat Amount)")
+        for deduction_row in deduction_data:
+            ct = deduction_row['calculation_type']['type']
+            if ct == "Flat Amount":
+                editable_columns.append(f"{deduction_row['deduction_name']} (Flat Amount)")
 
         # Set cell protection
         for col_idx, col_name in enumerate(final_columns, start=1):
@@ -645,6 +662,23 @@ def generate_salary_upload_template(request, payroll_id):
                     f"{get_column_letter(monthly_col)}{row_idx}*12, \"\")"
                 )
 
+            # 3. Deductions Formulas
+            for deduction_row in deduction_data:
+                monthly_col = col_index(f'Monthly ({deduction_row["deduction_name"]})')
+                annually_col = col_index(f'Annually ({deduction_row["deduction_name"]})')
+                comp = deduction_row['deduction_name']
+                ct = deduction_row['calculation_type']['type']
+                if ct == "Flat Amount":
+                    input_col = col_index(f'{comp} (Flat Amount)')
+                if ct == "Flat Amount" and input_col:
+                    ws.cell(row=row_idx, column=monthly_col).value = (
+                        f"=IF(ISNUMBER({get_column_letter(input_col)}{row_idx}), {get_column_letter(input_col)}{row_idx}, \"\")"
+                    )
+                # Annually = Monthly * 12 for all
+                ws.cell(row=row_idx, column=annually_col).value = (
+                    f"=IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}*12, \"\")"
+                )
+
             # DEDUCTIONS FORMULAS
             # 1. EPF Employee Contribution (12% of PF wage)
             epf_employee_monthly_col = col_index('Monthly (EPF Employee Contribution)')
@@ -732,6 +766,10 @@ def generate_salary_upload_template(request, payroll_id):
             deductions_sum = []
             for deduction in default_deductions:
                 monthly_col = col_index(f'Monthly ({deduction["component_name"]})')
+                deductions_sum.append(
+                    f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
+            for deduction_row in deduction_data:
+                monthly_col = col_index(f'Monthly ({deduction_row["deduction_name"]})')
                 deductions_sum.append(
                     f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
 

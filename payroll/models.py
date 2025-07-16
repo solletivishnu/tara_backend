@@ -264,13 +264,15 @@ class Benefits(models.Model):
 
 class Deduction(models.Model):
     payroll = models.ForeignKey('PayrollOrg', on_delete=models.CASCADE, related_name='deductions')
-    deduction_type = models.CharField(max_length=150)  # Type of deduction (e.g., tax, insurance)
-    payslip_name = models.CharField(max_length=60, unique=True)  # Display name in the payslip (unique)
-    is_active = models.BooleanField(default=True)  # Whether the deduction is active
-    frequency = models.CharField(max_length=120)  # Frequency of deduction (e.g., monthly, yearly)
+    component_type = models.CharField(max_length=60, default='Fixed')
+    deduction_name = models.CharField(max_length=150)  # Type of deduction (e.g., tax, insurance)
+    calculation_type = JSONField(default=dict)
+    includes_epf_contribution = models.BooleanField(default=False)  # EPF contribution
+    includes_esi_contribution = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.deduction_type} ({self.payslip_name})"
+        return f"{self.deduction_name} "
 
 
 class Reimbursement(models.Model):

@@ -1240,25 +1240,87 @@ def benefits_detail_update_delete(request, benefit_id):
 
 
 @api_view(['GET', 'POST'])
-def deduction_list_create(request):
+def deductions_list_create(request):
+    """
+    List all Deduction records, or create a new one.
+    """
     if request.method == 'GET':
-        payroll_id = request.query_params.get('payroll_id')  # Get payroll_id from query parameters
+        try:
+            payroll_id = request.query_params.get('payroll_id')
 
-        if payroll_id:
-            # Filter designations by payroll_id
-            deductions = Deduction.objects.filter(payroll_id=payroll_id)
-        else:
-            # Retrieve all designations if no payroll_id is provided
-            deductions = Deduction.objects.all()
-        serializer = DeductionSerializer(deductions, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            if not payroll_id:
+                return Response({"error": "payroll_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    if request.method == 'POST':
-        serializer = DeductionSerializer(data=request.data)
+            try:
+                payroll_instance = PayrollOrg.objects.get(id=int(payroll_id))
+            except PayrollOrg.DoesNotExist:
+                return Response({"error": "Invalid payroll_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+            deductions = Deduction.objects.filter(payroll=payroll_instance)
+            if not deductions.exists():
+                created_deductions = []
+                try:
+                    with transaction.atomic():
+                        for deduction_data in default_deductions:
+                            deduction_data['payroll'] = payroll_instance.id
+
+                            serializer = DeductionSerializer(data=deduction_data)
+                            if serializer.is_valid(raise_exception=True):
+                                created_deduction = serializer.save()
+                                created_deductions.append(created_deduction)
+                            else:
+                                raise DatabaseError("Deduction data is invalid, transaction will be rolled back.")
+                except (ValidationError, DatabaseError) as e:
+                    for deduction in created_deductions:
+                        deduction.delete()
+                    return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                except Exception as e:
+                    for deduction in created_deductions:
+                        deduction.delete()
+                    return Response({"error": f"Unexpected error occurred: {str(e)}"},
+                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                deductions = Deduction.objects.filter(payroll=payroll_instance)
+
+            serializer = DeductionSerializer(deductions, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Unexpected error occurred: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif request.method == 'POST':
+        data = request.data.copy()
+        payroll_id = data.get('payroll')
+        if not payroll_id:
+            return Response({"error": "payroll_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = DeductionSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def deductions_in_payslip(request):
+    """
+    API to retrieve deductions where `is_included_in_payslip=True` for a specific payroll.
+    """
+    payroll_id = request.query_params.get('payroll_id')
+
+    if not payroll_id:
+        return Response({"error": "payroll_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    payroll_instance = get_object_or_404(PayrollOrg, id=payroll_id)
+
+    deductions = Deduction.objects.filter(payroll=payroll_instance)
+
+    if not deductions.exists():
+        return Response({"message": "No deductions found for the given payroll with is_included_in_payslip=True"},
+                        status=status.HTTP_404_NOT_FOUND)
+
+    serializer = DeductionSerializer(deductions, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET', 'PUT', 'DELETE'])

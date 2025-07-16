@@ -88,7 +88,7 @@ urlpatterns = [
     # URL for retrieving, updating, or deleting a specific Earnings record by its ID
     path('earnings/<int:pk>', views.earnings_detail, name='earnings_detail'),
 
-    path('deductions/', views.deduction_list_create, name='deduction-list-create'),
+    path('deductions/', views.deductions_list_create, name='deduction-list-create'),
     path('deductions/<int:id>/', views.deduction_detail, name='deduction-detail'),
 
     # Reimbursement Endpoints

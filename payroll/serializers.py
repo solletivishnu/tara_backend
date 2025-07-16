@@ -309,18 +309,11 @@ class BenefitsSerializer(serializers.ModelSerializer):
 class DeductionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Deduction
-        fields = [
-            'id',
-            'payroll',
-            'deduction_type',
-            'payslip_name',
-            'is_active',
-            'frequency'
-        ]
+        fields = '__all__'
 
     def validate_payslip_name(self, value):
-        if Deduction.objects.filter(payslip_name=value).exists():
-            raise serializers.ValidationError("Payslip name must be unique.")
+        if Deduction.objects.filter(deduction_name=value).exists():
+            raise serializers.ValidationError("deduction_name  must be unique.")
         return value
 
 
