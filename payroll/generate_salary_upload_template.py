@@ -401,7 +401,7 @@ default_benefits = [
     {"component_name": "EPF Employer Contribution", "calculation_type": {"type": "Percentage of PF wage", "value": 12}},
     {"component_name": "EDLI Employer Contribution", "calculation_type": {"type": "Fixed Amount", "value": 75}},
     {"component_name": "EPF Admin Charges", "calculation_type": {"type": "Fixed Amount", "value": 75}},
-    {"component_name": "ESI Employer Contribution", "calculation_type": {"type": "Percentage of PF wage", "value": 0.75}
+    {"component_name": "ESI Employer Contribution", "calculation_type": {"type": "Percentage of PF wage", "value": 3.25}
      },
 ]
 
@@ -412,6 +412,438 @@ default_deductions = [
     {"component_name": "Professional Tax (PT)", "calculation_type":
         {"type": "Based On Monthly Basic Criteria", "value": 0}},
 ]
+
+
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def generate_salary_upload_template(request, payroll_id):
+#     try:
+#         payroll = PayrollOrg.objects.get(pk=payroll_id)
+#         employees = EmployeeManagement.objects.filter(
+#             payroll=payroll
+#         ).annotate(
+#             has_salary=Exists(EmployeeSalaryDetails.objects.filter(employee=OuterRef('pk')))
+#         ).filter(has_salary=False).order_by('id')
+#         serializer = EmployeeSimpleSerializer(employees, many=True)
+#
+#         if not employees.exists():
+#             return HttpResponse("No employees found without salary details.", status=204)
+#
+#         # New column structure
+#         base_columns = ['Employee Id', 'Associate Id', 'Full name', 'Annual CTC', 'Tax Regime Opted']
+#
+#         # Earnings columns - each has input column + monthly + annually
+#         earning_columns = []
+#         earnings = EarningsSerializer(Earnings.objects.filter(payroll=payroll).order_by('id'), many=True).data
+#         for earning in earnings:
+#             ct = earning['calculation_type']['type']
+#             if ct == "Percentage of CTC":
+#                 earning_columns.append(f"{earning['component_name']} (% of CTC)")
+#             elif ct == "Percentage of Basic":
+#                 earning_columns.append(f"{earning['component_name']} (% of Basic)")
+#             elif ct == "Flat Amount":
+#                 earning_columns.append(f"{earning['component_name']} (Flat Amount)")
+#
+#             earning_columns.append(f"Monthly ({earning['component_name']})")
+#             earning_columns.append(f"Annually ({earning['component_name']})")
+#
+#         # Benefits columns - only monthly and annually
+#         benefit_columns = []
+#         for benefit in default_benefits:
+#             benefit_columns.append(f"Monthly ({benefit['component_name']})")
+#             benefit_columns.append(f"Annually ({benefit['component_name']})")
+#
+#         # Deductions columns - only monthly and annually
+#         deduction_columns = []
+#         for deduction in default_deductions:
+#             deduction_columns.append(f"Monthly ({deduction['component_name']})")
+#             deduction_columns.append(f"Annually ({deduction['component_name']})")
+#
+#         deduction_data = DeductionSerializer(Deduction.objects.filter(payroll=payroll).order_by('id'), many=True).data
+#         for deduction_row in deduction_data:
+#             ct = deduction_row['calculation_type']['type']
+#             if ct == "Percentage of CTC":
+#                 deduction_columns.append(f"{deduction_row['deduction_name']} (% of CTC)")
+#             elif ct == "Percentage of Basic":
+#                 deduction_columns.append(f"{deduction_row['deduction_name']} (% of Basic)")
+#             elif ct == "Flat Amount":
+#                 deduction_columns.append(f"{deduction_row['deduction_name']} (Flat Amount)")
+#
+#             deduction_columns.append(f"Monthly ({deduction_row['deduction_name']})")
+#             deduction_columns.append(f"Annually ({deduction_row['deduction_name']})")
+#
+#         summary_columns = [
+#             'Gross Salary (Monthly)', 'Gross Salary (Annually)',
+#             'Total CTC (Monthly)', 'Total CTC (Annually)',
+#             'Net Salary (Monthly)', 'Net Salary (Annually)'
+#         ]
+#
+#         final_columns = base_columns + earning_columns + benefit_columns + deduction_columns + summary_columns
+#
+#         data = []
+#         for emp in serializer.data:
+#             row = {
+#                 'Employee Id': emp['id'],
+#                 'Associate Id': emp['associate_id'],
+#                 'Full name': emp['full_name'],
+#                 'Annual CTC': '',
+#                 'Tax Regime Opted': '',
+#             }
+#
+#             # Initialize all columns with empty values
+#             for col in final_columns[len(base_columns):]:
+#                 row[col] = ''
+#
+#             # Set default values for specific columns
+#             for i, earning in enumerate(earnings, start=1):
+#                 ct = earning['calculation_type']['type']
+#                 value = earning['calculation_type'].get('value', '')
+#                 # Convert value to number if it's a string and represents a number
+#                 if isinstance(value, str):
+#                     try:
+#                         if '.' in value:
+#                             value = float(value)
+#                         else:
+#                             value = int(value)
+#                     except Exception:
+#                         pass  # leave as string if not convertible
+#                 if ct == "Percentage of CTC":
+#                     row[f"{earning['component_name']} (% of CTC)"] = value
+#                 elif ct == "Percentage of Basic":
+#                     row[f"{earning['component_name']} (% of Basic)"] = value
+#
+#             data.append(row)
+#
+#         df = pd.DataFrame(data, columns=final_columns)
+#
+#         output = BytesIO()
+#         with pd.ExcelWriter(output, engine='openpyxl') as writer:
+#             df.to_excel(writer, index=False, sheet_name='SalaryTemplate')
+#
+#         output.seek(0)
+#         wb = load_workbook(output)
+#         ws = wb.active
+#         ws.freeze_panes = "A2"
+#
+#         header_fill = PatternFill(start_color="BDD7EE", end_color="BDD7EE", fill_type="solid")
+#
+#         # Only apply styling if at least one row (i.e., headers) exists
+#         if ws.max_row >= 1:
+#             for cell in ws[1]:
+#                 cell.fill = header_fill
+#
+#         # Set column widths
+#         for col in ws.columns:
+#             max_length = 0
+#             col_letter = col[0].column_letter
+#             for cell in col:
+#                 if cell.value:
+#                     max_length = max(max_length, len(str(cell.value)))
+#             ws.column_dimensions[col_letter].width = max_length + 2
+#
+#         def col_index(name):
+#             return final_columns.index(name) + 1  # +1 because Excel is 1-based
+#
+#         n_rows = ws.max_row
+#
+#         # Define editable columns
+#         editable_columns = ['Annual CTC', 'Tax Regime Opted']
+#
+#         # Add earning input columns
+#         for earning in earnings:
+#             ct = earning['calculation_type']['type']
+#             if ct == "Percentage of CTC":
+#                 editable_columns.append(f"{earning['component_name']} (% of CTC)")
+#             elif ct == "Percentage of Basic":
+#                 editable_columns.append(f"{earning['component_name']} (% of Basic)")
+#             elif ct == "Flat Amount":
+#                 editable_columns.append(f"{earning['component_name']} (Flat Amount)")
+#         for deduction_row in deduction_data:
+#             ct = deduction_row['calculation_type']['type']
+#             if ct == "Flat Amount":
+#                 editable_columns.append(f"{deduction_row['deduction_name']} (Flat Amount)")
+#
+#         # Set cell protection
+#         for col_idx, col_name in enumerate(final_columns, start=1):
+#             for row_idx in range(2, n_rows + 1):
+#                 cell = ws.cell(row=row_idx, column=col_idx)
+#                 cell.protection = cell.protection.copy(locked=col_name not in editable_columns)
+#
+#         # Add formulas for each employee row
+#         for row_idx in range(2, n_rows + 1):
+#             annual_ctc_cell = ws.cell(row=row_idx, column=col_index('Annual CTC')).coordinate
+#
+#             # EARNINGS FORMULAS (dynamic for all earnings)
+#             # Remove hardcoded Basic, HRA, and 'other earnings' loop
+#             for earning in earnings:
+#                 ct = earning['calculation_type']['type']
+#                 comp = earning['component_name']
+#                 # Find input and output columns
+#                 if ct == "Percentage of CTC":
+#                     input_col = col_index(f'{comp} (% of CTC)')
+#                 elif ct == "Percentage of Basic":
+#                     input_col = col_index(f'{comp} (% of Basic)')
+#                 elif ct == "Flat Amount":
+#                     input_col = col_index(f'{comp} (Flat Amount)')
+#                 else:
+#                     input_col = None
+#                 monthly_col = col_index(f'Monthly ({comp})')
+#                 annually_col = col_index(f'Annually ({comp})')
+#
+#                 # Assign formulas
+#                 if ct == "Percentage of CTC" and input_col:
+#                     ws.cell(row=row_idx, column=monthly_col).value = (
+#                         f"=IF(AND(ISNUMBER({annual_ctc_cell}), ISNUMBER({get_column_letter(input_col)}{row_idx})), "
+#                         f"{annual_ctc_cell}*{get_column_letter(input_col)}{row_idx}/100/12, \"\")"
+#                     )
+#                 elif ct == "Percentage of Basic" and input_col:
+#                     # Find the basic monthly column
+#                     basic_monthly_col = None
+#                     for e2 in earnings:
+#                         if e2['component_name'].lower() == 'basic':
+#                             basic_monthly_col = col_index(f'Monthly ({e2["component_name"]})')
+#                             break
+#                     if basic_monthly_col:
+#                         ws.cell(row=row_idx, column=monthly_col).value = (
+#                             f"=IF(AND(ISNUMBER({get_column_letter(basic_monthly_col)}{row_idx}), ISNUMBER({get_column_letter(input_col)}{row_idx})), "
+#                             f"{get_column_letter(basic_monthly_col)}{row_idx}*{get_column_letter(input_col)}{row_idx}/100, \"\")"
+#                         )
+#                 elif ct == "Flat Amount" and input_col:
+#                     ws.cell(row=row_idx, column=monthly_col).value = (
+#                         f"=IF(ISNUMBER({get_column_letter(input_col)}{row_idx}), {get_column_letter(input_col)}{row_idx}, \"\")"
+#                     )
+#                 elif ct == "Remaining balance pf CTC":
+#                     # Calculate sum of all other earnings and benefits
+#                     other_earnings_sum = []
+#                     for e2 in earnings:
+#                         if e2['component_name'] != comp:
+#                             monthly_col2 = col_index(f'Monthly ({e2["component_name"]})')
+#                             other_earnings_sum.append(
+#                                 f"IF(ISNUMBER({get_column_letter(monthly_col2)}{row_idx}), {get_column_letter(monthly_col2)}{row_idx}, 0)")
+#                     other_benefits_sum = []
+#                     for benefit in default_benefits:
+#                         monthly_col2 = col_index(f'Monthly ({benefit["component_name"]})')
+#                         other_benefits_sum.append(
+#                             f"IF(ISNUMBER({get_column_letter(monthly_col2)}{row_idx}), {get_column_letter(monthly_col2)}{row_idx}, 0)")
+#                     total_other = " + ".join(other_earnings_sum + other_benefits_sum) if (other_earnings_sum + other_benefits_sum) else "0"
+#                     ws.cell(row=row_idx, column=monthly_col).value = (
+#                         f"=IF(ISNUMBER({annual_ctc_cell}), "
+#                         f"IF(ABS(({annual_ctc_cell}/12) - ({total_other})) < 0.01, 0, "
+#                         f"IF(({annual_ctc_cell}/12) - ({total_other}) >= 0, "
+#                         f"({annual_ctc_cell}/12) - ({total_other}), "
+#                         f"\"Error: Adjust earnings\")), \"\")"
+#                     )
+#
+#                 # Annually = Monthly * 12 for all
+#                 ws.cell(row=row_idx, column=annually_col).value = (
+#                     f"=IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}*12, \"\")"
+#                 )
+#
+#             # BENEFITS FORMULAS
+#             # 1. EPF Employer Contribution (12% of PF wage)
+#             epf_employer_monthly_col = col_index('Monthly (EPF Employer Contribution)')
+#             ws.cell(row=row_idx, column=epf_employer_monthly_col).value = (
+#                 f"=IF(ISNUMBER({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}), "
+#                 f"MIN({get_column_letter(col_index('Monthly (Basic)'))}{row_idx},15000)*0.12, \"\")"
+#             )
+#             ws.cell(row=row_idx, column=col_index('Annually (EPF Employer Contribution)')).value = (
+#                 f"=IF(ISNUMBER({get_column_letter(epf_employer_monthly_col)}{row_idx}), "
+#                 f"{get_column_letter(epf_employer_monthly_col)}{row_idx}*12, \"\")"
+#             )
+#
+#             # 2. EDLI and EPF Admin Charges (Fixed Amounts)
+#             for benefit in default_benefits[1:3]:  # EDLI and EPF Admin
+#                 monthly_col = col_index(f'Monthly ({benefit["component_name"]})')
+#                 ws.cell(row=row_idx, column=monthly_col).value = (
+#                     f"=IF(ISNUMBER({annual_ctc_cell}), {benefit['calculation_type']['value']}, \"\")"
+#                 )
+#                 ws.cell(row=row_idx, column=col_index(f'Annually ({benefit["component_name"]})')).value = (
+#                     f"=IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), "
+#                     f"{get_column_letter(monthly_col)}{row_idx}*12, \"\")"
+#                 )
+#
+#             # 3. Deductions Formulas
+#             for deduction_row in deduction_data:
+#                 monthly_col = col_index(f'Monthly ({deduction_row["deduction_name"]})')
+#                 annually_col = col_index(f'Annually ({deduction_row["deduction_name"]})')
+#                 comp = deduction_row['deduction_name']
+#                 ct = deduction_row['calculation_type']['type']
+#                 if ct == "Flat Amount":
+#                     input_col = col_index(f'{comp} (Flat Amount)')
+#                 if ct == "Flat Amount" and input_col:
+#                     ws.cell(row=row_idx, column=monthly_col).value = (
+#                         f"=IF(ISNUMBER({get_column_letter(input_col)}{row_idx}), {get_column_letter(input_col)}{row_idx}, \"\")"
+#                     )
+#                 # Annually = Monthly * 12 for all
+#                 ws.cell(row=row_idx, column=annually_col).value = (
+#                     f"=IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}*12, \"\")"
+#                 )
+#
+#             # DEDUCTIONS FORMULAS
+#             # 1. EPF Employee Contribution (12% of PF wage)
+#             epf_employee_monthly_col = col_index('Monthly (EPF Employee Contribution)')
+#             ws.cell(row=row_idx, column=epf_employee_monthly_col).value = (
+#                 f"=IF(ISNUMBER({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}), "
+#                 f"MIN({get_column_letter(col_index('Monthly (Basic)'))}{row_idx},15000)*0.12, \"\")"
+#             )
+#             ws.cell(row=row_idx, column=col_index('Annually (EPF Employee Contribution)')).value = (
+#                 f"=IF(ISNUMBER({get_column_letter(epf_employee_monthly_col)}{row_idx}), "
+#                 f"{get_column_letter(epf_employee_monthly_col)}{row_idx}*12, \"\")"
+#             )
+#
+#             # 2. Professional Tax (Fixed Amount)
+#             pt_monthly_col = col_index('Monthly (Professional Tax (PT))')
+#             ws.cell(row=row_idx, column=pt_monthly_col).value = (
+#                 f"=IF(ISNUMBER({annual_ctc_cell}), 200, \"\")"
+#             )
+#             ws.cell(row=row_idx, column=col_index('Annually (Professional Tax (PT))')).value = (
+#                 f"=IF(ISNUMBER({get_column_letter(pt_monthly_col)}{row_idx}), "
+#                 f"{get_column_letter(pt_monthly_col)}{row_idx}*12, \"\")"
+#             )
+#
+#             esi_employer_monthly_col = col_index('Monthly (ESI Employer Contribution)')
+#
+#             ws.cell(row=row_idx, column=esi_employer_monthly_col).value = (
+#                 f"=IF(ISNUMBER({annual_ctc_cell}), "
+#                 f"IF(AND(ISNUMBER({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}), "
+#                 f"{get_column_letter(col_index('Monthly (Basic)'))}{row_idx}<=21000), "
+#                 f"ROUND(MIN({get_column_letter(col_index('Monthly (Basic)'))}{row_idx},15000)*0.0325, 2), \"\"), \"\")"
+#             )
+#
+#             ws.cell(row=row_idx, column=col_index('Annually (ESI Employer Contribution)')).value = (
+#                 f"=IF(ISNUMBER({get_column_letter(esi_employer_monthly_col)}{row_idx}), "
+#                 f"ROUND({get_column_letter(esi_employer_monthly_col)}{row_idx}*12, 2), \"\")"
+#             )
+#
+#             # ESI Employee Contribution (0.75% when Basic <= 21000)
+#             esi_employee_monthly_col = col_index('Monthly (ESI Employee Contribution)')
+#
+#             ws.cell(row=row_idx, column=esi_employee_monthly_col).value = (
+#                 f"=IF(ISNUMBER({annual_ctc_cell}), "
+#                 f"IF(AND(ISNUMBER({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}), "
+#                 f"{get_column_letter(col_index('Monthly (Basic)'))}{row_idx}<=21000), "
+#                 f"ROUND(MIN({get_column_letter(col_index('Monthly (Basic)'))}{row_idx},15000)*0.0075, 2), \"\"), \"\")"
+#             )
+#
+#             ws.cell(row=row_idx, column=col_index('Annually (ESI Employee Contribution)')).value = (
+#                 f"=IF(ISNUMBER({get_column_letter(esi_employee_monthly_col)}{row_idx}), "
+#                 f"ROUND({get_column_letter(esi_employee_monthly_col)}{row_idx}*12, 2), \"\")"
+#             )
+#
+#             # SUMMARY FORMULAS
+#             # Gross Salary (sum of all earnings)
+#             earnings_sum = []
+#             for earning in earnings:
+#                 monthly_col = col_index(f'Monthly ({earning["component_name"]})')
+#                 earnings_sum.append(
+#                     f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
+#
+#             ws.cell(row=row_idx, column=col_index('Gross Salary (Monthly)')).value = (
+#                     f"=IF(ISNUMBER({annual_ctc_cell}), SUM({', '.join(earnings_sum)}), \"\")"
+#                 )
+#             ws.cell(row=row_idx, column=col_index('Gross Salary (Annually)')).value = (
+#                 f"=IF(ISNUMBER({get_column_letter(col_index('Gross Salary (Monthly)'))}{row_idx}), "
+#                 f"{get_column_letter(col_index('Gross Salary (Monthly)'))}{row_idx}*12, \"\")"
+#             )
+#
+#             # Total CTC (Gross Salary + Benefits)
+#             benefits_sum = []
+#             for benefit in default_benefits:
+#                 monthly_col = col_index(f'Monthly ({benefit["component_name"]})')
+#                 benefits_sum.append(
+#                     f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
+#
+#             ws.cell(row=row_idx, column=col_index('Total CTC (Monthly)')).value = (
+#                 f"=IF(ISNUMBER({annual_ctc_cell}), "
+#                 f"{get_column_letter(col_index('Gross Salary (Monthly)'))}{row_idx}+SUM({', '.join(benefits_sum)}), \"\")"
+#             )
+#             ws.cell(row=row_idx, column=col_index('Total CTC (Annually)')).value = (
+#                 f"=IF(ISNUMBER({get_column_letter(col_index('Total CTC (Monthly)'))}{row_idx}), "
+#                 f"{get_column_letter(col_index('Total CTC (Monthly)'))}{row_idx}*12, \"\")"
+#             )
+#
+#             # Net Salary (Total CTC - Deductions)
+#             deductions_sum = []
+#             for deduction in default_deductions:
+#                 monthly_col = col_index(f'Monthly ({deduction["component_name"]})')
+#                 deductions_sum.append(
+#                     f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
+#             for deduction_row in deduction_data:
+#                 monthly_col = col_index(f'Monthly ({deduction_row["deduction_name"]})')
+#                 deductions_sum.append(
+#                     f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
+#
+#             monthly_net_cell = get_column_letter(col_index('Net Salary (Monthly)'))
+#             monthly_total_ctc = get_column_letter(col_index('Total CTC (Monthly)'))
+#
+#             ws.cell(row=row_idx, column=col_index('Net Salary (Monthly)')).value = (
+#                 f"=IF(ISNUMBER({annual_ctc_cell}), "
+#                 f"MROUND({monthly_total_ctc}{row_idx}-SUM({', '.join(benefits_sum + deductions_sum)}), 1000), \"\")"
+#             )
+#
+#             ws.cell(row=row_idx, column=col_index('Net Salary (Annually)')).value = (
+#                 f"=IF(ISNUMBER({monthly_net_cell}{row_idx}), "
+#                 f"MROUND({monthly_net_cell}{row_idx}*12, 1000), \"\")"
+#             )
+#
+#         # Add data validation for tax regime
+#         tax_regime_col_idx = col_index('Tax Regime Opted')
+#         dv = DataValidation(type="list", formula1='"old,new"', allow_blank=True)
+#         dv.error = 'Select either "old" or "new"'
+#         dv.errorTitle = 'Invalid Input'
+#         dv.add(f"{get_column_letter(tax_regime_col_idx)}2:{get_column_letter(tax_regime_col_idx)}{n_rows}")
+#         ws.add_data_validation(dv)
+#
+#         # Protect sheet
+#         ws.protection.sheet = True
+#         ws.protection.password = 'tara'
+#         ws.protection.enable()
+#
+#         buffer = BytesIO()
+#         wb.save(buffer)
+#         buffer.seek(0)
+#
+#         filename = f"EmployeeSalaryTemplate_{date.today().strftime('%Y-%m-%d')}.xlsx"
+#         return HttpResponse(buffer.read(),
+#                             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+#                             headers={'Content-Disposition': f'attachment; filename="{filename}"'})
+#
+#     except PayrollOrg.DoesNotExist:
+#         return HttpResponse("Payroll not found", status=404)
+
+def get_statutory_settings(employee, payroll):
+    """
+    Returns the statutory settings for a given employee
+    - EPF and ESI from employee settings if available, otherwise payroll org
+    - PT always from payroll org
+    Returns a dictionary with: epf_enabled, esi_enabled, pt_enabled
+    """
+    if not employee:
+        return None
+
+    # Initialize with payroll org defaults
+    settings = {
+        'epf_enabled': hasattr(payroll, 'epf_details') and payroll.epf_details and not payroll.epf_details.is_disabled,
+        'esi_enabled': hasattr(payroll, 'esi_details') and payroll.esi_details and not payroll.esi_details.is_disabled,
+        'pt_enabled': payroll.pt_details.exists()
+    }
+    
+    # Override with employee specific settings if available
+    if hasattr(employee, 'statutory_components'):
+        emp_settings = employee.statutory_components
+        if isinstance(emp_settings, str):
+            import json
+            emp_settings = json.loads(emp_settings)
+        
+        if 'epf_enabled' in emp_settings:
+            settings['epf_enabled'] = emp_settings['epf_enabled']
+        if 'esi_enabled' in emp_settings:
+            settings['esi_enabled'] = emp_settings['esi_enabled']
+        if 'professional_tax' in emp_settings:  # Check for professional_tax field
+            settings['pt_enabled'] = emp_settings['professional_tax']
+        elif 'pt_enabled' in emp_settings:  # Also check for pt_enabled field
+            settings['pt_enabled'] = emp_settings['pt_enabled']
+    return settings
 
 
 @api_view(['GET'])
@@ -478,27 +910,49 @@ def generate_salary_upload_template(request, payroll_id):
             'Net Salary (Monthly)', 'Net Salary (Annually)'
         ]
 
-        final_columns = base_columns + earning_columns + benefit_columns + deduction_columns + summary_columns
+        final_columns = base_columns + earning_columns + benefit_columns + deduction_columns + summary_columns + [
+            '_epf_enabled', '_esi_enabled', '_pt_enabled'
+        ]
 
         data = []
         for emp in serializer.data:
+            # Get employee statutory settings
+            employee_obj = EmployeeManagement.objects.get(id=emp['id'])
+            statutory = get_statutory_settings(employee_obj, payroll)
+            if statutory:
+                epf_enabled = statutory['epf_enabled']
+                esi_enabled = statutory['esi_enabled']
+                pt_enabled = statutory['pt_enabled']
+            else:
+                # Fallback to organization settings if no employee-specific settings
+                epf_enabled = hasattr(payroll,
+                                      'epf_details') and payroll.epf_details and not payroll.epf_details.is_disabled
+                esi_enabled = hasattr(payroll,
+                                      'esi_details') and payroll.esi_details and not payroll.esi_details.is_disabled
+                pt_enabled = payroll.pt_details.exists()
+            
+
+
             row = {
                 'Employee Id': emp['id'],
                 'Associate Id': emp['associate_id'],
                 'Full name': emp['full_name'],
                 'Annual CTC': '',
                 'Tax Regime Opted': '',
+                '_epf_enabled': 'TRUE' if epf_enabled else 'FALSE',  # Store as strings for consistency
+                '_esi_enabled': 'TRUE' if esi_enabled else 'FALSE',  # Store as strings
+                '_pt_enabled': 'TRUE' if pt_enabled else 'FALSE'  # Store as strings
             }
 
-            # Initialize all columns with empty values
+            # Initialize all columns with empty values (except helper columns)
             for col in final_columns[len(base_columns):]:
-                row[col] = ''
+                if col not in ['_epf_enabled', '_esi_enabled', '_pt_enabled']:
+                    row[col] = ''
 
             # Set default values for specific columns
             for i, earning in enumerate(earnings, start=1):
                 ct = earning['calculation_type']['type']
                 value = earning['calculation_type'].get('value', '')
-                # Convert value to number if it's a string and represents a number
                 if isinstance(value, str):
                     try:
                         if '.' in value:
@@ -506,11 +960,13 @@ def generate_salary_upload_template(request, payroll_id):
                         else:
                             value = int(value)
                     except Exception:
-                        pass  # leave as string if not convertible
+                        pass
                 if ct == "Percentage of CTC":
                     row[f"{earning['component_name']} (% of CTC)"] = value
                 elif ct == "Percentage of Basic":
                     row[f"{earning['component_name']} (% of Basic)"] = value
+
+
 
             data.append(row)
 
@@ -527,12 +983,10 @@ def generate_salary_upload_template(request, payroll_id):
 
         header_fill = PatternFill(start_color="BDD7EE", end_color="BDD7EE", fill_type="solid")
 
-        # Only apply styling if at least one row (i.e., headers) exists
         if ws.max_row >= 1:
             for cell in ws[1]:
                 cell.fill = header_fill
 
-        # Set column widths
         for col in ws.columns:
             max_length = 0
             col_letter = col[0].column_letter
@@ -542,14 +996,12 @@ def generate_salary_upload_template(request, payroll_id):
             ws.column_dimensions[col_letter].width = max_length + 2
 
         def col_index(name):
-            return final_columns.index(name) + 1  # +1 because Excel is 1-based
+            return final_columns.index(name) + 1
 
         n_rows = ws.max_row
 
-        # Define editable columns
         editable_columns = ['Annual CTC', 'Tax Regime Opted']
 
-        # Add earning input columns
         for earning in earnings:
             ct = earning['calculation_type']['type']
             if ct == "Percentage of CTC":
@@ -563,22 +1015,21 @@ def generate_salary_upload_template(request, payroll_id):
             if ct == "Flat Amount":
                 editable_columns.append(f"{deduction_row['deduction_name']} (Flat Amount)")
 
-        # Set cell protection
         for col_idx, col_name in enumerate(final_columns, start=1):
             for row_idx in range(2, n_rows + 1):
                 cell = ws.cell(row=row_idx, column=col_idx)
                 cell.protection = cell.protection.copy(locked=col_name not in editable_columns)
 
-        # Add formulas for each employee row
+        epf_enabled_col = final_columns.index('_epf_enabled') + 1
+        esi_enabled_col = final_columns.index('_esi_enabled') + 1
+        pt_enabled_col = final_columns.index('_pt_enabled') + 1
+
         for row_idx in range(2, n_rows + 1):
             annual_ctc_cell = ws.cell(row=row_idx, column=col_index('Annual CTC')).coordinate
-
-            # EARNINGS FORMULAS (dynamic for all earnings)
-            # Remove hardcoded Basic, HRA, and 'other earnings' loop
+            # EARNINGS FORMULAS
             for earning in earnings:
                 ct = earning['calculation_type']['type']
                 comp = earning['component_name']
-                # Find input and output columns
                 if ct == "Percentage of CTC":
                     input_col = col_index(f'{comp} (% of CTC)')
                 elif ct == "Percentage of Basic":
@@ -590,14 +1041,12 @@ def generate_salary_upload_template(request, payroll_id):
                 monthly_col = col_index(f'Monthly ({comp})')
                 annually_col = col_index(f'Annually ({comp})')
 
-                # Assign formulas
                 if ct == "Percentage of CTC" and input_col:
                     ws.cell(row=row_idx, column=monthly_col).value = (
                         f"=IF(AND(ISNUMBER({annual_ctc_cell}), ISNUMBER({get_column_letter(input_col)}{row_idx})), "
                         f"{annual_ctc_cell}*{get_column_letter(input_col)}{row_idx}/100/12, \"\")"
                     )
                 elif ct == "Percentage of Basic" and input_col:
-                    # Find the basic monthly column
                     basic_monthly_col = None
                     for e2 in earnings:
                         if e2['component_name'].lower() == 'basic':
@@ -613,7 +1062,6 @@ def generate_salary_upload_template(request, payroll_id):
                         f"=IF(ISNUMBER({get_column_letter(input_col)}{row_idx}), {get_column_letter(input_col)}{row_idx}, \"\")"
                     )
                 elif ct == "Remaining balance pf CTC":
-                    # Calculate sum of all other earnings and benefits
                     other_earnings_sum = []
                     for e2 in earnings:
                         if e2['component_name'] != comp:
@@ -625,7 +1073,8 @@ def generate_salary_upload_template(request, payroll_id):
                         monthly_col2 = col_index(f'Monthly ({benefit["component_name"]})')
                         other_benefits_sum.append(
                             f"IF(ISNUMBER({get_column_letter(monthly_col2)}{row_idx}), {get_column_letter(monthly_col2)}{row_idx}, 0)")
-                    total_other = " + ".join(other_earnings_sum + other_benefits_sum) if (other_earnings_sum + other_benefits_sum) else "0"
+                    total_other = " + ".join(other_earnings_sum + other_benefits_sum) if (
+                                other_earnings_sum + other_benefits_sum) else "0"
                     ws.cell(row=row_idx, column=monthly_col).value = (
                         f"=IF(ISNUMBER({annual_ctc_cell}), "
                         f"IF(ABS(({annual_ctc_cell}/12) - ({total_other})) < 0.01, 0, "
@@ -634,104 +1083,86 @@ def generate_salary_upload_template(request, payroll_id):
                         f"\"Error: Adjust earnings\")), \"\")"
                     )
 
-                # Annually = Monthly * 12 for all
                 ws.cell(row=row_idx, column=annually_col).value = (
                     f"=IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}*12, \"\")"
                 )
 
-            # BENEFITS FORMULAS
-            # 1. EPF Employer Contribution (12% of PF wage)
+            # BENEFITS FORMULAS - only calculate if enabled for employee and Annual CTC is provided
+            # EPF Employer Contribution (12% of PF wage)
             epf_employer_monthly_col = col_index('Monthly (EPF Employer Contribution)')
+            epf_enabled_cell = f"{get_column_letter(epf_enabled_col)}{row_idx}"
+            basic_monthly_col = get_column_letter(col_index('Monthly (Basic)')) + str(row_idx)
+            
             ws.cell(row=row_idx, column=epf_employer_monthly_col).value = (
-                f"=IF(ISNUMBER({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}), "
-                f"MIN({get_column_letter(col_index('Monthly (Basic)'))}{row_idx},15000)*0.12, \"\")"
+                f'=IF(AND(ISNUMBER({annual_ctc_cell}),{epf_enabled_cell}="TRUE"),IF(ISNUMBER({basic_monthly_col}),MIN({basic_monthly_col},15000)*0.12,""),"")'
             )
             ws.cell(row=row_idx, column=col_index('Annually (EPF Employer Contribution)')).value = (
-                f"=IF(ISNUMBER({get_column_letter(epf_employer_monthly_col)}{row_idx}), "
-                f"{get_column_letter(epf_employer_monthly_col)}{row_idx}*12, \"\")"
+                f"=IF(ISNUMBER({get_column_letter(epf_employer_monthly_col)}{row_idx}),{get_column_letter(epf_employer_monthly_col)}{row_idx}*12,\"\")"
             )
 
-            # 2. EDLI and EPF Admin Charges (Fixed Amounts)
+            # EDLI and EPF Admin Charges (Fixed Amounts)
             for benefit in default_benefits[1:3]:  # EDLI and EPF Admin
                 monthly_col = col_index(f'Monthly ({benefit["component_name"]})')
                 ws.cell(row=row_idx, column=monthly_col).value = (
-                    f"=IF(ISNUMBER({annual_ctc_cell}), {benefit['calculation_type']['value']}, \"\")"
+                    f'=IF(AND(ISNUMBER({annual_ctc_cell}),{epf_enabled_cell}="TRUE"),{benefit["calculation_type"]["value"]},"")'
                 )
                 ws.cell(row=row_idx, column=col_index(f'Annually ({benefit["component_name"]})')).value = (
-                    f"=IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), "
-                    f"{get_column_letter(monthly_col)}{row_idx}*12, \"\")"
+                    f"=IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}),{get_column_letter(monthly_col)}{row_idx}*12,\"\")"
                 )
 
-            # 3. Deductions Formulas
-            for deduction_row in deduction_data:
-                monthly_col = col_index(f'Monthly ({deduction_row["deduction_name"]})')
-                annually_col = col_index(f'Annually ({deduction_row["deduction_name"]})')
-                comp = deduction_row['deduction_name']
-                ct = deduction_row['calculation_type']['type']
-                if ct == "Flat Amount":
-                    input_col = col_index(f'{comp} (Flat Amount)')
-                if ct == "Flat Amount" and input_col:
-                    ws.cell(row=row_idx, column=monthly_col).value = (
-                        f"=IF(ISNUMBER({get_column_letter(input_col)}{row_idx}), {get_column_letter(input_col)}{row_idx}, \"\")"
-                    )
-                # Annually = Monthly * 12 for all
-                ws.cell(row=row_idx, column=annually_col).value = (
-                    f"=IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}*12, \"\")"
-                )
-
-            # DEDUCTIONS FORMULAS
-            # 1. EPF Employee Contribution (12% of PF wage)
-            epf_employee_monthly_col = col_index('Monthly (EPF Employee Contribution)')
-            ws.cell(row=row_idx, column=epf_employee_monthly_col).value = (
-                f"=IF(ISNUMBER({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}), "
-                f"MIN({get_column_letter(col_index('Monthly (Basic)'))}{row_idx},15000)*0.12, \"\")"
-            )
-            ws.cell(row=row_idx, column=col_index('Annually (EPF Employee Contribution)')).value = (
-                f"=IF(ISNUMBER({get_column_letter(epf_employee_monthly_col)}{row_idx}), "
-                f"{get_column_letter(epf_employee_monthly_col)}{row_idx}*12, \"\")"
-            )
-
-            # 2. Professional Tax (Fixed Amount)
-            pt_monthly_col = col_index('Monthly (Professional Tax (PT))')
-            ws.cell(row=row_idx, column=pt_monthly_col).value = (
-                f"=IF(ISNUMBER({annual_ctc_cell}), 200, \"\")"
-            )
-            ws.cell(row=row_idx, column=col_index('Annually (Professional Tax (PT))')).value = (
-                f"=IF(ISNUMBER({get_column_letter(pt_monthly_col)}{row_idx}), "
-                f"{get_column_letter(pt_monthly_col)}{row_idx}*12, \"\")"
-            )
-
+            # ESI Employer Contribution (3.25% of Gross Monthly when <= 21000)
             esi_employer_monthly_col = col_index('Monthly (ESI Employer Contribution)')
+            esi_enabled_cell = f"{get_column_letter(esi_enabled_col)}{row_idx}"
+            gross_monthly_cell = f"{get_column_letter(col_index('Gross Salary (Monthly)'))}{row_idx}"
 
             ws.cell(row=row_idx, column=esi_employer_monthly_col).value = (
-                f"=IF(ISNUMBER({annual_ctc_cell}), "
-                f"IF(AND(ISNUMBER({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}), "
-                f"{get_column_letter(col_index('Monthly (Basic)'))}{row_idx}<=21000), "
-                f"ROUND(MIN({get_column_letter(col_index('Monthly (Basic)'))}{row_idx},15000)*0.0325, 2), \"\"), \"\")"
+                f'=IF(AND(ISNUMBER({annual_ctc_cell}),{esi_enabled_cell}="TRUE"),'
+                f'IF(AND(ISNUMBER({gross_monthly_cell}),{gross_monthly_cell}<=21000),'
+                f'ROUND({gross_monthly_cell}*0.0325,2),0),""'
             )
 
             ws.cell(row=row_idx, column=col_index('Annually (ESI Employer Contribution)')).value = (
-                f"=IF(ISNUMBER({get_column_letter(esi_employer_monthly_col)}{row_idx}), "
-                f"ROUND({get_column_letter(esi_employer_monthly_col)}{row_idx}*12, 2), \"\")"
+                f"=IF(ISNUMBER({get_column_letter(esi_employer_monthly_col)}{row_idx}),ROUND({get_column_letter(esi_employer_monthly_col)}{row_idx}*12,2),\"\")"
             )
 
-            # ESI Employee Contribution (0.75% when Basic <= 21000)
+            # DEDUCTIONS FORMULAS - only calculate if enabled for employee and Annual CTC is provided
+            # EPF Employee Contribution (12% of PF wage)
+            epf_employee_monthly_col = col_index('Monthly (EPF Employee Contribution)')
+            ws.cell(row=row_idx, column=epf_employee_monthly_col).value = (
+                f'=IF(AND(ISNUMBER({annual_ctc_cell}),{epf_enabled_cell}="TRUE"),IF(ISNUMBER({basic_monthly_col}),MIN({basic_monthly_col},15000)*0.12,""),"")'
+            )
+            ws.cell(row=row_idx, column=col_index('Annually (EPF Employee Contribution)')).value = (
+                f"=IF(ISNUMBER({get_column_letter(epf_employee_monthly_col)}{row_idx}),{get_column_letter(epf_employee_monthly_col)}{row_idx}*12,\"\")"
+            )
+
+            # Professional Tax (Based on Gross Monthly Salary)
+            pt_monthly_col = col_index('Monthly (Professional Tax (PT))')
+            pt_enabled_cell = f"{get_column_letter(pt_enabled_col)}{row_idx}"
+            gross_monthly_cell = f"{get_column_letter(col_index('Gross Salary (Monthly)'))}{row_idx}"
+
+            ws.cell(row=row_idx, column=pt_monthly_col).value = (
+                f'=IF(AND(ISNUMBER({annual_ctc_cell}),{pt_enabled_cell}="TRUE"),'
+                f'IF(ISNUMBER({gross_monthly_cell}),'
+                f'IF({gross_monthly_cell}<=15000,0,'
+                f'IF(AND({gross_monthly_cell}>=15001,{gross_monthly_cell}<=20000),150,200)),""),""'
+            )
+            ws.cell(row=row_idx, column=col_index('Annually (Professional Tax (PT))')).value = (
+                f"=IF(ISNUMBER({get_column_letter(pt_monthly_col)}{row_idx}),{get_column_letter(pt_monthly_col)}{row_idx}*12,\"\")"
+            )
+
+            # ESI Employee Contribution (0.75% of Gross Monthly when <= 21000)
             esi_employee_monthly_col = col_index('Monthly (ESI Employee Contribution)')
-
+            gross_monthly_cell = f"{get_column_letter(col_index('Gross Salary (Monthly)'))}{row_idx}"
             ws.cell(row=row_idx, column=esi_employee_monthly_col).value = (
-                f"=IF(ISNUMBER({annual_ctc_cell}), "
-                f"IF(AND(ISNUMBER({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}), "
-                f"{get_column_letter(col_index('Monthly (Basic)'))}{row_idx}<=21000), "
-                f"ROUND(MIN({get_column_letter(col_index('Monthly (Basic)'))}{row_idx},15000)*0.0075, 2), \"\"), \"\")"
+                f'=IF(AND(ISNUMBER({annual_ctc_cell}),{esi_enabled_cell}="TRUE"),'
+                f'IF(AND(ISNUMBER({gross_monthly_cell}),{gross_monthly_cell}<=21000),'
+                f'ROUND({gross_monthly_cell}*0.0075,2),0),""'
             )
-
             ws.cell(row=row_idx, column=col_index('Annually (ESI Employee Contribution)')).value = (
-                f"=IF(ISNUMBER({get_column_letter(esi_employee_monthly_col)}{row_idx}), "
-                f"ROUND({get_column_letter(esi_employee_monthly_col)}{row_idx}*12, 2), \"\")"
+                f"=IF(ISNUMBER({get_column_letter(esi_employee_monthly_col)}{row_idx}),ROUND({get_column_letter(esi_employee_monthly_col)}{row_idx}*12,2),\"\")"
             )
 
             # SUMMARY FORMULAS
-            # Gross Salary (sum of all earnings)
             earnings_sum = []
             for earning in earnings:
                 monthly_col = col_index(f'Monthly ({earning["component_name"]})')
@@ -739,19 +1170,20 @@ def generate_salary_upload_template(request, payroll_id):
                     f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
 
             ws.cell(row=row_idx, column=col_index('Gross Salary (Monthly)')).value = (
-                    f"=IF(ISNUMBER({annual_ctc_cell}), SUM({', '.join(earnings_sum)}), \"\")"
-                )
+                f"=IF(ISNUMBER({annual_ctc_cell}), SUM({', '.join(earnings_sum)}), \"\")"
+            )
             ws.cell(row=row_idx, column=col_index('Gross Salary (Annually)')).value = (
                 f"=IF(ISNUMBER({get_column_letter(col_index('Gross Salary (Monthly)'))}{row_idx}), "
                 f"{get_column_letter(col_index('Gross Salary (Monthly)'))}{row_idx}*12, \"\")"
             )
 
-            # Total CTC (Gross Salary + Benefits)
             benefits_sum = []
             for benefit in default_benefits:
                 monthly_col = col_index(f'Monthly ({benefit["component_name"]})')
                 benefits_sum.append(
-                    f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
+                    f"IF(AND(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), "
+                    f"OR({get_column_letter(monthly_col)}{row_idx}<>\"NA\", {get_column_letter(monthly_col)}{row_idx}<>\"\")), "
+                    f"{get_column_letter(monthly_col)}{row_idx}, 0)")
 
             ws.cell(row=row_idx, column=col_index('Total CTC (Monthly)')).value = (
                 f"=IF(ISNUMBER({annual_ctc_cell}), "
@@ -762,23 +1194,26 @@ def generate_salary_upload_template(request, payroll_id):
                 f"{get_column_letter(col_index('Total CTC (Monthly)'))}{row_idx}*12, \"\")"
             )
 
-            # Net Salary (Total CTC - Deductions)
             deductions_sum = []
             for deduction in default_deductions:
                 monthly_col = col_index(f'Monthly ({deduction["component_name"]})')
                 deductions_sum.append(
-                    f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
+                    f"IF(AND(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), "
+                    f"OR({get_column_letter(monthly_col)}{row_idx}<>\"NA\", {get_column_letter(monthly_col)}{row_idx}<>\"\")), "
+                    f"{get_column_letter(monthly_col)}{row_idx}, 0)")
             for deduction_row in deduction_data:
                 monthly_col = col_index(f'Monthly ({deduction_row["deduction_name"]})')
                 deductions_sum.append(
-                    f"IF(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), {get_column_letter(monthly_col)}{row_idx}, 0)")
+                    f"IF(AND(ISNUMBER({get_column_letter(monthly_col)}{row_idx}), "
+                    f"OR({get_column_letter(monthly_col)}{row_idx}<>\"NA\", {get_column_letter(monthly_col)}{row_idx}<>\"\")), "
+                    f"{get_column_letter(monthly_col)}{row_idx}, 0)")
 
             monthly_net_cell = get_column_letter(col_index('Net Salary (Monthly)'))
             monthly_total_ctc = get_column_letter(col_index('Total CTC (Monthly)'))
 
             ws.cell(row=row_idx, column=col_index('Net Salary (Monthly)')).value = (
                 f"=IF(ISNUMBER({annual_ctc_cell}), "
-                f"MROUND({monthly_total_ctc}{row_idx}-SUM({', '.join(benefits_sum + deductions_sum)}), 1000), \"\")"
+                f"MROUND({monthly_total_ctc}{row_idx}-SUM({', '.join(deductions_sum)}), 1000), \"\")"
             )
 
             ws.cell(row=row_idx, column=col_index('Net Salary (Annually)')).value = (
@@ -793,6 +1228,11 @@ def generate_salary_upload_template(request, payroll_id):
         dv.errorTitle = 'Invalid Input'
         dv.add(f"{get_column_letter(tax_regime_col_idx)}2:{get_column_letter(tax_regime_col_idx)}{n_rows}")
         ws.add_data_validation(dv)
+        
+        # Hide the helper columns
+        ws.column_dimensions[get_column_letter(final_columns.index('_epf_enabled') + 1)].hidden = True
+        ws.column_dimensions[get_column_letter(final_columns.index('_esi_enabled') + 1)].hidden = True
+        ws.column_dimensions[get_column_letter(final_columns.index('_pt_enabled') + 1)].hidden = True
 
         # Protect sheet
         ws.protection.sheet = True
@@ -810,5 +1250,7 @@ def generate_salary_upload_template(request, payroll_id):
 
     except PayrollOrg.DoesNotExist:
         return HttpResponse("Payroll not found", status=404)
+
+
 
 
