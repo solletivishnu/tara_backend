@@ -105,10 +105,11 @@ class ContextWiseEventAndDocumentSerializer(serializers.ModelSerializer):
 
 class ContextWiseEventAndDocumentEventSerializer(serializers.ModelSerializer):
     document = serializers.SerializerMethodField()
+    file = serializers.SerializerMethodField()
 
     class Meta:
         model = ContextWiseEventAndDocument
-        fields = ["id", "document", "status", "updated_at"]
+        fields = ["id", "document", "status", "updated_at", "file_name", "file"]
 
     def get_document(self, obj):
         if obj.document:
@@ -118,6 +119,14 @@ class ContextWiseEventAndDocumentEventSerializer(serializers.ModelSerializer):
                 "description": obj.document.description,
                 "template": obj.document.template.url if obj.document.template else None,
             }
+        return None
+
+    def get_file(self, obj):
+        if hasattr(obj, 'draft_details') and obj.draft_details.file:
+            request = self.context.get('request')
+            file_url = obj.draft_details.file.url
+            # Build absolute URL if request context is present
+            return request.build_absolute_uri(file_url) if request else file_url
         return None
 
 

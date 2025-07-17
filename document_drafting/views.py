@@ -279,7 +279,7 @@ def context_wise_event_and_document(request, event_instance):
         instance = EventInstance.objects.select_related('event').get(pk=event_instance)
 
         # 2. Get all related documents
-        documents = ContextWiseEventAndDocument.objects.filter(event_instance=instance)
+        documents = ContextWiseEventAndDocument.objects.filter(event_instance=instance).order_by('id')
 
         if not documents.exists():
             return Response({'error': 'No documents found for this event instance'}, status=status.HTTP_404_NOT_FOUND)
@@ -843,25 +843,25 @@ def get_filtered_documents(request, context_id):
     # Remove any None values from the filters
     filters = {k: v for k, v in filters.items() if v}
 
-    queryset = ContextWiseEventAndDocument.objects.filter(context_id=context_id, **filters)
+    queryset = ContextWiseEventAndDocument.objects.filter(context_id=context_id, **filters).order_by('id')
 
     # Handle created_by (name split logic)
     created_by_val = request.query_params.get('created_by')
     if created_by_val:
         name_parts = created_by_val.split()
         if len(name_parts) == 1:
-            queryset = queryset.filter(created_by__first_name__icontains=name_parts[0])
+            queryset = queryset.filter(created_by__first_name__icontains=name_parts[0]).order_by('id')
         elif len(name_parts) == 2:
             queryset = queryset.filter(
                 created_by__first_name__icontains=name_parts[0],
                 created_by__last_name__icontains=name_parts[1]
-            )
+            ).order_by('id')
         elif len(name_parts) == 3:
             queryset = queryset.filter(
                 created_by__first_name__icontains=name_parts[0],
                 created_by__middle_name__icontains=name_parts[1],
                 created_by__last_name__icontains=name_parts[2]
-            )
+            ).order_by('id')
 
     serializer = ContextWiseEventAndDocumentStatusSerializer(queryset, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
