@@ -645,6 +645,7 @@ def bulk_department_upload(request):
         else:  # xlsx
             records = pd.read_excel(file).to_dict(orient='records')
 
+        import math
         errors = []
         valid_departments = []
         seen_in_file = set()
@@ -656,11 +657,25 @@ def bulk_department_upload(request):
 
         # Process records
         for idx, record in enumerate(records):
-            dept_name = record.get('dept_name', '').strip()
+            dept_name = record.get('dept_name', '')
+            if isinstance(dept_name, float) and math.isnan(dept_name):
+                dept_name = ''
+            dept_name = str(dept_name).strip()
 
             dept_code_raw = record.get('dept_code', '')
-            # If it's not already a string, convert it; then strip
+            if isinstance(dept_code_raw, float) and math.isnan(dept_code_raw):
+                dept_code_raw = ''
             dept_code = str(dept_code_raw).strip()
+
+            description = record.get('description', None)
+            # Handle NaN for description
+            if description is not None:
+                if isinstance(description, float) and math.isnan(description):
+                    description = None
+                else:
+                    description = str(description).strip()
+                    if description == '':
+                        description = None
 
             if not dept_name:
                 errors.append({"row": idx + 2, "error": "Missing department name"})
@@ -685,11 +700,12 @@ def bulk_department_upload(request):
                 errors.append({"row": idx + 2, "error": f"Department code '{dept_code}' already exists in database"})
                 continue
 
-            # Create model instance
+            # Create model instance, include description if present
             valid_departments.append(Departments(
                 payroll=payroll_org,
                 dept_name=dept_name,
-                dept_code=dept_code
+                dept_code=dept_code,
+                description=description
             ))
 
         if errors:
@@ -3814,7 +3830,8 @@ def bonus_incentive_list(request):
             month = int(month)
             start_year, end_year = map(int, financial_year.split('-'))
             computed_year = start_year if month >= 4 else end_year
-            bonus_cycle_date = date(computed_year, month, 1)
+            today = date.today()
+            bonus_cycle_date = date(computed_year, month, today.day)
         except (ValueError, TypeError):
             return Response(
                 {"error": "Invalid format for month or financial_year. Use month=1-12, financial_year='YYYY-YYYY'."},
