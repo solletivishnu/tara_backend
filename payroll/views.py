@@ -657,7 +657,10 @@ def bulk_department_upload(request):
         # Process records
         for idx, record in enumerate(records):
             dept_name = record.get('dept_name', '').strip()
-            dept_code = record.get('dept_code', '').strip()
+
+            dept_code_raw = record.get('dept_code', '')
+            # If it's not already a string, convert it; then strip
+            dept_code = str(dept_code_raw).strip()
 
             if not dept_name:
                 errors.append({"row": idx + 2, "error": "Missing department name"})
