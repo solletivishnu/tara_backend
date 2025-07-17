@@ -759,7 +759,7 @@ def generate_salary_upload_template(request, payroll_id):
             else:
                 ws.cell(row=row_idx, column=pt_monthly_col).value = "-"
                 ws.cell(row=row_idx, column=col_index('Annually (Professional Tax (PT))')).value = "-"
-                
+
 
             # ESI Employer Contribution (Benefit, not deduction, but handled here for completeness)
             esi_employer_monthly_col = col_index('Monthly (ESI Employer Contribution)')
