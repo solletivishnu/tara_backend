@@ -225,8 +225,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(BASE_DIR, 'logs')
 
 # Ensure the 'logs' directory exists
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
+# if not os.path.exists(LOG_DIR):
+#     os.makedirs(LOG_DIR)
 
 LOGGING = {
     # Version of logging
