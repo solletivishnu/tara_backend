@@ -1625,7 +1625,8 @@ def calculate_payroll(request):
                 for name in ["EPF Employer Contribution", "EDLI Employer Contribution", "EPF admin charges"]
             }
 
-            benefits["ESI Employer Contribution"] = calculate_esi_contributions(pf_wage, basic_salary_monthly, esi_enabled)
+            benefits["ESI Employer Contribution"] = calculate_esi_contributions(pf_wage, basic_salary_monthly,
+                                                                                esi_enabled)
             total_benefits = safe_sum(item["annually"] for item in benefits.values() if isinstance(item, dict))
 
             total_earnings = safe_sum(
