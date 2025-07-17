@@ -727,17 +727,30 @@ def generate_salary_upload_template(request, payroll_id):
                 ws.cell(row=row_idx, column=col_index('Annually (EPF Employee Contribution)')).value = "-"
 
             # 2. Professional Tax (Fixed Amount)
-            pt_monthly_col = col_index('Monthly (Professional Tax (PT))')
-            basic_monthly_col = col_index('Monthly (Basic)')
+            # pt_monthly_col = col_index('Monthly (Professional Tax (PT))')
+            # basic_monthly_col = col_index('Monthly (Basic)')
+            #
+            # if professional_tax:
+            #     ws.cell(row=row_idx, column=pt_monthly_col).value = (
+            #         f"=IF(ISNUMBER({annual_ctc_cell}), "
+            #         f"IF(AND(ISNUMBER({get_column_letter(basic_monthly_col)}{row_idx}), "
+            #         f"{get_column_letter(basic_monthly_col)}{row_idx}<=15000), 0, "
+            #         f"IF(AND({get_column_letter(basic_monthly_col)}{row_idx}>15000, "
+            #         f"{get_column_letter(basic_monthly_col)}{row_idx}<=20000), 150, "
+            #         f"IF({get_column_letter(basic_monthly_col)}{row_idx}>20000, 200, 0))), 0)"
+            #     )
+            #     ws.cell(row=row_idx, column=col_index('Annually (Professional Tax (PT))')).value = (
+            #         f"=IF(ISNUMBER({get_column_letter(pt_monthly_col)}{row_idx}), "
+            #         f"{get_column_letter(pt_monthly_col)}{row_idx}*12, \"\")"
+            #     )
+            # else:
+            #     ws.cell(row=row_idx, column=pt_monthly_col).value = "-"
+            #     ws.cell(row=row_idx, column=col_index('Annually (Professional Tax (PT))')).value = "-"
 
+            pt_monthly_col = col_index('Monthly (Professional Tax (PT))')
             if professional_tax:
                 ws.cell(row=row_idx, column=pt_monthly_col).value = (
-                    f"=IF(ISNUMBER({annual_ctc_cell}), "
-                    f"IF(AND(ISNUMBER({get_column_letter(basic_monthly_col)}{row_idx}), "
-                    f"{get_column_letter(basic_monthly_col)}{row_idx}<=15000), 0, "
-                    f"IF(AND({get_column_letter(basic_monthly_col)}{row_idx}>15000, "
-                    f"{get_column_letter(basic_monthly_col)}{row_idx}<=20000), 150, "
-                    f"IF({get_column_letter(basic_monthly_col)}{row_idx}>20000, 200, 0))), 0)"
+                    f"=IF(ISNUMBER({annual_ctc_cell}), 200, \"\")"
                 )
                 ws.cell(row=row_idx, column=col_index('Annually (Professional Tax (PT))')).value = (
                     f"=IF(ISNUMBER({get_column_letter(pt_monthly_col)}{row_idx}), "
@@ -746,6 +759,7 @@ def generate_salary_upload_template(request, payroll_id):
             else:
                 ws.cell(row=row_idx, column=pt_monthly_col).value = "-"
                 ws.cell(row=row_idx, column=col_index('Annually (Professional Tax (PT))')).value = "-"
+                
 
             # ESI Employer Contribution (Benefit, not deduction, but handled here for completeness)
             esi_employer_monthly_col = col_index('Monthly (ESI Employer Contribution)')
@@ -771,7 +785,7 @@ def generate_salary_upload_template(request, payroll_id):
                     f"=IF(ISNUMBER({annual_ctc_cell}), "
                     f"IF(AND(ISNUMBER({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}), "
                     f"{get_column_letter(col_index('Monthly (Basic)'))}{row_idx}<=21000), "
-                    f"ROUND(MIN({get_column_letter(col_index('Monthly (Basic)'))}{row_idx},15000)*0.0075, 2), 0), 0)"
+                    f"ROUND({get_column_letter(col_index('Monthly (Basic)'))}{row_idx}*0.0075, 2), 0), 0)"
                 )
                 ws.cell(row=row_idx, column=col_index('Annually (ESI Employee Contribution)')).value = (
                     f"=IF(ISNUMBER({get_column_letter(esi_employee_monthly_col)}{row_idx}), "
