@@ -252,6 +252,8 @@ def update_document_status(sender, instance, created, **kwargs):
     """
     # Update the EventDocument status based on draft changes
     if instance.status != instance.draft.status:
+        if instance.status == 'draft':
+            instance.draft.event_instance.status = 'in_progress'
         instance.draft.status = instance.status
         instance.draft.save()
 
@@ -267,6 +269,8 @@ def update_event_instance_progress(sender, instance, **kwargs):
 
     total = related_docs.count()
     completed = related_docs.filter(status='completed').count()
+    in_progress = related_docs.exclude(status="yet_to_start").count()
+
 
     # Calculate new progress
     progress = (completed / total) * 100 if total > 0 else 0
@@ -274,7 +278,7 @@ def update_event_instance_progress(sender, instance, **kwargs):
     # Determine new status
     if completed == total:
         status = 'completed'
-    elif completed > 0:
+    elif completed > 0 or in_progress > 0:
         status = 'in_progress'
     else:
         status = 'yet_to_start'
