@@ -252,7 +252,7 @@ def update_document_status(sender, instance, created, **kwargs):
     """
     # Update the EventDocument status based on draft changes
     if instance.status != instance.draft.status:
-        if instance.status == 'draft':
+        if instance.status == 'draft' and instance.draft.event_instance:
             instance.draft.event_instance.status = 'in_progress'
         instance.draft.status = instance.status
         instance.draft.save()
