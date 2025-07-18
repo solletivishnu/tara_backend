@@ -667,8 +667,8 @@ class EmployeePersonalDetails(BaseModel):
     aadhar = models.CharField(max_length=80, null=True, blank=False, default=None)
     address = models.JSONField()
     alternate_contact_number = models.CharField(max_length=40, null=True, blank=True, default=None)
-    marital_status = models.CharField(max_length=20, choices=MARITAL_CHOICES, default='single')
-    blood_group = models.CharField(max_length=3, choices=BLOOD_GROUP_CHOICES, default='O+')
+    marital_status = models.CharField(max_length=20, choices=MARITAL_CHOICES, default='single', null=True, blank=True)
+    blood_group = models.CharField(max_length=3, choices=BLOOD_GROUP_CHOICES, default='O+', null=True, blank=True)
 
     def clean(self):
         """Validate that alternate contact number is not the same as employee's mobile number."""
@@ -927,7 +927,7 @@ class EmployeeSalaryHistory(models.Model):
     tds_ytd = models.FloatField(null=False)  # cummulative tds
     
     annual_tds=models.FloatField(null=False) # Yearly Tds
-    
+    bonus_incentive = models.FloatField(null=True)  # Bonus or Incentive
     loan_emi = models.FloatField(null=False)  # Loan EMI
     other_deductions = models.FloatField(null=False)  # Other Deductions
     total_deductions = models.FloatField(null=False)  # Total Deductions

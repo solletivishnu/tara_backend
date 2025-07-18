@@ -3363,8 +3363,7 @@ def detail_employee_monthly_salary(request):
                 component_amounts = calculate_component_amounts(
                     salary_record.earnings, total_working_days, attendance.total_days_of_month
                 )
-
-                epf_value = pf
+                epf_value = 0
                 other_deductions = 0
                 employee_deductions = 0
                 if salary_record.deductions:
@@ -3375,6 +3374,7 @@ def detail_employee_monthly_salary(request):
                         if "tax" not in name:
                             if name == "epf_employee_contribution" and employee.statutory_components.get("epf_enabled", False):
                                 employee_deductions += value
+                                epf_value = value
                             elif name == "esi_employee_contribution" and employee.statutory_components.get("esi_enabled", False):
                                 employee_deductions += value
                             elif name == "pt" and employee.statutory_components.get("professional_tax", False) and pt_amount == 0:
@@ -3393,12 +3393,20 @@ def detail_employee_monthly_salary(request):
                             return item.get("monthly", 0)
                     return 0
 
+                bonus_incentives = BonusIncentive.objects.filter(
+                    employee_id=employee,
+                    month=month,
+                    financial_year=financial_year
+                )
+                total_bonus_amount = bonus_incentives.aggregate(total_amount=Sum('amount'))['total_amount'] or 0
 
                 FINANCIAL_MONTH_MAP = {1: 10, 2: 11, 3: 12, 4: 1, 5: 2, 6: 3,7: 4, 8: 5, 9: 6, 10: 7, 11: 8, 12: 9}
 
                 current_month = FINANCIAL_MONTH_MAP.get(month, 1)
 
                 annual_gross=int(round(earned_salary, 2))*12
+
+                annual_gross = annual_gross + total_bonus_amount
 
                 monthly_tds,annual_tds=calculate_tds(regime_type=salary_record.tax_regime_opted,annual_salary=annual_gross,
                                                      current_month=current_month, epf_value=epf_value, ept_value = pt_amount)
@@ -3423,7 +3431,8 @@ def detail_employee_monthly_salary(request):
                     annual_tds = annual_tds
 
                 # Create or update EmployeeSalaryHistory
-                pf = pf if employee.statutory_components.get("epf_enabled", False) else 0
+                total_deductions = total_deductions + monthly_tds
+                epf_value = epf_value if employee.statutory_components.get("epf_enabled", False) else 0
                 esi = esi if employee.statutory_components.get("esi_enabled", False) else 0
                 pt_amount = pt_amount if employee.statutory_components.get("professional_tax", False) else 0
                 EmployeeSalaryHistory.objects.create(
@@ -3455,7 +3464,8 @@ def detail_employee_monthly_salary(request):
                             'children_education_allowance', 'overtime_allowance', 'transport_allowance'
                         ]), 2
                     )),
-                    epf=pf,
+                    bonus_incentive = round(total_bonus_amount, 2),
+                    epf=epf_value,
                     esi=esi,
                     pt=pt_amount,
                     tds=monthly_tds,
