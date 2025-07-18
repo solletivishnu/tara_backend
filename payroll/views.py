@@ -3373,12 +3373,12 @@ def detail_employee_monthly_salary(request):
                         value = value if isinstance(value, (int, float)) else 0  # Ensure numeric
                         if "tax" not in name:
                             if name == "epf_employee_contribution" and employee.statutory_components.get("epf_enabled", False):
-                                employee_deductions += value
-                                epf_value = value
+                                employee_deductions += prorate(value)
+                                epf_value = prorate(value)
                             elif name == "esi_employee_contribution" and employee.statutory_components.get("esi_enabled", False):
                                 pass
                             elif name == "pt" and employee.statutory_components.get("professional_tax", False) and pt_amount == 0:
-                                pt_amount= prorate(value)
+                                pt_amount= value
                             elif name == "tds":
                                 employee_deductions += value
                         if all(ex not in name for ex in exclude_deductions):
@@ -3404,13 +3404,14 @@ def detail_employee_monthly_salary(request):
 
                 current_month = FINANCIAL_MONTH_MAP.get(month, 1)
 
-                annual_gross=int(round(earned_salary, 2))*12
-
-                annual_gross = annual_gross + total_bonus_amount
-
-                monthly_tds,annual_tds=calculate_tds(regime_type=salary_record.tax_regime_opted,annual_salary=annual_gross,
-                                                     current_month=current_month, epf_value=epf_value, ept_value = pt_amount)
+                # annual_gross=int(round(earned_salary, 2))*12
+                #
+                # annual_gross = annual_gross + total_bonus_amount
+                #
+                # monthly_tds,annual_tds=calculate_tds(regime_type=salary_record.tax_regime_opted,annual_salary=annual_gross,
+                #                                      current_month=current_month, epf_value=epf_value, ept_value = pt_amount)
                 tds_ytd = 0
+                annual_gross = int(round(per_day_salary * attendance.total_days_of_month, 2)) * 12
                 try:
                     entry = EmployeeSalaryHistory.objects.filter(
                         employee=employee,
@@ -3418,15 +3419,35 @@ def detail_employee_monthly_salary(request):
                         financial_year=financial_year
                     ).order_by('-month').first()
                     if entry:
-                        tds_ytd = entry.tds_ytd + monthly_tds
-                        if entry.ctc != salary_record.annual_ctc:
+                        if entry.ctc != salary_record.annual_ctc or total_bonus_amount:
+                            if total_bonus_amount:
+                                annual_gross = annual_gross + total_bonus_amount
+                            monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
+                                                                annual_salary=annual_gross,
+                                                                current_month=current_month, epf_value=epf_value,
+                                                                ept_value=pt_amount)
+                            tds_ytd = entry.tds_ytd + monthly_tds
                             annual_tds = annual_tds
                         else:
-                            annual_tds = entry.annual_tds
+                            try:
+                                monthly_tds = entry.tds * (total_working_days / attendance.total_days_of_month)
+                                tds_ytd = entry.tds_ytd + monthly_tds
+                                annual_tds = entry.annual_tds
+                            except Exception as e:
+                                return Response({"message": "Error calculating TDS: " + str(e)},
+                                                status=status.HTTP_400_BAD_REQUEST)
                     else:
+                        monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
+                                                                annual_salary=annual_gross,
+                                                                current_month=current_month, epf_value=epf_value,
+                                                                ept_value=pt_amount)
                         tds_ytd = monthly_tds
                         annual_tds = annual_tds
                 except EmployeeSalaryHistory.DoesNotExist:
+                    monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
+                                                            annual_salary=annual_gross,
+                                                            current_month=current_month, epf_value=epf_value,
+                                                            ept_value=pt_amount)
                     tds_ytd = monthly_tds
                     annual_tds = annual_tds
 
@@ -3435,7 +3456,7 @@ def detail_employee_monthly_salary(request):
                 epf_value = epf_value if employee.statutory_components.get("epf_enabled", False) else 0
                 esi = esi if employee.statutory_components.get("esi_enabled", False) else 0
                 pt_amount = pt_amount if employee.statutory_components.get("professional_tax", False) else 0
-                net_salary = net_salary + monthly_tds
+                net_salary = net_salary - monthly_tds
                 EmployeeSalaryHistory.objects.create(
                     employee=employee,
                     payroll=employee.payroll,

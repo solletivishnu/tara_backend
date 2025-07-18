@@ -648,6 +648,7 @@ class EmployeePersonalDetails(BaseModel):
         ('married', 'married'),
     ]
     BLOOD_GROUP_CHOICES = [
+        ('Unknown', 'Unknown'),
         ('A+', 'A Positive (A+)'),
         ('A-', 'A Negative (A-)'),
         ('B+', 'B Positive (B+)'),
@@ -668,7 +669,7 @@ class EmployeePersonalDetails(BaseModel):
     address = models.JSONField()
     alternate_contact_number = models.CharField(max_length=40, null=True, blank=True, default=None)
     marital_status = models.CharField(max_length=20, choices=MARITAL_CHOICES, default='single', null=True, blank=True)
-    blood_group = models.CharField(max_length=3, choices=BLOOD_GROUP_CHOICES, default='O+', null=True, blank=True)
+    blood_group = models.CharField(max_length=15, choices=BLOOD_GROUP_CHOICES, default='O+', null=True, blank=True)
 
     def clean(self):
         """Validate that alternate contact number is not the same as employee's mobile number."""
