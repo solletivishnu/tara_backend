@@ -3376,7 +3376,7 @@ def detail_employee_monthly_salary(request):
                                 employee_deductions += value
                                 epf_value = value
                             elif name == "esi_employee_contribution" and employee.statutory_components.get("esi_enabled", False):
-                                employee_deductions += value
+                                pass
                             elif name == "pt" and employee.statutory_components.get("professional_tax", False) and pt_amount == 0:
                                 pt_amount= prorate(value)
                             elif name == "tds":
@@ -3384,7 +3384,7 @@ def detail_employee_monthly_salary(request):
                         if all(ex not in name for ex in exclude_deductions):
                             other_deductions += prorate(value)
 
-                total_deductions = taxes + emi_deduction + employee_deductions + other_deductions + pt_amount
+                total_deductions = taxes + emi_deduction + employee_deductions + other_deductions + pt_amount +esi
                 net_salary = earned_salary - total_deductions
 
                 def get_component_amount(earnings_data, component_name):
