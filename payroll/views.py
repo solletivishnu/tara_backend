@@ -1518,19 +1518,19 @@ def calculate_employee_deductions(pf_wage, basic_monthly, epf_enabled, esi_enabl
 
     # ESI Employee Contribution
     deductions["ESI Employee Contribution"] = {
-        "monthly": 0.0075 * gross_monthly,
-        "annually": (0.0075 * gross_monthly) * 12,
+        "monthly": 0.0075 * basic_monthly,
+        "annually": (0.0075 * basic_monthly) * 12,
         "calculation_type": "Percentage (0.75%) of PF wage"
-    } if esi_enabled and gross_monthly <= 21000 else (
+    } if esi_enabled and basic_monthly <= 21000 else (
         {"monthly": 0, "annually": 0, "calculation_type": "Not Applicable"}
         if esi_enabled else {"monthly": "NA", "annually": "NA", "calculation_type": "Not Applicable"}
     )
 
     # Professional Tax
     if pt_enabled:
-        if gross_monthly <= 15000:
+        if basic_monthly <= 15000:
             pt_monthly = 0
-        elif 15001 <= gross_monthly <= 20000:
+        elif 15001 <= basic_monthly <= 20000:
             pt_monthly = 150
         else:
             pt_monthly = 200
