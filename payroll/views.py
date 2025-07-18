@@ -3435,6 +3435,7 @@ def detail_employee_monthly_salary(request):
                 epf_value = epf_value if employee.statutory_components.get("epf_enabled", False) else 0
                 esi = esi if employee.statutory_components.get("esi_enabled", False) else 0
                 pt_amount = pt_amount if employee.statutory_components.get("professional_tax", False) else 0
+                net_salary = net_salary + monthly_tds
                 EmployeeSalaryHistory.objects.create(
                     employee=employee,
                     payroll=employee.payroll,
