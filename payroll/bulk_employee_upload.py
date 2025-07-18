@@ -161,126 +161,153 @@ def upload_employee_excel(request):
     departments_map = {dep.dept_name.strip().lower(): dep for dep in Departments.objects.filter(dept_name__in=department_names, payroll=payroll_id)}
 
     success_count = 0
+    errors = []
+    failed_row_index = None
 
-    for idx, row in df.iterrows():
-        row_num = idx + 2
+    from django.db import IntegrityError
 
-        # Validate address JSON
-        address_json = {
-            "address_line1": row.get('address_line1', '').strip(),
-            "address_line2": row.get('address_line2', '').strip() if not pd.isna(row.get('address_line2')) else "",
-            "address_city": row.get('address_city', '').strip(),
-            "address_state": row.get('address_state', '').strip(),
-            "address_pinCode": str(row.get('address_pinCode', '')).strip()
-        }
+    try:
+        with transaction.atomic():
+            for idx, row in df.iterrows():
+                row_num = idx + 2
 
-        missing_address_fields = [k for k, v in address_json.items() if k != "address_line2" and not v]
-        if missing_address_fields:
-            errors.append(f"Row {row_num}: Missing required address fields: {missing_address_fields}")
-            continue
-
-        try:
-            # FK validation from cached maps by name (case-insensitive)
-            work_location_obj = work_locations_map.get(str(row['work_location']).strip().lower())
-            designation_obj = designations_map.get(str(row['designation']).strip().lower())
-            department_obj = departments_map.get(str(row['department']).strip().lower())
-
-            if not work_location_obj:
-                errors.append(f"Row {row_num}: WorkLocation '{row['work_location']}' not found.")
-                continue
-            if not designation_obj:
-                errors.append(f"Row {row_num}: Designation '{row['designation']}' not found.")
-                continue
-            if not department_obj:
-                errors.append(f"Row {row_num}: Department '{row['department']}' not found.")
-                continue
-
-            with transaction.atomic():
-                def get_numeric_or_none(value):
-                    try:
-                        val = str(int(value))
-                        return val if val else None
-                    except (ValueError, TypeError):
-                        return None
-
-                statutory_components = {
-                    "epf_enabled": bool(row.get('epf_enabled')),
-                    "esi_enabled": bool(row.get('esi_enabled')),
-                    "professional_tax": bool(row.get('professional_tax')),
+                # Validate address JSON
+                address_json = {
+                    "address_line1": row.get('address_line1', '').strip(),
+                    "address_line2": row.get('address_line2', '').strip() if not pd.isna(row.get('address_line2')) else "",
+                    "address_city": row.get('address_city', '').strip(),
+                    "address_state": row.get('address_state', '').strip(),
+                    "address_pinCode": str(row.get('address_pinCode', '')).strip()
                 }
 
-                epf = {
-                    k: v for k, v in {
-                        "pf_account_number": get_numeric_or_none(row.get('pf_account_number')),
-                        "uan": get_numeric_or_none(row.get('uan'))
-                    }.items() if v is not None
-                }
-                if epf:
-                    statutory_components["employee_provident_fund"] = epf
+                missing_address_fields = [k for k, v in address_json.items() if k != "address_line2" and not v]
+                if missing_address_fields:
+                    errors.append(f"Row {row_num}: Missing required address fields: {missing_address_fields}")
+                    failed_row_index = idx
+                    raise IntegrityError("Rolling back due to error in row processing")
 
-                esi = {
-                    k: v for k, v in {
-                        "esi_number": get_numeric_or_none(row.get('esi_number'))
-                    }.items() if v is not None
-                }
-                if esi:
-                    statutory_components["employee_state_insurance"] = esi
+                # FK validation from cached maps by name (case-insensitive)
+                work_location_obj = work_locations_map.get(str(row['work_location']).strip().lower())
+                designation_obj = designations_map.get(str(row['designation']).strip().lower())
+                department_obj = departments_map.get(str(row['department']).strip().lower())
 
-                employee, _ = EmployeeManagement.objects.update_or_create(
-                    associate_id=row['associate_id'],
-                    payroll_id=payroll_obj_id,
-                    defaults={
-                        'first_name': row['first_name'],
-                        'middle_name': None if pd.isna(row.get('middle_name')) or str(
-                            row.get('middle_name')).strip().lower() == 'nan' or None else row.get('middle_name'),
-                        'last_name': row['last_name'],
-                        'doj': parse_excel_date(row.get('doj')),
-                        'work_email': row['work_email'],
-                        'mobile_number': str(row['mobile_number']),
-                        'gender': row['gender'],
-                        'work_location_id': work_location_obj.id,
-                        'designation_id': designation_obj.id,
-                        'department_id': department_obj.id,
-                        'enable_portal_access': bool(row['enable_portal_access']),
-                        'statutory_components': statutory_components,
-                        'employee_status': bool(row.get('employee_status', True)),
+                if not work_location_obj:
+                    errors.append(f"Row {row_num}: WorkLocation '{row['work_location']}' not found.")
+                    failed_row_index = idx
+                    raise IntegrityError("Rolling back due to error in row processing")
+                if not designation_obj:
+                    errors.append(f"Row {row_num}: Designation '{row['designation']}' not found.")
+                    failed_row_index = idx
+                    raise IntegrityError("Rolling back due to error in row processing")
+                if not department_obj:
+                    errors.append(f"Row {row_num}: Department '{row['department']}' not found.")
+                    failed_row_index = idx
+                    raise IntegrityError("Rolling back due to error in row processing")
+
+                try:
+                    def get_numeric_or_none(value):
+                        try:
+                            val = str(int(value))
+                            return val if val else None
+                        except (ValueError, TypeError):
+                            return None
+
+                    statutory_components = {
+                        "epf_enabled": bool(row.get('epf_enabled')),
+                        "esi_enabled": bool(row.get('esi_enabled')),
+                        "professional_tax": bool(row.get('professional_tax')),
                     }
-                )
 
-                EmployeePersonalDetails.objects.update_or_create(
-                    employee=employee,
-                    defaults={
-                        'dob': parse_excel_date(row.get('dob')),
-                        'age': int(row['age']),
-                        'guardian_name': row['guardian_name'],
-                        'pan': row.get('pan', '') or '',
-                        'aadhar': row['aadhar'],
-                        'address': address_json,
-                        'alternate_contact_number': row.get('alternate_contact_number', '') or '',
-                        'marital_status': row['marital_status'],
-                        'blood_group': row['blood_group']
+                    epf = {
+                        k: v for k, v in {
+                            "pf_account_number": get_numeric_or_none(row.get('pf_account_number')),
+                            "uan": get_numeric_or_none(row.get('uan'))
+                        }.items() if v is not None
                     }
-                )
+                    if epf:
+                        statutory_components["employee_provident_fund"] = epf
 
-                EmployeeBankDetails.objects.update_or_create(
-                    employee=employee,
-                    defaults={
-                        'account_holder_name': row['account_holder_name'],
-                        'bank_name': row['bank_name'],
-                        'account_number': str(row['account_number']),
-                        'ifsc_code': row['ifsc_code'],
-                        'branch_name': row.get('branch_name', '') or '',
-                        "is_active": True
+                    esi = {
+                        k: v for k, v in {
+                            "esi_number": get_numeric_or_none(row.get('esi_number'))
+                        }.items() if v is not None
                     }
-                )
+                    if esi:
+                        statutory_components["employee_state_insurance"] = esi
 
-                success_count += 1
+                    employee, _ = EmployeeManagement.objects.update_or_create(
+                        associate_id=row['associate_id'],
+                        payroll_id=payroll_obj_id,
+                        defaults={
+                            'first_name': row['first_name'],
+                            'middle_name': None if pd.isna(row.get('middle_name')) or str(
+                                row.get('middle_name')).strip().lower() == 'nan' or None else row.get('middle_name'),
+                            'last_name': row['last_name'],
+                            'doj': parse_excel_date(row.get('doj')),
+                            'work_email': row['work_email'],
+                            'mobile_number': str(row['mobile_number']),
+                            'gender': row['gender'],
+                            'work_location_id': work_location_obj.id,
+                            'designation_id': designation_obj.id,
+                            'department_id': department_obj.id,
+                            'enable_portal_access': bool(row['enable_portal_access']),
+                            'statutory_components': statutory_components,
+                            'employee_status': bool(row.get('employee_status', True)),
+                        }
+                    )
 
-        except Exception as e:
-            errors.append(f"Row {row_num}: Error saving record - {str(e)}")
+                    EmployeePersonalDetails.objects.update_or_create(
+                        employee=employee,
+                        defaults={
+                            'dob': parse_excel_date(row.get('dob')),
+                            'age': int(row['age']),
+                            'guardian_name': row['guardian_name'],
+                            'pan': row.get('pan', '') or '',
+                            'aadhar': row['aadhar'],
+                            'address': address_json,
+                            'alternate_contact_number': row.get('alternate_contact_number', '') or '',
+                            'marital_status': row['marital_status'],
+                            'blood_group': row['blood_group']
+                        }
+                    )
 
+                    EmployeeBankDetails.objects.update_or_create(
+                        employee=employee,
+                        defaults={
+                            'account_holder_name': row['account_holder_name'],
+                            'bank_name': row['bank_name'],
+                            'account_number': str(row['account_number']),
+                            'ifsc_code': row['ifsc_code'],
+                            'branch_name': row.get('branch_name', '') or '',
+                            "is_active": True
+                        }
+                    )
+
+                    success_count += 1
+                except Exception as e:
+                    errors.append(f"Row {row_num}: Error saving record - {str(e)}")
+                    failed_row_index = idx
+                    raise IntegrityError("Rolling back due to error in row processing")
+    except IntegrityError:
+        # If a failure occurred, check the remaining records for errors
+        if failed_row_index is not None:
+            for idx in range(failed_row_index + 1, len(df)):
+                row = df.iloc[idx]
+                row_num = idx + 2
+                # You can add more validation here as needed for the remaining records
+                # For now, just report that these records were not processed due to earlier error
+                errors.append(f"Row {row_num}: Not processed due to earlier error in batch.")
+        return Response({
+            "success_count": 0,
+            "error_count": len(errors),
+            "errors": errors,
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # If we reach here, all records succeeded
     return Response({
+        "success": True,
+        "message": f"All {success_count} employee records uploaded successfully! 🎉",
         "success_count": success_count,
-        "error_count": len(errors),
-        "errors": errors,
-    }, status=status.HTTP_200_OK if success_count > 0 else status.HTTP_400_BAD_REQUEST)
+        "error_count": 0,
+        "errors": [],
+    }, status=status.HTTP_200_OK)

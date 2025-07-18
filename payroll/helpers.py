@@ -413,7 +413,7 @@ def calculate_tds(regime_type, annual_salary, current_month, epf_value, ept_valu
 
     monthly_tds = total_tax / month_left if month_left > 0 else 0
 
-    return monthly_tds, total_tax
+    return round(monthly_tds), round(total_tax)
 
 
 def logo_upload_path(instance, filename):
