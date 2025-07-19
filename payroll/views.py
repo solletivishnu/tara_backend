@@ -3422,9 +3422,7 @@ def detail_employee_monthly_salary(request):
                                     epf_contribution = 1800  # 15000 × 12% = 1800
                                 else:
                                     # For basic <= 15,000: Prorate based on working days
-                                    prorated_basic = (
-                                                                 full_month_basic * total_working_days) / attendance.total_days_of_month
-                                    epf_contribution = round(prorated_basic * 0.12, 2)
+                                    epf_contribution = round(full_month_basic * 0.12, 2)
 
                                 employee_deductions += epf_contribution
                                 epf_value = epf_contribution
@@ -3523,18 +3521,19 @@ def detail_employee_monthly_salary(request):
                     paid_days=total_working_days,
                     ctc=salary_record.annual_ctc,
                     gross_salary=gross_salary,
-                    earned_salary=round(earned_salary, 2),
-                    basic_salary=round(component_amounts['basic'], 2),
-                    hra=round(component_amounts['hra'], 2),
-                    conveyance_allowance=round(component_amounts.get('conveyance_allowance', 0), 2),
-                    travelling_allowance=round(component_amounts.get('travelling_allowance', 0), 2),
-                    commission=round(component_amounts.get('commission', 0), 2),
-                    children_education_allowance=round(component_amounts.get('children_education_allowance', 0), 2),
-                    overtime_allowance=round(component_amounts.get('overtime_allowance', 0), 2),
-                    transport_allowance=round(component_amounts.get('transport_allowance', 0), 2),
-                    special_allowance=round(component_amounts['special_allowance'], 2),
-                    bonus=round(component_amounts['bonus'], 2),
-                    other_earnings=round(component_amounts['other_earnings'], 2),
+                    earned_salary=round(earned_salary),
+                    basic_salary=round(component_amounts['basic']),
+                    hra=round(component_amounts['hra']),
+                    conveyance_allowance=round(component_amounts.get('conveyance_allowance', 0)),
+                    travelling_allowance=round(component_amounts.get('travelling_allowance', 0)),
+                    commission=round(component_amounts.get('commission', 0)),
+                    children_education_allowance=round(component_amounts.get('children_education_allowance', 0)),
+                    overtime_allowance=round(component_amounts.get('overtime_allowance', 0)),
+                    transport_allowance=round(component_amounts.get('transport_allowance', 0)),
+                    special_allowance=round(component_amounts['special_allowance']),
+                    bonus=round(component_amounts['bonus']),
+                    other_earnings = 0 if 0 <= component_amounts['other_earnings'] < 1 else
+                                    round(component_amounts['other_earnings']),
                     benefits_total=int(round(
                         sum(component_amounts[key] for key in [
                             'basic', 'hra', 'special_allowance', 'bonus', 'other_earnings',

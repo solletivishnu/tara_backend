@@ -324,7 +324,7 @@ def to_decimal_2places(value):
         return Decimal('0.00')
 
 
-def calculate_tds(regime_type, annual_salary, current_month, epf_value, ept_value):
+def calculate_tds(regime_type, annual_salary, current_month, epf_value, ept_value, total_bonus=0):
 
     # Standard deductions
     standard_deduction_new = 75000
@@ -342,6 +342,7 @@ def calculate_tds(regime_type, annual_salary, current_month, epf_value, ept_valu
     month_left = 13 - current_month
     monthly_salary = annual_salary / 12
     salary_remaining = monthly_salary * month_left
+    salary_remaining = salary_remaining + total_bonus
 
     epf_value = epf_value * month_left
     ept_value = ept_value * month_left
