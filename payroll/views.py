@@ -3479,7 +3479,8 @@ def detail_employee_monthly_salary(request):
                             monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
                                                                 annual_salary=annual_gross,
                                                                 current_month=current_month, epf_value=epf_value,
-                                                                ept_value=pt_amount)
+                                                                ept_value=pt_amount, bonus_or_revisions=True)
+                            monthly_tds = (annual_tds - entry.tds_ytd) / (13 - current_month)
                             tds_ytd = entry.tds_ytd + monthly_tds
                             annual_tds = annual_tds
                         else:
@@ -3494,14 +3495,14 @@ def detail_employee_monthly_salary(request):
                         monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
                                                                 annual_salary=annual_gross,
                                                                 current_month=current_month, epf_value=epf_value,
-                                                                ept_value=pt_amount)
+                                                                ept_value=pt_amount, bonus_or_revisions=False)
                         tds_ytd = monthly_tds
                         annual_tds = annual_tds
                 except EmployeeSalaryHistory.DoesNotExist:
                     monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
                                                             annual_salary=annual_gross,
                                                             current_month=current_month, epf_value=epf_value,
-                                                            ept_value=pt_amount)
+                                                            ept_value=pt_amount, bonus_or_revisions=False)
                     tds_ytd = monthly_tds
                     annual_tds = annual_tds
 
@@ -3542,8 +3543,8 @@ def detail_employee_monthly_salary(request):
                         ]), 2
                     )),
                     bonus_incentive = round(total_bonus_amount, 2),
-                    epf=epf_value,
-                    esi=esi,
+                    epf=round(epf_value),
+                    esi=round(esi),
                     pt=pt_amount,
                     tds=monthly_tds,
                     tds_ytd=tds_ytd,
@@ -3611,7 +3612,7 @@ def calculate_component_amounts(earnings, total_working_days, total_days_of_mont
         name = earning.get("component_name", "").lower().replace(" ", "_")
         monthly_amount = earning.get("monthly", 0)
         if name not in exclude_earnings and monthly_amount > 0:  # Added check for positive amounts
-            prorated_amount = round(prorate(monthly_amount), 2)  # Round the prorated amount first
+            prorated_amount = round(prorate(monthly_amount))  # Round the prorated amount first
             other_earnings_breakdown.append({
                 name: prorated_amount  # Use the already rounded value
             })
@@ -3796,11 +3797,32 @@ class DocumentGenerator:
             raise
 
 
+import re
+
 def format_with_commas(number):
     try:
-        return "{:,.2f}".format(float(number)).replace(".00", "")
+        number = float(number)
+        is_negative = number < 0
+        number = abs(number)
+
+        int_part, dot, dec_part = f"{number:.2f}".partition(".")
+
+        # Apply Indian-style comma formatting to the integer part
+        if len(int_part) > 3:
+            int_part = int_part[-3:]  # last 3 digits
+            prefix = re.findall(r'\d{1,2}', f"{int(number):,}"[:-3][::-1])
+            if prefix:
+                int_part = ",".join(x[::-1] for x in prefix[::-1]) + "," + int_part
+
+        formatted = f"{int_part}.{dec_part}"
+        if dec_part == "00":
+            formatted = int_part
+
+        return f"-{formatted}" if is_negative else formatted
+
     except (ValueError, TypeError):
         return str(number)
+
 
 
 def number_to_words_in_indian_format(number):
