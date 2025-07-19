@@ -625,6 +625,17 @@ class EmployeeBankDetailsSerializer(serializers.ModelSerializer):
         model = EmployeeBankDetails
         fields = '__all__'
 
+    def validate_account_number(self, value):
+        # For create
+        if self.instance is None:
+            if EmployeeBankDetails.objects.filter(account_number=value).exists():
+                raise serializers.ValidationError("This account number is already in use.")
+        else:
+            # For update: allow if unchanged, block if duplicate
+            if EmployeeBankDetails.objects.exclude(id=self.instance.id).filter(account_number=value).exists():
+                raise serializers.ValidationError("This account number is already in use by another employee.")
+        return value
+
 
 class EmployeeDataSerializer(serializers.ModelSerializer):
     employee_salary = EmployeeSalaryDetailsSerializer(read_only=True)
