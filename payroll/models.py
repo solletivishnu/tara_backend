@@ -936,6 +936,16 @@ class EmployeeSalaryHistory(models.Model):
     is_active = models.BooleanField(default=True)  # Whether the record is active
     change_date = models.DateField(auto_now_add=True)  # Date of the change
     notes = models.TextField(null=True, blank=True)  # Optional notes about the change
+    other_earnings_breakdown = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of dictionaries with 'component_name' and 'amount'"
+    )
+    other_deductions_breakdown = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of {'component_name': 'Name', 'amount': 500}"
+    )
 
     def __str__(self):
         return f"{self.employee.associate_id} - {self.change_date}"
