@@ -1564,9 +1564,9 @@ def calculate_employee_deductions(pf_wage, basic_monthly, epf_enabled, esi_enabl
 
     # Professional Tax
     if pt_enabled:
-        if basic_monthly <= 15000:
+        if gross_monthly <= 15000:
             pt_monthly = 0
-        elif 15001 <= basic_monthly <= 20000:
+        elif 15001 <= gross_monthly <= 20000:
             pt_monthly = 150
         else:
             pt_monthly = 200
@@ -1699,9 +1699,10 @@ def calculate_payroll(request):
                     })
 
             gross_salary = safe_sum(item["annually"] for item in earnings)
+            monthly_gross_salary = gross_salary / 12
 
             deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly, epf_enabled, esi_enabled,
-                                                       pt_enabled, basic_monthly)
+                                                       pt_enabled, monthly_gross_salary)
             deductions["loan_emi"] = calculate_loan_deductions(employee_id) if employee_id else "NA"
 
             total_deductions = safe_sum(
