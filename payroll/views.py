@@ -3495,14 +3495,14 @@ def detail_employee_monthly_salary(request):
                         monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
                                                                 annual_salary=annual_gross,
                                                                 current_month=current_month, epf_value=epf_value,
-                                                                ept_value=pt_amount)
+                                                                ept_value=pt_amount, bonus_or_revisions=False)
                         tds_ytd = monthly_tds
                         annual_tds = annual_tds
                 except EmployeeSalaryHistory.DoesNotExist:
                     monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
                                                             annual_salary=annual_gross,
                                                             current_month=current_month, epf_value=epf_value,
-                                                            ept_value=pt_amount)
+                                                            ept_value=pt_amount, bonus_or_revisions=False)
                     tds_ytd = monthly_tds
                     annual_tds = annual_tds
 
