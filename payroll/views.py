@@ -3486,7 +3486,7 @@ def detail_employee_monthly_salary(request):
                             annual_tds = annual_tds
                         else:
                             try:
-                                monthly_fixed_tds = entry.monthly_fixed_tds
+                                monthly_fixed_tds = entry.monthly_fixed_tds or entry.tds
                                 monthly_tds = entry.monthly_fixed_tds * (total_working_days / attendance.total_days_of_month)
                                 tds_ytd = entry.tds_ytd + monthly_tds
                                 annual_tds = entry.annual_tds
