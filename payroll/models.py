@@ -923,7 +923,8 @@ class EmployeeSalaryHistory(models.Model):
     epf = models.FloatField(null=False)  # EPF Contribution
     esi = models.FloatField(null=False)  # ESI Contribution
     pt = models.FloatField(null=False)  # Professional Tax
-    
+
+    monthly_fixed_tds = models.FloatField(null=True)  # Monthly Fixed TDS
     tds = models.FloatField(null=False)  # Tax Deducted at Source
     tds_ytd = models.FloatField(null=False)  # cummulative tds
     

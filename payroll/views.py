@@ -3481,11 +3481,13 @@ def detail_employee_monthly_salary(request):
                                                                 current_month=current_month, epf_value=epf_value,
                                                                 ept_value=pt_amount, bonus_or_revisions=True)
                             monthly_tds = round((annual_tds - entry.tds_ytd) / (13 - current_month))
+                            monthly_fixed_tds = monthly_tds
                             tds_ytd = entry.tds_ytd + monthly_tds
                             annual_tds = annual_tds
                         else:
                             try:
-                                monthly_tds = entry.tds * (total_working_days / attendance.total_days_of_month)
+                                monthly_fixed_tds = entry.monthly_fixed_tds
+                                monthly_tds = entry.monthly_fixed_tds * (total_working_days / attendance.total_days_of_month)
                                 tds_ytd = entry.tds_ytd + monthly_tds
                                 annual_tds = entry.annual_tds
                             except Exception as e:
@@ -3496,6 +3498,7 @@ def detail_employee_monthly_salary(request):
                                                                 annual_salary=annual_gross,
                                                                 current_month=current_month, epf_value=epf_value,
                                                                 ept_value=pt_amount, bonus_or_revisions=False)
+                        monthly_fixed_tds = monthly_tds
                         tds_ytd = monthly_tds
                         annual_tds = annual_tds
                 except EmployeeSalaryHistory.DoesNotExist:
@@ -3505,6 +3508,7 @@ def detail_employee_monthly_salary(request):
                                                             ept_value=pt_amount, bonus_or_revisions=False)
                     tds_ytd = monthly_tds
                     annual_tds = annual_tds
+                    monthly_fixed_tds = monthly_tds
 
                 # Create or update EmployeeSalaryHistory
                 total_deductions = total_deductions + monthly_tds
@@ -3546,6 +3550,7 @@ def detail_employee_monthly_salary(request):
                     epf=round(epf_value),
                     esi=round(esi),
                     pt=pt_amount,
+                    monthly_fixed_tds = round(monthly_fixed_tds),
                     tds=round(monthly_tds),
                     tds_ytd=tds_ytd,
                     annual_tds=annual_tds,
