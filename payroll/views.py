@@ -3412,9 +3412,23 @@ def detail_employee_monthly_salary(request):
                         value = deduction.get("monthly", 0)
                         value = value if isinstance(value, (int, float)) else 0  # Ensure numeric
                         if "tax" not in name:
-                            if name == "epf_employee_contribution" and employee.statutory_components.get("epf_enabled", False):
-                                employee_deductions += prorate(value)
-                                epf_value = prorate(value)
+                            if name == "epf_employee_contribution" and employee.statutory_components.get("epf_enabled",
+                                                                                                         False):
+                                # Get the full month basic salary (unprorated)
+                                full_month_basic = component_amounts['basic']
+
+                                if full_month_basic > 15000:
+                                    # For basic > 15,000: Fixed 12% of 15,000 (no proration)
+                                    epf_contribution = 1800  # 15000 × 12% = 1800
+                                else:
+                                    # For basic <= 15,000: Prorate based on working days
+                                    prorated_basic = (
+                                                                 full_month_basic * total_working_days) / attendance.total_days_of_month
+                                    epf_contribution = round(prorated_basic * 0.12, 2)
+
+                                employee_deductions += epf_contribution
+                                epf_value = epf_contribution
+
                             elif name == "esi_employee_contribution" and employee.statutory_components.get("esi_enabled", False):
                                 pass
                             elif name == "pt" and employee.statutory_components.get("professional_tax", False) and pt_amount == 0:
