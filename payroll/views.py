@@ -3919,6 +3919,7 @@ def employee_monthly_salary_template(request):
         total_bonus_amount = bonus_incentives.aggregate(total_amount=Sum('amount'))['total_amount'] or 0
 
         net_pay_total = salary_history.net_salary + total_bonus_amount
+
         # Convert net salary to words
         total_in_words = number_to_words_in_indian_format(net_pay_total).title() + " Rupees Only"
 
