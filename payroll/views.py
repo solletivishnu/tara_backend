@@ -3480,7 +3480,7 @@ def detail_employee_monthly_salary(request):
                                                                 annual_salary=annual_gross,
                                                                 current_month=current_month, epf_value=epf_value,
                                                                 ept_value=pt_amount, bonus_or_revisions=True)
-                            monthly_tds = (annual_tds - entry.tds_ytd) / (13 - current_month)
+                            monthly_tds = round((annual_tds - entry.tds_ytd) / (13 - current_month))
                             tds_ytd = entry.tds_ytd + monthly_tds
                             annual_tds = annual_tds
                         else:
@@ -3546,7 +3546,7 @@ def detail_employee_monthly_salary(request):
                     epf=round(epf_value),
                     esi=round(esi),
                     pt=pt_amount,
-                    tds=monthly_tds,
+                    tds=round(monthly_tds),
                     tds_ytd=tds_ytd,
                     annual_tds=annual_tds,
                     loan_emi=round(emi_deduction, 2),
