@@ -138,16 +138,16 @@ class Designation(models.Model):
 
 class EPF(models.Model):
     payroll = models.OneToOneField('PayrollOrg', on_delete=models.CASCADE, related_name='epf_details')
-    epf_number = models.CharField(max_length=100)  # Adjust max_length as needed
-    employee_contribution_rate = models.CharField(max_length=240, null=False, blank=False)
-    employer_contribution_rate = models.CharField(max_length=240, null=False, blank=False)
+    epf_number = models.CharField(max_length=100, null= True, blank=False, default=None)  # Adjust max_length as needed
+    employee_contribution_rate = models.CharField(max_length=240, null=True, blank=False,default=None)
+    employer_contribution_rate = models.CharField(max_length=240, null=True, blank=False, default=None)
     employer_edil_contribution_in_ctc = models.BooleanField()  # EDLI contribution included
     # in CTC Employees' Deposit Linked Insurance
-    include_employer_contribution_in_ctc = models.BooleanField()
-    admin_charge_in_ctc = models.BooleanField()  # Admin charge included in CTC
-    allow_employee_level_override = models.BooleanField()  # Can employee override PF?
-    prorate_restricted_pf_wage = models.BooleanField()  # Prorate restricted PF wage?
-    apply_components_if_wage_below_15k = models.BooleanField()
+    include_employer_contribution_in_ctc = models.BooleanField(default=False)
+    admin_charge_in_ctc = models.BooleanField(default=False)  # Admin charge included in CTC
+    allow_employee_level_override = models.BooleanField(default=False)  # Can employee override PF?
+    prorate_restricted_pf_wage = models.BooleanField(default=False)  # Prorate restricted PF wage?
+    apply_components_if_wage_below_15k = models.BooleanField(default=False)
     is_disabled = models.BooleanField(default=False)
 
     def __str__(self):
@@ -156,9 +156,9 @@ class EPF(models.Model):
 
 class ESI(models.Model):
     payroll = models.OneToOneField('PayrollOrg', on_delete=models.CASCADE, related_name='esi_details')
-    esi_number = models.CharField(max_length=100)  # Adjust max_length as needed
-    employee_contribution = models.DecimalField(max_digits=5, decimal_places=2)  # e.g., 0.75
-    employer_contribution = models.DecimalField(max_digits=5, decimal_places=2)  # e.g., 3.25
+    esi_number = models.CharField(max_length=100, null=True, blank=True)  # Adjust max_length as needed
+    employee_contribution = models.DecimalField(max_digits=5, decimal_places=2, null=True, default=None)  # e.g., 0.75
+    employer_contribution = models.DecimalField(max_digits=5, decimal_places=2, null=True, default=None)  # e.g., 3.25
     include_employer_contribution_in_ctc = models.BooleanField()  # Include employer contribution in CTC?
     is_disabled = models.BooleanField(default=False)
 
@@ -172,6 +172,7 @@ class PT(models.Model):
     pt_number = models.CharField(max_length=100, null=True, blank=True)  # Can be null by default
     slab = JSONField(default=list, blank=True)  # Stores PT slab dynamically
     deduction_cycle = models.CharField(max_length=20, default="Monthly")
+    is_disabled = models.BooleanField(default=False)  # Indicates if PT is disabled for this payroll
 
     class Meta:
         unique_together = ('payroll', 'work_location')  # Ensures one PT per payroll-location pair
