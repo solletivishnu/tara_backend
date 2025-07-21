@@ -220,7 +220,7 @@ def upload_employee_excel(request):
 
                     epf = {
                         k: v for k, v in {
-                            "pf_account_number": get_numeric_or_none(row.get('pf_account_number')),
+                            "pf_account_number": str(row.get('pf_account_number')),
                             "uan": get_numeric_or_none(row.get('uan'))
                         }.items() if v is not None
                     }
