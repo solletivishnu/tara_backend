@@ -1565,7 +1565,7 @@ def calculate_esi_contributions(basic_monthly, payroll_id=None):
     return benefits
 
 
-def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, payroll_id=None):
+def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enabled, payroll_id=None):
     deductions = {
         "EPF Employee Contribution": {
             "monthly": "NA",
@@ -1622,7 +1622,7 @@ def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, payroll
                 }
 
         # --- Professional Tax (PT) ---
-        if hasattr(payroll, 'pt_enabled') and payroll.pt_enabled:
+        if PT.objects.filter(payroll=payroll).exists() and pt_enabled:
             if gross_monthly <= 15000:
                 pt_monthly = 0
             elif 15001 <= gross_monthly <= 20000:
@@ -1699,7 +1699,7 @@ def calculate_payroll(request):
             esi_enabled = (hasattr(payroll,
                                   'esi_details') and payroll.esi_details and not
             payroll.esi_details.include_employer_contribution_in_ctc)
-            pt_enabled = payroll.pt_details.exists() or False
+            pt_enabled = PT.objects.filter(payroll=payroll).exists()
 
 
         # Case 1: Basic salary < 15,000 and no statutory components
@@ -1762,7 +1762,7 @@ def calculate_payroll(request):
             monthly_gross_salary = gross_salary / 12
 
             deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly,
-                                                       basic_salary_monthly, data.get("payroll"))
+                                                       basic_salary_monthly, pt_enabled, data.get("payroll"))
             deductions["loan_emi"] = calculate_loan_deductions(employee_id) if employee_id else "NA"
 
             total_deductions = safe_sum(
