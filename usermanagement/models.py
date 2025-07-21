@@ -1561,10 +1561,8 @@ def update_gst_tds_on_business_change(sender, instance, created, **kwargs):
         return
 
     updates = {}
-    if original.nameOfBusiness != instance.nameOfBusiness:
-        updates["trade_name"] = instance.nameOfBusiness
-    if original.legal_name != instance.legal_name:
-        updates["legal_name"] = instance.legal_name
+    updates["trade_name"] = instance.nameOfBusiness
+    updates["legal_name"] = instance.legal_name
 
     if updates:
         GSTDetails.objects.filter(business=instance).update(**updates)
