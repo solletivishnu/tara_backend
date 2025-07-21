@@ -17,30 +17,6 @@ def get_tokens_for_user(user):
     }
 
 
-def get_business_details(context):
-    business = context.business
-    if not business:
-        return None
-
-    return {
-        'id': business.id,
-        'name': business.nameOfBusiness,
-        'legal_name': business.legal_name,
-        'registration_number': business.registrationNumber,
-        'entity_type': business.entityType,
-        'head_office': business.headOffice,
-        'pan': business.pan,
-        'business_nature': business.business_nature,
-        'mobile_number': business.mobile_number,
-        'email': business.email,
-        'dob_or_incorp_date': business.dob_or_incorp_date.isoformat() if business.dob_or_incorp_date else None,
-        'is_msme_registered': business.is_msme_registered,
-        'msme_registration_type': business.msme_registration_type,
-        'msme_registration_number': business.msme_registration_number,
-        'client_id': business.client_id,
-    }
-
-
 # Reusable response builder
 def generate_user_profile_response(user):
     context = user.active_context
