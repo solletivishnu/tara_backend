@@ -2,32 +2,50 @@ version: 0.2
 
 cache:
   paths:
-    - '/root/.cache/pip/**/*'  # Cache pip dependencies
-    - '/tmp/previous_*'        # Cache requirements hash file
+    - '/root/.cache/pip/**/*'
+    - '/root/.docker/**/*'
+
+env:
+  parameter-store:
+    DOCKER_HUB_USERNAME: /tara_backend/docker-credentials/username
+    DOCKER_HUB_PASSWORD: /tara_backend/docker-credentials/password
+    DOCKER_IMAGE_NAME: /tara_backend/docker/image_name
 
 phases:
+  install:
+    runtime-versions:
+      python: 3.x
+    commands:
+      - echo "[Install] Installing Docker..."
+      - apt-get update && apt-get install -y docker.io jq awscli
+
   pre_build:
     commands:
-      - echo "Starting pre-build phase..."
-      - |
-        # Check if requirements.txt has changed by comparing their hashes
-        if [ ! -f /tmp/previous_requirements.txt ] || ! cmp -s requirements.txt /tmp/previous_requirements.txt; then
-          echo "Requirements changed, installing dependencies..."
-          pip3 install --cache-dir=/root/.cache/pip -r requirements.txt
-          sha256sum requirements.txt > /tmp/previous_requirements.txt  # Save the hash of requirements.txt
-        else
-          echo "No changes in requirements.txt, skipping dependency installation."
-        fi
+      - echo "[PreBuild] Logging in to Docker Hub..."
+      - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
+      - export IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export DOCKER_IMAGE=$DOCKER_IMAGE_NAME   
+      - echo "DOCKER_IMAGE=$DOCKER_IMAGE"
+      - echo "IMAGE_TAG=$IMAGE_TAG"
 
   build:
     commands:
-      - echo "Starting build phase..."
-      - echo "No static files to collect. Skipping collectstatic."
+      - echo "[Build] Building Docker image..."
+      - docker build -t $DOCKER_IMAGE:$IMAGE_TAG .
+      - echo "[Build] Pushing to Docker Hub..."
+      - docker push $DOCKER_IMAGE:$IMAGE_TAG
 
   post_build:
     commands:
-      - echo "Build completed on $(date)"
+      - echo "[PostBuild] Generating image_vars.env..."
+      - echo "DOCKER_IMAGE=$DOCKER_IMAGE" > image_vars.env
+      - echo "IMAGE_TAG=$IMAGE_TAG" >> image_vars.env
+      - chmod 644 image_vars.env
 
 artifacts:
   files:
-    - '**/*'  # Include all files
+    - image_vars.env
+    - appspec.yml
+    - scripts/*
+    - nginx/*
+    - docker-compose.yml
