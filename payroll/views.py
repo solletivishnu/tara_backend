@@ -3527,48 +3527,55 @@ def detail_employee_monthly_salary(request):
                 #                                      current_month=current_month, epf_value=epf_value, ept_value = pt_amount)
                 tds_ytd = 0
                 annual_gross = int(round(per_day_salary * attendance.total_days_of_month, 2)) * 12
-                try:
-                    entry = EmployeeSalaryHistory.objects.filter(
-                        employee=employee,
-                        payroll_id=payroll_id,
-                        financial_year=financial_year
-                    ).order_by('-month').first()
+
+                # Get the latest salary history entry (if any)
+                entry = EmployeeSalaryHistory.objects.filter(
+                    employee=employee,
+                    payroll_id=payroll_id,
+                    financial_year=financial_year
+                ).order_by('-month').first()
+
+                # Determine if TDS recalculation is needed
+                recalculate_tds = False
+                if entry:
+                    recalculate_tds = (
+                            entry.ctc != salary_record.annual_ctc or
+                            total_bonus_amount > 0 or
+                            (attendance.loss_of_pay > 0 and lop_amount > 0)
+                    )
+
+                if entry and not recalculate_tds:
+                    try:
+                        monthly_fixed_tds = entry.monthly_fixed_tds
+                        monthly_tds = entry.monthly_fixed_tds
+                        tds_ytd = entry.tds_ytd + monthly_tds
+                        annual_tds = entry.annual_tds
+                    except Exception as e:
+                        return Response({"message": "Error calculating TDS: " + str(e)},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    # Adjust gross if bonus/loss exists
+                    if total_bonus_amount:
+                        annual_gross += total_bonus_amount
+                    if attendance.loss_of_pay > 0 and lop_amount > 0:
+                        annual_gross -= lop_amount
+
+                    monthly_tds, annual_tds = calculate_tds(
+                        regime_type=salary_record.tax_regime_opted,
+                        annual_salary=annual_gross,
+                        current_month=current_month,
+                        epf_value=epf_value,
+                        ept_value=pt_amount,
+                        bonus_or_revisions=recalculate_tds
+                    )
+
                     if entry:
-                        if entry.ctc != salary_record.annual_ctc or total_bonus_amount:
-                            if total_bonus_amount:
-                                annual_gross = annual_gross + total_bonus_amount
-                            monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
-                                                                annual_salary=annual_gross,
-                                                                current_month=current_month, epf_value=epf_value,
-                                                                ept_value=pt_amount, bonus_or_revisions=True)
-                            monthly_tds = round((annual_tds - entry.tds_ytd) / (13 - current_month))
-                            monthly_fixed_tds = monthly_tds
-                            tds_ytd = entry.tds_ytd + monthly_tds
-                            annual_tds = annual_tds
-                        else:
-                            try:
-                                monthly_fixed_tds = entry.monthly_fixed_tds or entry.tds
-                                monthly_tds = entry.monthly_fixed_tds * (total_working_days / attendance.total_days_of_month)
-                                tds_ytd = entry.tds_ytd + monthly_tds
-                                annual_tds = entry.annual_tds
-                            except Exception as e:
-                                return Response({"message": "Error calculating TDS: " + str(e)},
-                                                status=status.HTTP_400_BAD_REQUEST)
+                        # Adjust for YTD TDS already paid
+                        monthly_tds = round(max(0, (annual_tds - entry.tds_ytd)) / (13 - current_month))
+                        tds_ytd = entry.tds_ytd + monthly_tds
                     else:
-                        monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
-                                                                annual_salary=annual_gross,
-                                                                current_month=current_month, epf_value=epf_value,
-                                                                ept_value=pt_amount, bonus_or_revisions=False)
-                        monthly_fixed_tds = monthly_tds
                         tds_ytd = monthly_tds
-                        annual_tds = annual_tds
-                except EmployeeSalaryHistory.DoesNotExist:
-                    monthly_tds, annual_tds = calculate_tds(regime_type=salary_record.tax_regime_opted,
-                                                            annual_salary=annual_gross,
-                                                            current_month=current_month, epf_value=epf_value,
-                                                            ept_value=pt_amount, bonus_or_revisions=False)
-                    tds_ytd = monthly_tds
-                    annual_tds = annual_tds
+
                     monthly_fixed_tds = monthly_tds
 
                 # Create or update EmployeeSalaryHistory
