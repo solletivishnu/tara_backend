@@ -1464,17 +1464,17 @@ def get_statutory_settings(employee):
 
 
 def calculate_pf_contributions(pf_wage, basic_monthly, payroll_id=None):
-    # Initialize benefits with EPF Employer Contribution (always calculated if EPF is enabled)
+    # Default EPF contribution values
+    epf_monthly = 0.12 * min(basic_monthly, 15000)
+    epf_annually = epf_monthly * 12
+
+    # Initialize benefits with default 'Not Applicable'
     benefits = {
         "EPF Employer Contribution": {
-            "monthly": 0.12 * min(basic_monthly, 15000),
-            "annually": (0.12 * min(basic_monthly, 15000)) * 12,
-            "calculation_type": "Percentage (12%) of PF wage"
-        }
-    }
-
-    # Initialize EDLI and Admin Charges as NA by default
-    benefits.update({
+            "monthly": "NA",
+            "annually": "NA",
+            "calculation_type": "Not Applicable"
+        },
         "EDLI Employer Contribution": {
             "monthly": "NA",
             "annually": "NA",
@@ -1485,101 +1485,159 @@ def calculate_pf_contributions(pf_wage, basic_monthly, payroll_id=None):
             "annually": "NA",
             "calculation_type": "Not Applicable"
         }
-    })
+    }
 
-    # Only proceed with EDLI and Admin calculations if payroll_id is provided
+    # Proceed only if payroll_id is provided
     if payroll_id:
         try:
             payroll = PayrollOrg.objects.get(id=payroll_id)
             if hasattr(payroll, 'epf_details') and payroll.epf_details:
                 epf_details = payroll.epf_details
 
-                # Calculate EDLI if enabled in EPF settings
-                if epf_details.employer_edil_contribution_in_ctc:
-                    if basic_monthly <= 15000:
-                        edli_amount = 0.005 * basic_monthly
-                    else:
-                        edli_amount = 75
+                # Check for EPF Employer Contribution inclusion
+                if epf_details.include_employer_contribution_in_ctc:
+                    benefits["EPF Employer Contribution"] = {
+                        "monthly": epf_monthly,
+                        "annually": epf_annually,
+                        "calculation_type": "Percentage (12%) of PF wage"
+                    }
 
+                # EDLI calculation
+                if epf_details.employer_edil_contribution_in_ctc:
+                    edli_amount = 0.005 * basic_monthly if basic_monthly <= 15000 else 75
                     benefits["EDLI Employer Contribution"] = {
                         "monthly": edli_amount,
                         "annually": edli_amount * 12,
                         "calculation_type": "Percentage (0.5%) of PF wage" if basic_monthly <= 15000 else "Fixed Amount"
                     }
 
-                # Calculate Admin Charges if enabled in EPF settings
+                # Admin Charges calculation
                 if epf_details.admin_charge_in_ctc:
-                    if basic_monthly <= 15000:
-                        admin_amount = 0.005 * basic_monthly
-                    else:
-                        admin_amount = 75
-
+                    admin_amount = 0.005 * basic_monthly if basic_monthly <= 15000 else 75
                     benefits["EPF admin charges"] = {
                         "monthly": admin_amount,
                         "annually": admin_amount * 12,
                         "calculation_type": "Percentage (0.5%) of PF wage" if basic_monthly <= 15000 else "Fixed Amount"
                     }
+
         except PayrollOrg.DoesNotExist:
             pass
 
     return benefits
 
 
-def calculate_esi_contributions(pf_wage, basic_monthly, esi_enabled):
-    if not esi_enabled:
-        return {"monthly": "NA", "annually": "NA", "calculation_type": "Not Applicable"}
-
-    if basic_monthly <= 21000:
-        return {
-            "monthly": 0.0325 * basic_monthly,
-            "annually": (0.0325 * basic_monthly) * 12,
-            "calculation_type": "Percentage (3.25%) of PF wage"
-        }
-    return {
-        "monthly": 0,
-        "annually": 0,
+def calculate_esi_contributions(basic_monthly, payroll_id=None):
+    # Default response
+    benefits = {
+        "monthly": "NA",
+        "annually": "NA",
         "calculation_type": "Not Applicable"
     }
 
+    if not payroll_id:
+        return benefits
 
-def calculate_employee_deductions(pf_wage, basic_monthly, epf_enabled, esi_enabled, pt_enabled, gross_monthly):
-    deductions = {}
+    try:
+        payroll = PayrollOrg.objects.get(id=payroll_id)
 
-    # EPF Employee Contribution
-    deductions["EPF Employee Contribution"] = {
-        "monthly": 0.12 * min(basic_monthly, 15000),
-        "annually": (0.12 * min(basic_monthly, 15000)) * 12,
-        "calculation_type": "Percentage (12%) of PF wage"
-    } if epf_enabled else {"monthly": "NA", "annually": "NA", "calculation_type": "Not Applicable"}
+        # Check if payroll has ESI settings and employer contributes
+        if hasattr(payroll, 'esi_details') and payroll.esi_details:
+            esi_details = payroll.esi_details
 
-    # ESI Employee Contribution
-    deductions["ESI Employee Contribution"] = {
-        "monthly": 0.0075 * basic_monthly,
-        "annually": (0.0075 * basic_monthly) * 12,
-        "calculation_type": "Percentage (0.75%) of PF wage"
-    } if esi_enabled and basic_monthly <= 21000 else (
-        {"monthly": 0, "annually": 0, "calculation_type": "Not Applicable"}
-        if esi_enabled else {"monthly": "NA", "annually": "NA", "calculation_type": "Not Applicable"}
-    )
+            if esi_details.employer_contribution and esi_details.include_employer_contribution_in_ctc:
+                if basic_monthly <= 21000:
+                    monthly = 0.0325 * basic_monthly
+                    return {
+                        "monthly": monthly,
+                        "annually": monthly * 12,
+                        "calculation_type": "Percentage (3.25%) of PF wage"
+                    }
+                else:
+                    return {
+                        "monthly": 0,
+                        "annually": 0,
+                        "calculation_type": "Not Applicable"
+                    }
 
-    # Professional Tax
-    if pt_enabled:
-        if gross_monthly <= 15000:
-            pt_monthly = 0
-        elif 15001 <= gross_monthly <= 20000:
-            pt_monthly = 150
-        else:
-            pt_monthly = 200
+    except PayrollOrg.DoesNotExist:
+        pass
 
-        deductions["PT"] = {
-            "monthly": pt_monthly,
-            "annually": pt_monthly * 12,
-            "calculation_type": "Slab-based Professional Tax"
+    return benefits
+
+
+def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, payroll_id=None):
+    deductions = {
+        "EPF Employee Contribution": {
+            "monthly": "NA",
+            "annually": "NA",
+            "calculation_type": "Not Applicable"
+        },
+        "ESI Employee Contribution": {
+            "monthly": "NA",
+            "annually": "NA",
+            "calculation_type": "Not Applicable"
+        },
+        "PT": {
+            "monthly": "NA",
+            "annually": "NA",
+            "calculation_type": "Not Applicable"
         }
-    else:
-        deductions["PT"] = {
-            "monthly": "NA", "annually": "NA", "calculation_type": "Not Applicable"
-        }
+    }
+
+    if not payroll_id:
+        return deductions
+
+    try:
+        payroll = PayrollOrg.objects.get(id=payroll_id)
+
+        # --- EPF Employee Contribution ---
+        if (
+            hasattr(payroll, 'epf_details') and payroll.epf_details and
+            payroll.epf_details.include_employer_contribution_in_ctc
+        ):
+            epf_monthly = 0.12 * min(basic_monthly, 15000)
+            deductions["EPF Employee Contribution"] = {
+                "monthly": epf_monthly,
+                "annually": epf_monthly * 12,
+                "calculation_type": "Percentage (12%) of PF wage"
+            }
+
+        # --- ESI Employee Contribution ---
+        if (
+            hasattr(payroll, 'esi_details') and payroll.esi_details and
+            payroll.esi_details.include_employer_contribution_in_ctc
+        ):
+            if basic_monthly <= 21000:
+                esi_monthly = 0.0075 * basic_monthly
+                deductions["ESI Employee Contribution"] = {
+                    "monthly": esi_monthly,
+                    "annually": esi_monthly * 12,
+                    "calculation_type": "Percentage (0.75%) of PF wage"
+                }
+            else:
+                deductions["ESI Employee Contribution"] = {
+                    "monthly": 0,
+                    "annually": 0,
+                    "calculation_type": "Not Applicable"
+                }
+
+        # --- Professional Tax (PT) ---
+        if hasattr(payroll, 'pt_enabled') and payroll.pt_enabled:
+            if gross_monthly <= 15000:
+                pt_monthly = 0
+            elif 15001 <= gross_monthly <= 20000:
+                pt_monthly = 150
+            else:
+                pt_monthly = 200
+
+            deductions["PT"] = {
+                "monthly": pt_monthly,
+                "annually": pt_monthly * 12,
+                "calculation_type": "Slab-based Professional Tax"
+            }
+
+    except PayrollOrg.DoesNotExist:
+        pass
 
     return deductions
 
@@ -1635,12 +1693,13 @@ def calculate_payroll(request):
             epf_enabled, esi_enabled, pt_enabled = statutory.values()
         else:
             payroll = PayrollOrg.objects.get(id=data.get("payroll"))
-            epf_enabled = hasattr(payroll,
-                                  'epf_details') and payroll.epf_details and not payroll.epf_details.is_disabled
-            esi_enabled = hasattr(payroll,
-                                  'esi_details') and payroll.esi_details and not payroll.esi_details.is_disabled
+            epf_enabled = (hasattr(payroll,
+                                  'epf_details') and payroll.epf_details and not
+            payroll.epf_details.include_employer_contribution_in_ctc)
+            esi_enabled = (hasattr(payroll,
+                                  'esi_details') and payroll.esi_details and not
+            payroll.esi_details.include_employer_contribution_in_ctc)
             pt_enabled = payroll.pt_details.exists() or False
-
 
 
         # Case 1: Basic salary < 15,000 and no statutory components
@@ -1683,8 +1742,9 @@ def calculate_payroll(request):
                 for name in ["EPF Employer Contribution", "EDLI Employer Contribution", "EPF admin charges"]
             }
 
-            benefits["ESI Employer Contribution"] = calculate_esi_contributions(pf_wage, basic_salary_monthly,
-                                                                                esi_enabled)
+            benefits["ESI Employer Contribution"] = calculate_esi_contributions(
+                basic_salary_monthly, data.get("payroll")
+            )
             total_benefits = safe_sum(item["annually"] for item in benefits.values() if isinstance(item, dict))
 
             total_earnings = safe_sum(
@@ -1701,8 +1761,8 @@ def calculate_payroll(request):
             gross_salary = safe_sum(item["annually"] for item in earnings)
             monthly_gross_salary = gross_salary / 12
 
-            deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly, epf_enabled, esi_enabled,
-                                                       pt_enabled, monthly_gross_salary)
+            deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly,
+                                                       basic_salary_monthly, data.get("payroll"))
             deductions["loan_emi"] = calculate_loan_deductions(employee_id) if employee_id else "NA"
 
             total_deductions = safe_sum(
