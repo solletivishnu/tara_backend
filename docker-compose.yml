@@ -39,6 +39,7 @@ services:
       - redis
     volumes:
       - /home/ubuntu/tara_dev_backend:/app
+    working_dir: /app               # ✅ Important
     env_file:
       - .env
     networks:
@@ -52,6 +53,7 @@ services:
       - redis
     volumes:
       - /home/ubuntu/tara_dev_backend:/app
+    working_dir: /app               # ✅ Important
     env_file:
       - .env
     networks:
