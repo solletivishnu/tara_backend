@@ -54,4 +54,4 @@ artifacts:
     - scripts/*
     - nginx/*
     - docker-compose.yml
-    - Tara/*
+    - Tara/**/*
