@@ -39,7 +39,9 @@ services:
       - redis
     volumes:
       - /home/ubuntu/tara_dev_backend:/app
-    working_dir: /app               # ✅ Important
+    environment:
+      - PYTHONPATH=/app
+      - DJANGO_SETTINGS_MODULE=Tara.settings.default               # ✅ Important
     env_file:
       - .env
     networks:
@@ -53,7 +55,9 @@ services:
       - redis
     volumes:
       - /home/ubuntu/tara_dev_backend:/app
-    working_dir: /app               # ✅ Important
+    environment:
+      - PYTHONPATH=/app
+      - DJANGO_SETTINGS_MODULE=Tara.settings.default               # ✅ Important
     env_file:
       - .env
     networks:
