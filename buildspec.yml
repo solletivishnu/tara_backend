@@ -10,6 +10,7 @@ env:
     DOCKER_HUB_USERNAME: /tara_backend/docker-credentials/username
     DOCKER_HUB_PASSWORD: /tara_backend/docker-credentials/password
     DOCKER_IMAGE_NAME: /tara_backend/docker/image_name
+    REDIS_IMAGE: /tara_backend/docker/redis_image
 
 phases:
   install:
@@ -24,9 +25,12 @@ phases:
       - echo "[PreBuild] Logging in to Docker Hub..."
       - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
       - export IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - export DOCKER_IMAGE=$DOCKER_IMAGE_NAME   
+      - export DOCKER_IMAGE=$DOCKER_IMAGE_NAME
+      - export REDIS_IMAGE=$REDIS_IMAGE
       - echo "DOCKER_IMAGE=$DOCKER_IMAGE"
       - echo "IMAGE_TAG=$IMAGE_TAG"
+      - echo "REDIS_IMAGE=$REDIS_IMAGE"
+      - docker pull $REDIS_IMAGE || true
 
   build:
     commands:
@@ -40,6 +44,7 @@ phases:
       - echo "[PostBuild] Generating image_vars.env..."
       - echo "DOCKER_IMAGE=$DOCKER_IMAGE" > image_vars.env
       - echo "IMAGE_TAG=$IMAGE_TAG" >> image_vars.env
+      - echo "REDIS_IMAGE=$REDIS_IMAGE" >> image_vars.env
       - chmod 644 image_vars.env
 
 artifacts:

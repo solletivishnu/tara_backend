@@ -126,6 +126,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # In Tara/settings/default.py
 AUTH_USER_MODEL = 'usermanagement.Users'
 
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -326,6 +328,8 @@ database_host = os.getenv('DATABASE_HOST')
 username = os.getenv('DATABASE_USERNAME')
 password = os.getenv('DATABASE_PASSWORD')
 database_name = os.getenv('DATABASE_NAME')
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
 
 
 DATABASES = {

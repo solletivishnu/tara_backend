@@ -1,6 +1,14 @@
 version: '3.8'
 
 services:
+  redis:
+    image: ${REDIS_IMAGE}
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - taranet
   backend:
     image: ${DOCKER_IMAGE}:${IMAGE_TAG}
     container_name: tara_backend_dev
@@ -17,8 +25,35 @@ services:
       --workers 2
       --access-logfile /app/logs/access.log
       --error-logfile /app/logs/error.log
+    depends_on:
+      - redis
+
     networks:
       - taranet
+
+  celery_worker:
+    build:
+      context: .
+    container_name: celery_worker
+    command: celery -A Tara worker --loglevel=info --pool=solo
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+    networks:
+      - taranet
+
+    celery_beat:
+      build:
+        context: .
+      container_name: celery_beat
+      command: celery -A Tara beat --loglevel=info
+      depends_on:
+        - redis
+      volumes:
+        - .:/app
+      networks:
+        - taranet
 
 volumes:
   backend_logs:
