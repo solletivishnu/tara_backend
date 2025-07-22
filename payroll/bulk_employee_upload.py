@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
+import re
 
 # Import your models accordingly
 from .models import (
@@ -119,6 +120,58 @@ def upload_employee_excel(request):
     # Strip and filter unique values to check against DB
     def clean_unique_vals(series):
         return list(set(series.dropna().astype(str).str.strip()))
+
+
+    # Validate pf_account_number format: 5 letters followed by 10-14 digits
+    def is_valid_pf_account_number(pf):
+        if pd.isna(pf) or str(pf).strip() == '':
+            return True  # Allow blank, as it's not always mandatory
+        pf = str(pf).strip()
+        return bool(re.fullmatch(r'[A-Za-z]{5}\d{10,14}', pf))
+
+    invalid_pf_rows = []
+    for idx, row in df.iterrows():
+        pf = row.get('pf_account_number', '')
+        if not is_valid_pf_account_number(pf):
+            invalid_pf_rows.append(idx + 2)  # Excel row number
+
+    if invalid_pf_rows:
+        return Response({
+            "error": [
+                f"Invalid pf_account_number format in rows: {invalid_pf_rows}. It must be exactly 5 letters followed by 10-14 digits (e.g., ABCDE1234567890)."]
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def is_valid_email(email):
+        if pd.isna(email) or str(email).strip() == '':
+            return False
+        email = str(email).strip()
+        return bool(re.fullmatch(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email))
+
+    def is_valid_mobile_number(mobile):
+        if pd.isna(mobile) or str(mobile).strip() == '':
+            return False
+        mobile = str(mobile).strip()
+        return bool(re.fullmatch(r'\d{10}', mobile))
+
+    invalid_email_rows = []
+    invalid_mobile_rows = []
+    for idx, row in df.iterrows():
+        email = row.get('work_email', '')
+        mobile = row.get('mobile_number', '')
+        if not is_valid_email(email):
+            invalid_email_rows.append(idx + 2)
+        if not is_valid_mobile_number(mobile):
+            invalid_mobile_rows.append(idx + 2)
+
+    if invalid_email_rows:
+        return Response({
+            "error": [f"Invalid work_email format in rows: {invalid_email_rows}. Please provide a valid email address."]
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    if invalid_mobile_rows:
+        return Response({
+            "error": [f"Invalid mobile_number format in rows: {invalid_mobile_rows}. It must be exactly 10 digits."]
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     work_emails = clean_unique_vals(df['work_email'])
     uans = [val for val in clean_unique_vals(df['uan']) if val]
