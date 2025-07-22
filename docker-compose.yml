@@ -9,6 +9,7 @@ services:
       - "6379:6379"
     networks:
       - taranet
+
   backend:
     image: ${DOCKER_IMAGE}:${IMAGE_TAG}
     container_name: tara_backend_dev
@@ -27,31 +28,32 @@ services:
       --error-logfile /app/logs/error.log
     depends_on:
       - redis
-
     networks:
       - taranet
 
   celery_worker:
-    build:
-      context: .
+    image: ${DOCKER_IMAGE}:${IMAGE_TAG}
     container_name: celery_worker
     command: celery -A Tara worker --loglevel=info --pool=solo
     depends_on:
       - redis
     volumes:
       - .:/app
+    env_file:
+      - .env
     networks:
       - taranet
 
   celery_beat:
-    build:
-      context: .
+    image: ${DOCKER_IMAGE}:${IMAGE_TAG}
     container_name: celery_beat
     command: celery -A Tara beat --loglevel=info
     depends_on:
       - redis
     volumes:
       - .:/app
+    env_file:
+      - .env
     networks:
       - taranet
 
