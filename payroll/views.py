@@ -3546,8 +3546,9 @@ def detail_employee_monthly_salary(request):
 
                 if entry and not recalculate_tds:
                     try:
-                        monthly_fixed_tds = entry.monthly_fixed_tds
-                        monthly_tds = entry.monthly_fixed_tds
+                        monthly_fixed_tds = entry.monthly_fixed_tds if entry.monthly_fixed_tds not in (None,
+                                                                                                       0) else entry.tds
+                        monthly_tds = monthly_fixed_tds
                         tds_ytd = entry.tds_ytd + monthly_tds
                         annual_tds = entry.annual_tds
                     except Exception as e:
