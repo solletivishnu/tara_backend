@@ -594,7 +594,7 @@ def generate_salary_upload_template(request, payroll_id):
                 # Employee-level flags
                 epf_enabled = org_epf_enabled and statutory.get('epf_enabled', False)
                 esi_enabled = org_esi_enabled and statutory.get('esi_enabled', False)
-                professional_tax = statutory.get('professional_tax', professional_tax_enabled)
+                professional_tax = professional_tax_enabled and statutory.get('professional_tax', False)
 
             except Exception:
                 epf_enabled = esi_enabled = professional_tax = False
@@ -738,8 +738,14 @@ def generate_salary_upload_template(request, payroll_id):
 
             pt_monthly_col = col_index('Monthly (Professional Tax (PT))')
             if professional_tax:
+                # Get the gross monthly salary cell reference
+                gross_monthly_cell = f"{get_column_letter(col_index('Gross Salary (Monthly)'))}{row_idx}"
+
+                # Slab-based PT calculation
                 ws.cell(row=row_idx, column=pt_monthly_col).value = (
-                    f"=IF(ISNUMBER({annual_ctc_cell}), 200, \"\")"
+                    f"=IF(ISNUMBER({gross_monthly_cell}), "
+                    f"IF({gross_monthly_cell}<=15000, 0, "
+                    f"IF(AND({gross_monthly_cell}>=15001, {gross_monthly_cell}<=20000), 150, 200)), \"\")"
                 )
                 ws.cell(row=row_idx, column=col_index('Annually (Professional Tax (PT))')).value = (
                     f"=IF(ISNUMBER({get_column_letter(pt_monthly_col)}{row_idx}), "
