@@ -38,7 +38,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - .:/app
+      - /home/ubuntu/tara_dev_backend:/app
     env_file:
       - .env
     networks:
@@ -51,7 +51,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - .:/app
+      - /home/ubuntu/tara_dev_backend:/app
     env_file:
       - .env
     networks:
