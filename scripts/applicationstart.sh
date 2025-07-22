@@ -18,7 +18,13 @@ if [[ -z "$DOCKER_IMAGE" || -z "$IMAGE_TAG" ]]; then
     exit 1
 fi
 
+if [[ -z "$REDIS_IMAGE" ]]; then
+    echo "❌ REDIS_IMAGE is missing"
+    exit 1
+fi
+
 echo "✅ Using image: ${DOCKER_IMAGE}:${IMAGE_TAG}"
+echo "✅ Using Redis image: ${REDIS_IMAGE}"
 docker-compose --env-file image_vars.env up -d
 
 echo "[Start] ✅ Containers launched."
