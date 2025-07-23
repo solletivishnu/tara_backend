@@ -43,6 +43,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - DJANGO_SETTINGS_MODULE=Tara.settings.default               # ✅ Important
+      - CELERY_BROKER_URL=redis://redis:6379/0
     env_file:
       - .env
     networks:
@@ -58,6 +59,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - DJANGO_SETTINGS_MODULE=Tara.settings.default               # ✅ Important
+      - CELERY_BROKER_URL=redis://redis:6379/0
     env_file:
       - .env
     networks:
