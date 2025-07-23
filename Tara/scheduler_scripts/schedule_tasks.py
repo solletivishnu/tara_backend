@@ -3,7 +3,7 @@ import json
 
 def sync_schedules():
     schedule, _ = IntervalSchedule.objects.get_or_create(
-        every=10,
+        every=30,
         period=IntervalSchedule.MINUTES
     )
 
