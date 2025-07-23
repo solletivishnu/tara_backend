@@ -133,6 +133,8 @@ def upload_employee_salary_excel(request):
         for deduction in default_deductions:
             component = deduction['component_name']
             ct = deduction['calculation_type']['type']
+            if component == "Professional Tax (PT)":
+                component = "PT"
 
 
             deduction_data = {
