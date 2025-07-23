@@ -30,7 +30,6 @@ phases:
       - echo "DOCKER_IMAGE=$DOCKER_IMAGE"
       - echo "IMAGE_TAG=$IMAGE_TAG"
       - echo "REDIS_IMAGE=$REDIS_IMAGE"
-      - docker pull $REDIS_IMAGE || true
 
   build:
     commands:
