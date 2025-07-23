@@ -71,7 +71,7 @@ INSTALLED_APPS = [
     'docwallet',
     'servicetasks',
     'income_tax_returns',
-    'document_drafting'
+    'document_drafting',
     'document_drafting.apps.DocumentDraftingConfig',
 ]
 
