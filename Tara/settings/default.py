@@ -329,8 +329,8 @@ username = os.getenv('DATABASE_USERNAME')
 password = os.getenv('DATABASE_PASSWORD')
 database_name = os.getenv('DATABASE_NAME')
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 
 DATABASES = {
     'default': {
