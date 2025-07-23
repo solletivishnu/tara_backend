@@ -3,8 +3,7 @@ jmespath==1.0.1
 
 setuptools==68.1.2
 
-
-
+redis>=4.0.0
 
 # Core Web Framework & ORM
 Django==5.0.4
@@ -80,4 +79,4 @@ PyJWT==2.8.0
 cryptography==45.0.4
 razorpay==1.4.2
 pandas==2.3.0
-jinja2==3.1.6
+jinja
