@@ -2771,7 +2771,7 @@ def employee_attendance_filtered(request):
     # Filter records
     attendance_records = EmployeeAttendance.objects.filter(
         employee__payroll_id=payroll_id, financial_year=financial_year, month=month
-    )
+    ).order_by('-id')
 
     if not attendance_records.exists():
         return Response({"message": "No records found for the given criteria."}, status=status.HTTP_404_NOT_FOUND)
