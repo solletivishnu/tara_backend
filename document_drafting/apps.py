@@ -6,7 +6,7 @@ class DocumentDraftingConfig(AppConfig):
     name = 'document_drafting'
 
     def ready(self):
-        if 'gunicorn' in sys.argv or 'celery' in sys.argv:
+        if any(cmd in sys.argv[0] for cmd in ['gunicorn', 'celery']):
             try:
                 from Tara.scheduler_scripts.schedule_tasks import sync_schedules
                 sync_schedules()
