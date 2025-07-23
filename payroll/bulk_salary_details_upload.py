@@ -36,8 +36,8 @@ def upload_employee_salary_excel(request):
     except Exception as e:
         return Response({"error": f"Failed to read file: {str(e)}"}, status=400)
 
-    if "Monthly (Fixed Alowance)" in df.columns:
-        error_rows = df[df["Monthly (Fixed Alowance)"] == "Error: Adjust earnings"]
+    if "Monthly (Fixed Allowance)" in df.columns:
+        error_rows = df[df["Monthly (Fixed Allowance)"] == "Error: Adjust earnings"]
         if not error_rows.empty:
             row_nums = list(error_rows.index + 2)  # +2 accounts for Excel header and 0-indexing
             return Response({
