@@ -3359,19 +3359,6 @@ def detail_employee_monthly_salary(request):
             return Response({"message": "Payroll is locked. Salary computation is not allowed."},
                             status=status.HTTP_403_FORBIDDEN)
 
-        payroll_workflow = PayrollWorkflow.objects.filter(
-            payroll_id=payroll_id,
-            month=month,
-            financial_year=financial_year
-        ).first()
-
-        if not payroll_workflow:
-            return Response({"error": "Payroll workflow not found."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if payroll_workflow.lock_payroll:
-            return Response({"message": "Payroll is locked. Salary computation is not allowed."},
-                            status=status.HTTP_403_FORBIDDEN)
-
         salary_records = EmployeeSalaryDetails.objects.filter(employee__payroll_id=payroll_id)
         if not salary_records.exists():
             return Response({"message": "No salary records found for this payroll ID"}, status=status.HTTP_200_OK)

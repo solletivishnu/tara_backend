@@ -225,8 +225,8 @@ urlpatterns = [
 
     # Monthly report
     path('monthly-report/', attendance_controller.truetime_monthly_view, name='monthly-report'),
-    path('weekly-report/', attendance_controller.truetime_weekly_view, name='weekly-report'),
-    path('date-wise-report/', attendance_controller.truetime_datewise_view, name='date-wise-report'),
+    # path('weekly-report/', attendance_controller.truetime_weekly_view, name='weekly-report'),
+    # path('date-wise-report/', attendance_controller.truetime_datewise_view, name='date-wise-report'),
 
 
     path("credentials/", employeecredentials.credentials_list_create, name="credentials-list-create"),
