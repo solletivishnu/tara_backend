@@ -3257,87 +3257,55 @@ def calculate_employee_monthly_salary(request):
         return Response({"error": "Payroll ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
     if current_day < 26 and month == today.month:
-        return Response({"message": "Salary processing will be initiated between the 26th and 30th of the month."},
-                        status=status.HTTP_200_OK)
+        return Response({
+            "message": "Salary processing will be initiated between the 26th and 30th of the month."
+        }, status=status.HTTP_200_OK)
 
-    salary_records = EmployeeSalaryDetails.objects.filter(employee__payroll_id=payroll_id)
+    salary_records = EmployeeSalaryHistory.objects.filter(
+        payroll=payroll_id,
+        month=month,
+        financial_year=financial_year,
+    ).select_related("employee", "employee__department", "employee__designation")
+
     if not salary_records.exists():
         return Response({"message": "No salary records found for this payroll ID"}, status=status.HTTP_200_OK)
 
     salaries = []
-    for salary_record in salary_records:
-        employee = salary_record.employee
-
-        # Exclude employees who have exited
+    for record in salary_records:
+        employee = record.employee
         if EmployeeExit.objects.filter(employee=employee).exists():
             continue
 
-        try:
-            attendance = EmployeeAttendance.objects.get(employee=employee, financial_year=financial_year,
-                                                        month=month)
-        except EmployeeAttendance.DoesNotExist:
-            continue
-
-        total_working_days = attendance.total_days_of_month - attendance.loss_of_pay
-        gross_salary = salary_record.gross_salary.get("monthly", 0)
-        per_day_salary = gross_salary / attendance.total_days_of_month
-        earned_salary = per_day_salary * total_working_days
-        lop_amount = per_day_salary * attendance.loss_of_pay
-
-        # **Benefits Total**
-        benefits_total = sum(
-            float(benefit["monthly"]) if isinstance(benefit["monthly"], (int, float)) else 0
-            for benefit in salary_record.benefits) if salary_record.benefits else 0
-
-        # **Taxes**
-        taxes = sum(
-            float(ded["monthly"]) if isinstance(ded["monthly"], (int, float)) else 0
-            for ded in salary_record.deductions if "Tax" in ded["component_name"])
-
-        # **Advance Loan EMI Deduction (Filtered for Financial Year & Month)**
-        advance_loan = getattr(employee, "employee_advance_loan", None)
-        emi_deduction = 0  # Default if no loan
-
-        if advance_loan:
-            active_loan = advance_loan.filter(
-                start_month__lte=date(today.year, month, 1),
-                end_month__gte=date(today.year, month, 1)
-            ).first()
-
-            if active_loan:
-                emi_deduction = float(active_loan.emi_amount) if isinstance(active_loan.emi_amount, (int, float)) else 0
-
-        # **Employee-Specific Deductions**
-        employee_deductions = sum(
-            float(ded["monthly"]) if isinstance(ded["monthly"], (int, float)) else 0
-            for ded in salary_record.deductions if
-            "component_name" in ded and "Tax" not in ded["component_name"]
+        bonus_incentives = BonusIncentive.objects.filter(
+            employee_id=employee.id,
+            month=month,
+            financial_year=financial_year
         )
+        total_bonus_amount = bonus_incentives.aggregate(total_amount=Sum('amount'))['total_amount'] or 0
 
-        total_deductions = taxes + emi_deduction + employee_deductions
-        net_salary = earned_salary - total_deductions
+        net_pay_total = record.net_salary + total_bonus_amount
 
         salaries.append({
             "employee_id": employee.id,
             "associate_id": employee.associate_id,
-            "employee_name": attendance.employee.first_name + ' ' + attendance.employee.last_name,
+            "employee_name": f"{employee.first_name} {employee.last_name}",
             "department": employee.department.dept_name,
             "designation": employee.designation.designation_name,
-            "month": attendance.month,
-            "ctc": salary_record.annual_ctc,
-            "actual_gross": round(salary_record.annual_ctc / 12, 2) if salary_record.annual_ctc else 0,
-            "financial_year": financial_year,
-            "paid_days": total_working_days,
-            "gross_salary": round(gross_salary, 2) if gross_salary else 0,
-            "earned_salary": round(earned_salary, 2),
-            "benefits_total": round(benefits_total, 2),
+            "month": record.month,
+            "financial_year": record.financial_year,
+            "ctc": record.ctc,
+            "actual_gross": round(record.ctc / 12, 2) if record.ctc else 0,
+            "paid_days": record.paid_days,
+            "gross_salary": record.gross_salary,
+            "earned_salary": record.earned_salary,
+            "benefits_total": record.benefits_total,
             "deductions": {
-                "Employee Deductions": round(employee_deductions, 2),
-                "Taxes": round(taxes, 2),
-                "Loan EMI": round(emi_deduction, 2),
-                "Total": round(total_deductions, 2)
+                "Employee Deductions": round(record.epf + record.esi + record.pt),
+                "Taxes": round(record.tds, 2),
+                "Loan EMI": round(record.loan_emi, 2),
+                "Total": round(record.total_deductions, 2)
             },
-            "net_salary": round(net_salary, 2)
+            "net_pay": round(net_pay_total, 2),
         })
 
     return Response(salaries, status=status.HTTP_200_OK)
