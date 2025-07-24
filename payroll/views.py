@@ -1670,6 +1670,7 @@ def calculate_payroll(request):
         data = request.data
         annual_ctc = float(data["annual_ctc"])
         earnings = data["earnings"]
+        deductions = data.get("deductions", [])  # Get deductions from payload if exists
         employee_id = data.get("employee")
         gross_salary = data["gross_salary"]["annually"]
 
@@ -1694,13 +1695,12 @@ def calculate_payroll(request):
         else:
             payroll = PayrollOrg.objects.get(id=data.get("payroll"))
             epf_enabled = (hasattr(payroll,
-                                  'epf_details') and payroll.epf_details and not
-            payroll.epf_details.include_employer_contribution_in_ctc)
+                                   'epf_details') and payroll.epf_details and not
+                           payroll.epf_details.include_employer_contribution_in_ctc)
             esi_enabled = (hasattr(payroll,
-                                  'esi_details') and payroll.esi_details and not
-            payroll.esi_details.include_employer_contribution_in_ctc)
+                                   'esi_details') and payroll.esi_details and not
+                           payroll.esi_details.include_employer_contribution_in_ctc)
             pt_enabled = PT.objects.filter(payroll=payroll).exists()
-
 
         # Case 1: Basic salary < 15,000 and no statutory components
         if basic_salary_monthly < 15000 and not (epf_enabled or esi_enabled or pt_enabled):
@@ -1725,14 +1725,43 @@ def calculate_payroll(request):
                              "EPF admin charges", "ESI Employer Contribution"]
             }
 
-            deductions = {
+            # Handle non-statutory deductions from payload
+            non_statutory_deductions = {}
+            for item in deductions:
+                if item["component_name"] not in ["EPF Employee Contribution", "ESI Employee Contribution", "PT"]:
+                    non_statutory_deductions[item["component_name"]] = {
+                        "monthly": item["monthly"],
+                        "annually": item["annually"],
+                        "calculation_type": item.get("calculation_type", "Fixed")
+                    }
+
+            # Add statutory deductions as "NA"
+            statutory_deductions = {
                 name: {"monthly": "NA", "annually": "NA", "calculation_type": "Not Applicable"}
                 for name in ["EPF Employee Contribution", "ESI Employee Contribution", "PT"]
             }
-            deductions["loan_emi"] = "NA"
+
+            # Handle loan_emi specifically
+            loan_emi = next((item for item in deductions if item["component_name"] == "loan_emi"), None)
+            if loan_emi and loan_emi.get("monthly") != "NA":
+                non_statutory_deductions["loan_emi"] = {
+                    "monthly": loan_emi["monthly"],
+                    "annually": loan_emi["annually"],
+                    "calculation_type": loan_emi.get("calculation_type", "Fixed")
+                }
+            else:
+                non_statutory_deductions["loan_emi"] = "NA"
+
+            # Combine all deductions
+            all_deductions = {**statutory_deductions, **non_statutory_deductions}
 
             gross_salary = safe_sum(item["annually"] for item in earnings)
-            net_salary = gross_salary
+            # Only include deductions that have numerical values in the total
+            total_non_statutory_deductions = safe_sum(
+                item["annually"] for item in non_statutory_deductions.values()
+                if isinstance(item, dict) and isinstance(item["annually"], (int, float))
+            )
+            net_salary = gross_salary - total_non_statutory_deductions
             total_ctc = annual_ctc
         else:
             # Case 2: Regular calculation with statutory components
@@ -1761,15 +1790,44 @@ def calculate_payroll(request):
             gross_salary = safe_sum(item["annually"] for item in earnings)
             monthly_gross_salary = gross_salary / 12
 
-            deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly,
-                                                       monthly_gross_salary, pt_enabled, data.get("payroll"))
-            deductions["loan_emi"] = calculate_loan_deductions(employee_id) if employee_id else "NA"
+            # Calculate statutory deductions
+            statutory_deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly,
+                                                                 monthly_gross_salary, pt_enabled, data.get("payroll"))
 
-            total_deductions = safe_sum(
-                item["annually"] for item in deductions.values()
+            # Get non-statutory deductions from payload
+            non_statutory_deductions = {}
+            for item in deductions:
+                if item["component_name"] not in ["EPF Employee Contribution", "ESI Employee Contribution", "PT"]:
+                    non_statutory_deductions[item["component_name"]] = {
+                        "monthly": item["monthly"],
+                        "annually": item["annually"],
+                        "calculation_type": item.get("calculation_type", "Fixed")
+                    }
+
+            # Handle loan_emi specifically
+            loan_emi = next((item for item in deductions if item["component_name"] == "loan_emi"), None)
+            if loan_emi and loan_emi.get("monthly") != "NA":
+                non_statutory_deductions["loan_emi"] = {
+                    "monthly": loan_emi["monthly"],
+                    "annually": loan_emi["annually"],
+                    "calculation_type": loan_emi.get("calculation_type", "Fixed")
+                }
+            else:
+                non_statutory_deductions["loan_emi"] = "NA"
+
+            # Combine all deductions
+            all_deductions = {**statutory_deductions, **non_statutory_deductions}
+
+            total_statutory_deductions = safe_sum(
+                item["annually"] for item in statutory_deductions.values()
                 if isinstance(item, dict) and isinstance(item["annually"], (int, float)))
 
-            net_salary = gross_salary - total_deductions
+            total_non_statutory_deductions = safe_sum(
+                item["annually"] for item in non_statutory_deductions.values()
+                if isinstance(item, dict) and isinstance(item["annually"], (int, float))
+            )
+
+            net_salary = gross_salary - total_statutory_deductions - total_non_statutory_deductions
             total_ctc = gross_salary + total_benefits
 
         return Response({
@@ -1781,7 +1839,7 @@ def calculate_payroll(request):
             "gross_salary": {"monthly": gross_salary / 12, "annually": gross_salary},
             "benefits": [{"component_name": k, **v} for k, v in benefits.items()],
             "total_ctc": {"monthly": total_ctc / 12, "annually": total_ctc},
-            "deductions": format_deductions(deductions),
+            "deductions": format_deductions(all_deductions),
             "net_salary": {"monthly": net_salary / 12, "annually": net_salary},
             "errorMessage": ""
         }, status=status.HTTP_200_OK)
