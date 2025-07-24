@@ -973,6 +973,7 @@ class PayrollWorkflow(models.Model):
     exits = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
     attendance = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
     bonuses = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
+    adhoc_bonuses = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
     salary_revision = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
     tds = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
     loans_and_advances = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in progress')
