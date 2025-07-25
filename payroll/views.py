@@ -1607,8 +1607,8 @@ def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enab
             hasattr(payroll, 'esi_details') and payroll.esi_details and
             payroll.esi_details.include_employer_contribution_in_ctc
         ):
-            if basic_monthly <= 21000:
-                esi_monthly = 0.0075 * basic_monthly
+            if gross_monthly <= 21000:
+                esi_monthly = 0.0075 * gross_monthly
                 deductions["ESI Employee Contribution"] = {
                     "monthly": esi_monthly,
                     "annually": esi_monthly * 12,
@@ -3308,6 +3308,8 @@ def calculate_employee_monthly_salary(request):
     month = int(request.query_params.get("month", today.month))
     financial_year = request.query_params.get("financial_year", None)
     payroll_id = request.query_params.get("payroll_id")
+    fy_start = int(financial_year.split('-')[0])
+    year = fy_start if month >= 4 else fy_start + 1
 
     if not financial_year:
         return Response({"error": "Financial year is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -3332,8 +3334,12 @@ def calculate_employee_monthly_salary(request):
     salaries = []
     for record in salary_records:
         employee = record.employee
-        if EmployeeExit.objects.filter(employee=employee).exists():
-            continue
+        exit_obj = EmployeeExit.objects.filter(employee=employee).last()
+        if exit_obj:
+            emp_exit_year = exit_obj.exit_year
+            emp_exit_month = exit_obj.exit_month
+            if emp_exit_year < year or (emp_exit_year == year and emp_exit_month < month):
+                continue
 
         bonus_incentives = BonusIncentive.objects.filter(
             employee_id=employee.id,
@@ -3431,7 +3437,10 @@ def detail_employee_monthly_salary(request):
             if exit_obj:
                 emp_exit_year = exit_obj.exit_year
                 emp_exit_month = exit_obj.exit_month
-                if emp_exit_year < year or (emp_exit_year == year and emp_exit_month < month):
+                first_day_of_month = datetime(year, month, 1).date()
+                if (emp_exit_year < year or
+                        (emp_exit_year == year and emp_exit_month < month) or
+                        (exit_obj.doe and exit_obj.doe == first_day_of_month)):
                     continue
 
             try:
