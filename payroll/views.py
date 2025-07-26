@@ -1565,7 +1565,7 @@ def calculate_esi_contributions(basic_monthly, payroll_id=None):
     return benefits
 
 
-def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enabled, payroll_id=None):
+def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enabled, payroll_id=None, esi_enabled=False):
     deductions = {
         "EPF Employee Contribution": {
             "monthly": "NA",
@@ -1605,7 +1605,7 @@ def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enab
         # --- ESI Employee Contribution ---
         if (
             hasattr(payroll, 'esi_details') and payroll.esi_details and
-            payroll.esi_details.include_employer_contribution_in_ctc
+            payroll.esi_details.include_employer_contribution_in_ctc and esi_enabled
         ):
             if gross_monthly <= 21000:
                 esi_monthly = 0.0075 * gross_monthly
@@ -1791,8 +1791,9 @@ def calculate_payroll(request):
             monthly_gross_salary = gross_salary / 12
 
             # Calculate statutory deductions
+            esi_enabled = employee.statutory_components.get("esi_enabled", False)
             statutory_deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly,
-                                                                 monthly_gross_salary, pt_enabled, data.get("payroll"))
+                                                    monthly_gross_salary, pt_enabled, data.get("payroll"), esi_enabled)
 
             # Get non-statutory deductions from payload
             non_statutory_deductions = {}
@@ -3154,7 +3155,7 @@ def generate_current_month_attendance(request):
 
         # Pre-fetch all data in bulk to avoid N+1 queries
         exited_employee_ids = set(
-            EmployeeExit.objects.filter(doe__lt=first_day_current_month)
+            EmployeeExit.objects.filter(doe__lte=first_day_current_month)
             .values_list("employee_id", flat=True)
         )
 
@@ -3483,8 +3484,11 @@ def detail_employee_monthly_salary(request):
             # PT Calculation
             pt_amount = 0
             # ESI Calculation
-            esi = round(earned_salary * 0.0075, 2) if gross_salary <= 21000 else 0
-
+            esi = (
+                round(earned_salary * 0.0075, 2)
+                if gross_salary <= 21000 and employee.statutory_components.get("esi_enabled", False)
+                else 0
+            )
             # Benefits
             benefits_total = sum(
                 b["monthly"] if isinstance(b.get("monthly"), (int, float)) else 0
