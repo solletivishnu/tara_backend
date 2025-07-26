@@ -3154,7 +3154,7 @@ def generate_current_month_attendance(request):
 
         # Pre-fetch all data in bulk to avoid N+1 queries
         exited_employee_ids = set(
-            EmployeeExit.objects.filter(doe__lt=first_day_current_month)
+            EmployeeExit.objects.filter(doe__lte=first_day_current_month)
             .values_list("employee_id", flat=True)
         )
 
@@ -3483,8 +3483,11 @@ def detail_employee_monthly_salary(request):
             # PT Calculation
             pt_amount = 0
             # ESI Calculation
-            esi = round(earned_salary * 0.0075, 2) if gross_salary <= 21000 else 0
-
+            esi = (
+                round(earned_salary * 0.0075, 2)
+                if gross_salary <= 21000 and employee.statutory_components.get("esi_enabled", False)
+                else 0
+            )
             # Benefits
             benefits_total = sum(
                 b["monthly"] if isinstance(b.get("monthly"), (int, float)) else 0
