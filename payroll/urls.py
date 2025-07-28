@@ -242,4 +242,5 @@ urlpatterns = [
     # path("face-recognition-check-in/", face_recognition.face_recognition_check_in, name="face-recognition-check-in"),
     # path("face-recognition-check-out/", face_recognition.face_recognition_check_out, name="face-recognition-check-out"),
     # path("attendance-summary-view/", face_recognition.attendance_summary_view, name="attendance-summary-view"),
+    path('process-single-org/', views.process_single_payroll_org, name='process-single-payroll-org'),
 ]
