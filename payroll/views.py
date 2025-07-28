@@ -4730,3 +4730,41 @@ def delete_employees_by_payroll(request):
         {"message": f"Deleted {deleted_count} employee(s) associated with payroll_id {payroll_id}."},
         status=status.HTTP_200_OK
     )
+
+
+from payroll.services.salary_processor import EmployeeSalaryProcessor
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def process_single_payroll_org(request):
+    try:
+        # Get the org with payroll_id = 1
+        org = PayrollOrg.objects.get(id=1)
+
+        # Get financial year and month from request or use defaults
+        financial_year = request.data.get("financial_year")
+        month = request.data.get("month")
+
+        if not financial_year or not month:
+            return Response({
+                "error": "Missing financial_year or month in request body."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Process salary
+        processor = EmployeeSalaryProcessor(org, financial_year, month)
+        processor.process()
+
+        return Response({
+            "message": f"Payroll processing completed for org: {org.business.nameOfBusiness}"
+        }, status=status.HTTP_200_OK)
+
+    except PayrollOrg.DoesNotExist:
+        return Response({
+            "error": "PayrollOrg with id=1 does not exist."
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
+        return Response({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
