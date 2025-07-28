@@ -290,12 +290,12 @@ class AllOrgPayrollProcessor:
             try:
                 processor = EmployeeSalaryProcessor(org, self.financial_year, self.month)
                 processor.process()
-                success_orgs.append(org.name)
+                success_orgs.append(org.business.nameOfBusiness)
             except Exception as e:
                 error_trace = traceback.format_exc()
                 failed_orgs.append({
                     "org_id": org.id,
-                    "org_name": org.name,
+                    "org_name": org.business.nameOfBusiness,
                     "error": str(e),
                     "traceback": error_trace
                 })

@@ -4,8 +4,8 @@ import json
 
 def schedule_salary_processing():
     schedule, _ = CrontabSchedule.objects.get_or_create(
-        minute='45',
-        hour='14',
+        minute='0',
+        hour='15',
         day_of_month='26-30',
         month_of_year='*',
         day_of_week='*'
