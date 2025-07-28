@@ -3570,7 +3570,6 @@ def detail_employee_monthly_salary(request):
                 employee=employee,
                 payroll_id=payroll_id,
                 financial_year=financial_year,
-                month=month
             ).first()
 
             recalculate_tds = False
@@ -3667,6 +3666,13 @@ def detail_employee_monthly_salary(request):
                 'other_deductions_breakdown': other_deductions_breakdown,
                 'other_earnings_breakdown': component_amounts['other_earnings_breakdown']
             }
+
+            existing_record = EmployeeSalaryHistory.objects.filter(
+                employee=employee,
+                payroll_id=payroll_id,
+                financial_year=financial_year,
+                month=month
+            ).first()
 
             if existing_record:
                 # Update existing record
