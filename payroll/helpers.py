@@ -496,3 +496,8 @@ def calculate_component_amounts(earnings, total_working_days, total_days_of_mont
 def employee_image_upload_path(instance, filename):
     # Construct the upload path
     return os.path.join('employees', str(instance.employee.id), str(instance.direction), filename)
+
+
+def leave_attachments(instance, filename):
+    # Construct the upload path
+    return os.path.join('employees', str(instance.employee.employee.id),  'leaveManagement', str(instance.direction), filename)

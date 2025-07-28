@@ -1029,3 +1029,50 @@ class EmployeeFaceRecognitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeFaceRecognition
         fields = "__all__"
+
+
+class LeaveApplicationSerializer(serializers.ModelSerializer):
+    cc_to = serializers.PrimaryKeyRelatedField(many=True, queryset=EmployeeCredentials.objects.all(), required=False)
+
+    class Meta:
+        model = LeaveApplication
+        fields = '__all__'
+        read_only_fields = ('applied_on', 'status', 'reviewed_on', 'reviewer_comment')
+
+    def validate(self, data):
+        # Validate date range
+        if data['start_date'] > data['end_date']:
+            raise serializers.ValidationError("End date must be after start date")
+
+        # Validate leave doesn't span more than allowed days based on type
+        leave_days = (data['end_date'] - data['start_date']).days + 1
+
+        if data['leave_type'] == 'CL' and leave_days > 3:
+            raise serializers.ValidationError("Casual leave cannot be more than 3 days")
+
+        if data['leave_type'] == 'SL' and leave_days > 15:
+            raise serializers.ValidationError("Sick leave cannot be more than 15 days")
+
+        # Validate LOP (Loss of Pay) specific rules
+        if data['leave_type'] == 'LOP':
+            if not data.get('reason'):
+                raise serializers.ValidationError("Reason is mandatory for LOP leaves")
+
+        # Validate future dates
+        if data['start_date'] < timezone.now().date():
+            raise serializers.ValidationError("Cannot apply for leave in the past")
+
+        # Check for overlapping leaves
+        overlapping_leaves = LeaveApplication.objects.filter(
+            employee=data['employee'],
+            start_date__lte=data['end_date'],
+            end_date__gte=data['start_date'],
+        ).exclude(status='rejected').exclude(status='cancelled')
+
+        if self.instance:  # For update
+            overlapping_leaves = overlapping_leaves.exclude(pk=self.instance.pk)
+
+        if overlapping_leaves.exists():
+            raise serializers.ValidationError("You already have a leave application for these dates")
+
+        return data

@@ -1066,43 +1066,47 @@ class EmployeeFaceRecognition(models.Model):
         return f"{self.employee.name} - {self.direction}"
 
 
+class LeaveApplication(models.Model):
+    LEAVE_TYPE_CHOICES = [
+        ('CL', 'Casual Leave'),
+        ('SL', 'Sick Leave'),
+        ('EL', 'Earned Leave'),
+        ('LOP', 'Loss of Pay'),
+    ]
 
-# class LeaveApplication(models.Model):
-#     LEAVE_TYPE_CHOICES = [
-#         ('CL', 'Casual Leave'),
-#         ('SL', 'Sick Leave'),
-#         ('EL', 'Earned Leave'),
-#         ('LOP', 'Loss of Pay'),
-#     ]
-#
-#     STATUS_CHOICES = [
-#         ('pending', 'Pending'),
-#         ('approved', 'Approved'),
-#         ('rejected', 'Rejected'),
-#         ('cancelled', 'Cancelled'),
-#     ]
-#
-#     employee = models.ForeignKey(EmployeeCredentials, on_delete=models.CASCADE, related_name='leave_applications')
-#     leave_type = models.CharField(max_length=10, choices=LEAVE_TYPE_CHOICES)
-#     start_date = models.DateField()
-#     end_date = models.DateField()
-#     reason = models.TextField(blank=True)
-#
-#     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-#     applied_on = models.DateTimeField(auto_now_add=True)
-#
-#     reviewer = models.ForeignKey(
-#         EmployeeCredentials,
-#         on_delete=models.SET_NULL,
-#         null=True,
-#         blank=True,
-#         related_name='reviewed_leaves'
-#     )
-#     reviewed_on = models.DateTimeField(null=True, blank=True)
-#     reviewer_comment = models.TextField(blank=True)
-#
-#     def __str__(self):
-#         return f"{self.employee} - {self.leave_type} - {self.start_date} to {self.end_date}"
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    employee = models.ForeignKey(EmployeeCredentials, on_delete=models.CASCADE, related_name='leave_applications')
+    leave_type = models.CharField(max_length=10, choices=LEAVE_TYPE_CHOICES)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    reason = models.TextField(blank=True)
+    contact_details = models.CharField(max_length=255, blank=True, null=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    applied_on = models.DateTimeField(auto_now_add=True)
+    reviewer = models.ForeignKey(
+        EmployeeCredentials,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_leaves'
+    )
+    cc_to = models.ManyToManyField(
+        EmployeeCredentials,
+        blank=True,
+        related_name='cc_leaves'
+    )
+    reviewed_on = models.DateTimeField(null=True, blank=True)
+    reviewer_comment = models.TextField(blank=True)
+    attach_file = models.FileField(upload_to=leave_attachments, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.employee} - {self.leave_type} - {self.start_date} to {self.end_date}"
 
 
 
