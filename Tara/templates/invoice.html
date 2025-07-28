@@ -19,114 +19,230 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Invoice</title>
     <style>
-     @page {
-  size: A4;
-  margin: 0;
-}
-body {
-  margin: 0;
-  position: relative;
-}
-.footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: #f1f5f9;
-  color: #525252;
-  text-align: center;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  padding: 0.75rem;
-}
-.content {
-  min-height: 100vh;
-  box-sizing: border-box;
-  padding-bottom: 60px; /* Space for footer */
-}
+        @page {
+          size: A4;
+          margin: 240px 20px 80px 20px;
+        }
 
-@media print {
-  body {
-    padding-bottom: 0;
-  }
-  .content {
-    padding-bottom: 0;
-    min-height: calc(100vh - 60px); /* Account for footer height */
-  }
-  .footer {
-    position: fixed;
-    bottom: 0;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-}
+        body {
+          margin: 0;
+          position: relative;
+          min-height: 100vh;
+          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+            'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+        }
+
+        .header {
+          position: fixed;
+          top: -240px;
+          left: 0;
+          right: 0;
+          background-color: #ffffff;
+<!--          border-bottom: 2px solid #5c6ac4;-->
+          z-index: 1000;
+          height: 240px;
+          margin-top: 10px;
+          margin-left: 30px;
+          margin-right: 30px;
+          margin-bottom: 10px;
+          box-sizing: border-box;
+        }
+
+        .footer {
+          position: fixed;
+          bottom: -40px;
+          left: 0;
+          right: 0;
+          background-color: #f1f5f9;
+          color: #525252;
+          text-align: center;
+          font-size: 0.75rem;
+          line-height: 1rem;
+          padding: 0.75rem;
+          height: 40px;
+          box-sizing: border-box;
+          z-index: 1000;
+        }
+
+        .content {
+          padding-top: 50px; /* Space for header */
+          padding-bottom: 60px; /* Space for footer */
+          margin: 0;
+          min-height: calc(100vh - 250px); /* 100vh - (header + footer) */
+          page-break-inside: avoid;
+        }
+
+        /* Ensure content starts fresh on each page */
+        .page-content {
+          page-break-after: always;
+          height: calc(100vh - 250px); /* Match the min-height of .content */
+          overflow: hidden;
+        }
+
+        /* Last page shouldn't have a page break after it */
+        .page-content:last-child {
+          page-break-after: auto;
+        }
+
+        /* Table styling */
+        .invoice-table {
+          width: 100%;
+          border-collapse: collapse;
+          border-spacing: 0;
+        }
+
+        /* Page break handling */
+        .invoice-table {
+          page-break-inside: auto;
+        }
+        .invoice-table tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+        .invoice-table thead {
+          margin-top: 1rem;
+          display: table-header-group;
+          page-break-inside: avoid;
+        }
+        .invoice-table tbody {
+          display: table-row-group;
+          page-break-inside: avoid;
+        }
+
+        /* Ensure table header appears on each page */
+        thead {
+          display: table-header-group;
+          page-break-inside: avoid;
+        }
+
+        /* Add spacing between pages */
+        .page-break {
+          page-break-before: always;
+          padding-top: 20px;
+        }
+
+        @media print {
+          body {
+            padding: 0;
+            margin: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .header {
+            position: fixed;
+            top: -240px;
+            height: 240px;
+            margin-top: 10px;
+            margin-left: 10px;
+            margin-right: 10px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .footer {
+            position: fixed;
+            bottom: -40px;
+            height: 40px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .content {
+            padding-top: 5px;
+            padding-bottom: 60px;
+            margin: 0;
+            page-break-inside: avoid;
+            min-height: calc(100vh - 250px);
+            position: relative;
+          }
+
+          /* New page content styling */
+          .page-content {
+            height: calc(100vh - 250px);
+            page-break-after: always;
+            page-break-inside: avoid;
+          }
+
+          .page-content:last-child {
+            page-break-after: auto;
+            page-break-inside: avoid;
+          }
+
+          /* Prevent content from breaking in awkward places */
+          .avoid-break {
+            page-break-inside: avoid;
+          }
+
+          /* Force a page break before this element */
+          .force-break {
+            page-break-before: always;
+            page-break-inside: avoid;
+          }
+
+          /* Ensure tables break properly */
+          table {
+            page-break-inside: auto;
+            page-break-inside: avoid;
+          }
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+            page-break-inside: avoid;
+          }
+          td {
+            page-break-inside: avoid;
+            page-break-after: auto;
+            page-break-inside: avoid;
+          }
+        }
     </style>
   </head>
 
   <body>
-    <div class="content">
-      <div style="padding-top: 1rem; padding-bottom: 1rem">
-        <div
-          style="
-            padding-left: 3.5rem;
-            padding-right: 3.5rem;
-            padding-top: 1.5rem;
-            padding-bottom: 1.5rem;
-          "
-        >
-          <table
-            style="width: 100%; border-collapse: collapse; border-spacing: 0"
-          >
-            <tbody>
-              <tr>
-                <td style="width: 50%; vertical-align: top">
-                  <div style="font-size: 0.875rem; line-height: 1.25rem">
-                    <h2
-                      style="
-                        margin: 0 0 5px 0;
-                        white-space: nowrap;
-                        color: #5c6ac4;
-                      "
-                    >
-                      {{company_name}}
-                    </h2>
-                    <p style="margin: 0">Telangana</p>
-                    {% if gstin != "NA" and gstin is not None %}
-                      <p style="margin: 0">{{gstin}}</p>
-                    {% endif %}
+    <header class="header">
+      <div style="padding: 0.75rem; height: 100%; display: flex; align-items: center;">
+        <table style="width: 100%; border-collapse: collapse; border-spacing: 0">
+          <tbody>
+            <tr>
+              <td style="width: 50%; vertical-align: middle">
+                <div style="font-size: 0.875rem; line-height: 1.2rem">
+                  <h2 style="margin: 0 0 3px 0; white-space: nowrap; color: #5c6ac4; font-size: 1.25rem;">
+                    {{company_name}}
+                  </h2>
+                  <p style="margin: 0;">Telangana</p>
+                  <p style="margin: 0">{{email}}</p>
+                  {% if gstin != "NA" and gstin is not None %}
+                    <p style="margin: 0;">{{gstin}}</p>
+                  {% endif %}
                     <p style="margin: 0">{{email}}</p>
-                    <p style="margin: 0">Invoice No. : {{invoice_number}}</p>
-                    <p style="margin: 0">Invoice Date : {{invoice_date}}</p>
+                  <p style="margin: 0;">
+                    Invoice No. : {{invoice_number}}
+                  </p>
+                  <p style="margin: 0;">
+                    Date : {{invoice_date}}
+                  </p>
                     <p style="margin: 0">Terms : {{terms}}</p>
                     <p style="margin: 0">Due Date : {{due_date}}</p>
-                    <div>
-                      <img src="" style="height: 3rem; display: block" />
-                    </div>
-                  </div>
-                </td>
-
-                <td style="width: 50%; vertical-align: top">
-                  <div style="font-size: 0.875rem; line-height: 1.25rem">
-                    <h1
-                      style="
-                        margin: 0;
-                        white-space: nowrap;
-                        color: #5c6ac4;
-                        text-align: right;
-                      "
-                    >
-                      Tax Invoice
-                    </h1>
+                </div>
+              </td>
+              <td style="width: 50%; vertical-align: middle">
+                <div style="font-size: 0.875rem; line-height: 1.2rem; text-align: right">
+                  <h1 style="margin: 0; white-space: nowrap; color: #5c6ac4; font-size: 1.5rem;">
+                    Tax Invoice
+                  </h1>
                     <p style="white-space: nowrap; text-align: right">
                       Place of supply : {{place_of_supply}}
                     </p>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="content-wrapper" style="padding-top: 1rem; padding-bottom: 3rem; margin-bottom: 80px;">
         <div
+          class="section-spacing"
           style="
             background-color: #f1f5f9;
             padding-left: 3.5rem;
@@ -183,9 +299,10 @@ body {
         </div>
 
         <div
+          class="section-spacing"
           style="
-            padding-left: 3.5rem;
-            padding-right: 3.5rem;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
             padding-top: 2rem;
             padding-bottom: 2rem;
             font-size: 0.875rem;
@@ -194,10 +311,11 @@ body {
           "
         >
           <table
+            class="invoice-table"
             style="width: 100%; border-collapse: collapse; border-spacing: 0"
           >
             <thead>
-              <tr style="border-bottom: 2px solid #5c6ac4">
+              <tr style="border-bottom: 2px solid #5c6ac4;">
                 <td
                   style="
                     border-bottom-width: 2px;
@@ -412,7 +530,7 @@ body {
                     text-align: center;
                   "
                 >
-                  {{ item.discount }}
+                  {{ item.discount }} {{ item.discount_type }}
                 </td>
                 <td
                   style="
@@ -453,16 +571,19 @@ body {
               </tr>
               {% endfor %}
               <tr>
-                <td colspan="2">
+                <td colspan="7" style="line-height: 1.5; padding: 0.75rem 0.75rem 0.75rem 0.75rem">
                   <h3 style="margin: 0">Total In Words :</h3>
-                  <br />{{total_in_words}}
+                      {{total_in_words}}
                   {% if terms_and_conditions and terms_and_conditions != "" and terms_and_conditions != "NA" %}
-                  <br /><br />
+
+
                   <h3 style="margin: 0; color: #5c6ac4; font-weight: 700">Terms and Conditions:</h3>
                   <p style="margin-top: 0.5rem; font-style: italic; color: #525252">{{terms_and_conditions}}</p>
                   {% endif %}
                   {% if note and note != "" and note != "NA" %}
-                  <br /><br />
+
+
+
                   <h3 style="margin: 0; color: #5c6ac4; font-weight: 700">Customer Notes:</h3>
                   <p style="margin-top: 0.5rem; font-style: italic; color: #525252">{{note}}</p>
                   {% endif %}
@@ -711,6 +832,7 @@ body {
         </div>
 
         <div
+          class="section-spacing"
           style="
             display: grid;
             grid-template-columns: 1fr 1fr;

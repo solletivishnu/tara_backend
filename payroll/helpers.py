@@ -491,3 +491,8 @@ def calculate_component_amounts(earnings, total_working_days, total_days_of_mont
     component_amounts['other_earnings'] = other_earnings
     component_amounts['other_earnings_breakdown'] = other_earnings_breakdown
     return component_amounts
+
+
+def employee_image_upload_path(instance, filename):
+    # Construct the upload path
+    return os.path.join('employees', str(instance.employee.id), str(instance.direction), filename)

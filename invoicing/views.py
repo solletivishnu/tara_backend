@@ -3,6 +3,10 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import serializers
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import tempfile
 from django.db import models
 from .models import InvoicingProfile, CustomerProfile, GoodsAndServices, Invoice, CustomerInvoiceReceipt, InvoiceFormat
 from .serializers import (InvoicingProfileSerializer, CustomerProfileSerializers,InvoiceFormatSerializer,
@@ -681,6 +685,24 @@ def split_address(address):
     return first_half + '<br/>' + second_half
 
 
+def generate_invoice_pdf(request, context):
+
+    try:
+        # Render HTML template
+        html_string = render_to_string('invoice.html', context)
+
+        # Generate PDF using WeasyPrint
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        pdf_file = html.write_pdf()
+
+        # Create HTTP response
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = 'inline; filename="invoice.pdf"'
+        return response
+
+    except Exception as e:
+        return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
 
 @api_view(["GET"])
 # @require_permissions(2, required_actions=['Invoice.print'])
@@ -771,6 +793,7 @@ def createDocument(request, id):
                                 'quantity': "{:,}".format(int(float(item.get('quantity', 0)))),
                                 'rate': "{:,}".format(float(item.get('rate', 0))) if float(item.get('rate', 0)) % 1 else "{:,}".format(int(float(item.get('rate', 0)))),
                                 'discount': "{:,}".format(float(item.get('discount', 0))) if float(item.get('discount', 0)) % 1 else "{:,}".format(int(float(item.get('discount', 0)))),
+                                'discount_type': item.get('discount_type', ''),
                                 'amount': "{:,}".format(float(item.get('amount', 0))) if float(item.get('amount', 0)) % 1 else "{:,}".format(int(float(item.get('amount', 0)))),
                                 'taxamount': "{:,}".format(float(item.get('taxamount', 0))) if float(item.get('taxamount', 0)) % 1 else "{:,}".format(int(float(item.get('taxamount', 0)))),
                                 'tax': "{}%".format(int(float(item.get('tax', 0)))),  # Ensures percentage format
@@ -804,7 +827,7 @@ def createDocument(request, id):
         template_name = "invoice.html"
 
         # Generate the PDF document
-        pdf_response = document_generator.generate_document(template_name)
+        pdf_response = generate_invoice_pdf(request, context)
 
         # Return the PDF response
         return pdf_response
@@ -813,6 +836,7 @@ def createDocument(request, id):
         return Response({'error': 'Invoicing profile not found'}, status=404)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
 
 
 def get_financial_year():
