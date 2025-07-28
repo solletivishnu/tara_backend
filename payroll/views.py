@@ -2065,41 +2065,82 @@ def holiday_management_list_create(request):
             holidays = holidays.filter(payroll_id=payroll_id)
 
         serializer = HolidayManagementSerializer(holidays, many=True)
-        return Response(serializer.data,
-                        status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        serializer = HolidayManagementSerializer(data=request.data)
+        data = request.data.copy()
+        payroll_id = data.get("payroll")
+        applicable_for = data.get("applicable_for")
+
+        if not payroll_id:
+            return Response({"error": "Payroll ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        location_ids = []
+
+        # Handle "all" case
+        if applicable_for == "all":
+            location_ids = list(
+                WorkLocations.objects.filter(payroll_id=payroll_id).values_list("id", flat=True)
+            )
+
+        # Handle list of names
+        elif isinstance(applicable_for, list):
+            location_ids = list(
+                WorkLocations.objects.filter(
+                    payroll_id=payroll_id,
+                    id__in=applicable_for
+                ).values_list("id", flat=True)
+            )
+            if not location_ids:
+                return Response({"error": "No matching work locations found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Remove M2M field from data before passing to serializer
+        data.pop("applicable_for", None)
+
+        serializer = HolidayManagementSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data,
-                            status=status.HTTP_201_CREATED)
+            instance = serializer.save()
+            if location_ids:
+                instance.applicable_for.set(location_ids)  # ✅ Safe way to assign M2M
+            return Response(HolidayManagementSerializer(instance).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
 def holiday_management_filtered_list(request):
     """
-    API for retrieving Holiday Management records based on payroll_id, financial_year, and applicable_for.
-    - GET: Retrieves holidays filtered by provided query parameters.
+    Return each holiday-location pair as a separate object.
+    Filters: payroll_id, financial_year, applicable_for
     """
-    filters = {}
-
     payroll_id = request.query_params.get('payroll_id')
     financial_year = request.query_params.get('financial_year')
-    applicable_for = request.query_params.get('applicable_for')
+    applicable_for = request.query_params.get('applicable_for')  # optional WorkLocation ID
 
+    holidays = HolidayManagement.objects.all()
     if payroll_id:
-        filters['payroll_id'] = payroll_id
+        holidays = holidays.filter(payroll_id=payroll_id)
     if financial_year:
-        filters['financial_year'] = financial_year
+        holidays = holidays.filter(financial_year=financial_year)
     if applicable_for:
-        filters['applicable_for'] = applicable_for
+        holidays = holidays.filter(applicable_for__id=applicable_for)
 
-    holidays = HolidayManagement.objects.filter(**filters)  # Apply filters directly
+    # Flatten result per work location
+    flat_data = []
+    for holiday in holidays:
+        for location in holiday.applicable_for.all():
+            flat_data.append({
+                "id": holiday.id,
+                "payroll": holiday.payroll_id,
+                "financial_year": holiday.financial_year,
+                "holiday_name": holiday.holiday_name,
+                "start_date": holiday.start_date,
+                "end_date": holiday.end_date,
+                "description": holiday.description,
+                "applicable_for_id": location.id,
+                "applicable_for": location.location_name
+            })
 
-    serializer = HolidayManagementSerializer(holidays, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(flat_data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -2118,7 +2159,7 @@ def holiday_management_detail_update_delete(request, holiday_id):
                         status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
-        serializer = HolidayManagementSerializer(holiday, data=request.data)
+        serializer = HolidayManagementSerializer(holiday, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data,
@@ -2126,9 +2167,23 @@ def holiday_management_detail_update_delete(request, holiday_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        holiday.delete()
-        return Response({"message": "Holiday Management record deleted successfully."},
-                        status=status.HTTP_204_NO_CONTENT)
+        location_id = request.query_params.get("location_id")
+        try:
+            holiday = HolidayManagement.objects.get(id=holiday_id)
+        except HolidayManagement.DoesNotExist:
+            return Response({"error": "Holiday not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not holiday.applicable_for.filter(id=location_id).exists():
+            return Response({"error": "Work location not associated with this holiday."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        holiday.applicable_for.remove(location_id)
+
+        if holiday.applicable_for.count() == 0:
+            holiday.delete()
+            return Response({"message": "Holiday deleted as no locations remained."}, status=status.HTTP_204_NO_CONTENT)
+
+        return Response({"message": "Work location removed from holiday."}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET', 'POST'])

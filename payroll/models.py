@@ -388,7 +388,7 @@ class HolidayManagement(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     description = models.TextField(blank=True, null=True)  # Optional
-    applicable_for = models.CharField(max_length=60)
+    applicable_for = models.ManyToManyField('WorkLocations', related_name='applicable_holidays', blank=True)
 
     class Meta:
         verbose_name = "Holiday Management"
