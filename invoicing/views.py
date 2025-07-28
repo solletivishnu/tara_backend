@@ -3,6 +3,10 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import serializers
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import tempfile
 from django.db import models
 from .models import InvoicingProfile, CustomerProfile, GoodsAndServices, Invoice, CustomerInvoiceReceipt, InvoiceFormat
 from .serializers import (InvoicingProfileSerializer, CustomerProfileSerializers,InvoiceFormatSerializer,
@@ -680,12 +684,6 @@ def split_address(address):
 
     return first_half + '<br/>' + second_half
 
-
-
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from weasyprint import HTML
-import tempfile
 
 def generate_invoice_pdf(request, context):
 

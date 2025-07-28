@@ -1,5 +1,12 @@
 import boto3
 from uuid import uuid4
+from datetime import date, timedelta
+from django.db.models import Q
+from rest_framework.decorators import api_view, authentication_classes
+from rest_framework.response import Response
+from django.utils.timezone import localtime, now
+from calendar import monthrange
+from collections import defaultdict
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -230,14 +237,6 @@ def face_recognition_check_out(request):
         "match_results": match_results
     }, status=status.HTTP_200_OK)
 
-
-from datetime import date, timedelta
-from django.db.models import Q
-from rest_framework.decorators import api_view, authentication_classes
-from rest_framework.response import Response
-from django.utils.timezone import localtime, now
-from calendar import monthrange
-from collections import defaultdict
 
 @api_view(['GET'])
 @authentication_classes([EmployeeJWTAuthentication])
