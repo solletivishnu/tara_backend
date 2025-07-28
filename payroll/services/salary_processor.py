@@ -177,7 +177,6 @@ class EmployeeSalaryProcessor:
                 employee=employee,
                 payroll=self.payroll_org,
                 financial_year=self.financial_year,
-                month=self.month
             ).first()
 
             recalculate_tds = False
@@ -262,6 +261,12 @@ class EmployeeSalaryProcessor:
                 'other_deductions_breakdown': other_deductions_breakdown,
                 'other_earnings_breakdown': component_amounts['other_earnings_breakdown'],
             }
+            existing_record = EmployeeSalaryHistory.objects.filter(
+                employee=employee,
+                payroll=self.payroll_org,
+                financial_year=self.financial_year,
+                month=self.month
+            ).first()
 
             if existing_record:
                 for field, value in salary_data.items():
