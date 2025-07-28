@@ -1031,6 +1031,42 @@ class AttendanceLog(models.Model):
         return f"{self.employee.associate_id} - {self.date} ({self.check_in_type})"
 
 
+class AttendanceGeoTag(models.Model):
+    payroll = models.ForeignKey(
+        PayrollOrg,
+        on_delete=models.CASCADE,
+        related_name='geo_locations'  # Consider plural for reverse relation
+    )
+    branch = models.OneToOneField(WorkLocations, on_delete=models.CASCADE, related_name='branch_location')
+    latitude = models.CharField(max_length=255)
+    longitude = models.CharField(max_length=255)
+    radius = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"GeoLocation for {self.payroll} at ({self.latitude}, {self.longitude}) with radius {self.radius}"
+
+
+class EmployeeFaceRecognition(models.Model):
+    DIRECTION_CHOICES = [
+        ('front', 'Front Face'),
+        ('left', 'Left Profile'),
+        ('right', 'Right Profile'),
+        ('upper_angle', 'Upper Angle'),
+        ('lower_angle', 'Lower Angle'),
+        ('back', 'back')
+    ]
+
+    employee = models.ForeignKey(EmployeeCredentials, on_delete=models.CASCADE, related_name='images')
+    direction = models.CharField(max_length=50, choices=DIRECTION_CHOICES)
+    image_file = models.FileField(upload_to=employee_image_upload_path)
+    labels = models.JSONField(default=list)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.employee.name} - {self.direction}"
+
+
+
 # class LeaveApplication(models.Model):
 #     LEAVE_TYPE_CHOICES = [
 #         ('CL', 'Casual Leave'),

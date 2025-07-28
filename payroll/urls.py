@@ -7,7 +7,7 @@ from . import bulk_salary_details_upload
 from . import payroll_workflow
 from . import attendance_controller
 from . import employeecredentials
-# from . import face_recognition
+from . import face_recognition
 
 urlpatterns = [
     # URL for listing and creating PayrollOrg instances
@@ -214,8 +214,8 @@ urlpatterns = [
     path('manual-checkout/', attendance_controller.manual_check_out, name='manual-check-out'),
 
     #Geo Location check-in/check-out
-    # path('geo-location-check-in/', attendance_controller.geo_location_check_in, name='geo-location-check-in'),
-    # path('geo-location-check-out/', attendance_controller.geo_location_check_out, name='geo-location-check-out'),
+    path('geo-location-check-in/', attendance_controller.geo_location_check_in, name='geo-location-check-in'),
+    path('geo-location-check-out/', attendance_controller.geo_location_check_out, name='geo-location-check-out'),
 
     # Face recognition check-in/check-out
     # path('face-checkin/', attendance_controller.face_checkin_checkout, name='face-checkin'),
@@ -225,8 +225,8 @@ urlpatterns = [
 
     # Monthly report
     path('monthly-report/', attendance_controller.truetime_monthly_view, name='monthly-report'),
-    # path('weekly-report/', attendance_controller.truetime_weekly_view, name='weekly-report'),
-    # path('date-wise-report/', attendance_controller.truetime_datewise_view, name='date-wise-report'),
+    path('weekly-report/', attendance_controller.truetime_weekly_view, name='weekly-report'),
+    path('date-wise-report/', attendance_controller.truetime_datewise_view, name='date-wise-report'),
 
 
     path("credentials/", employeecredentials.credentials_list_create, name="credentials-list-create"),
@@ -235,12 +235,12 @@ urlpatterns = [
     # ───────────── Employee Login (JWT) ─────────────
     path("auth/employee-login/", employeecredentials.employee_login, name="employee-login"),
 
-    # # Capture employee images
-    # path("upload-employee-images/", face_recognition.upload_employee_images, name="upload-employee-image"),
-    #
-    # # FaceRecognition Check-In
-    # path("face-recognition-check-in/", face_recognition.face_recognition_check_in, name="face-recognition-check-in"),
-    # path("face-recognition-check-out/", face_recognition.face_recognition_check_out, name="face-recognition-check-out"),
-    # path("attendance-summary-view/", face_recognition.attendance_summary_view, name="attendance-summary-view"),
+    # Capture employee images
+    path("upload-employee-images/", face_recognition.upload_employee_images, name="upload-employee-image"),
+
+    # FaceRecognition Check-In
+    path("face-recognition-check-in/", face_recognition.face_recognition_check_in, name="face-recognition-check-in"),
+    path("face-recognition-check-out/", face_recognition.face_recognition_check_out, name="face-recognition-check-out"),
+    path("attendance-summary-view/", face_recognition.attendance_summary_view, name="attendance-summary-view"),
     path('process-single-org/', views.process_single_payroll_org, name='process-single-payroll-org'),
 ]

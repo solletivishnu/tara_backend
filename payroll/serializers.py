@@ -1017,3 +1017,15 @@ class AttendanceLogSerializer(serializers.ModelSerializer):
             'verified',
         ]
         read_only_fields = ['check_in', 'check_out', 'employee_id']
+
+
+class AttendanceGeoTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AttendanceGeoTag
+        fields = "__all__"
+
+
+class EmployeeFaceRecognitionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeFaceRecognition
+        fields = "__all__"
