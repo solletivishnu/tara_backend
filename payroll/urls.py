@@ -8,6 +8,7 @@ from . import payroll_workflow
 from . import attendance_controller
 from . import employeecredentials
 from . import face_recognition
+from . import leavemanagement
 
 urlpatterns = [
     # URL for listing and creating PayrollOrg instances
@@ -243,4 +244,16 @@ urlpatterns = [
     path("face-recognition-check-out/", face_recognition.face_recognition_check_out, name="face-recognition-check-out"),
     path("attendance-summary-view/", face_recognition.attendance_summary_view, name="attendance-summary-view"),
     path('process-single-org/', views.process_single_payroll_org, name='process-single-payroll-org'),
+
+    # Leave Approval and Rejection In Employee Portal
+    path('apply/', leavemanagement.apply_leave, name='apply-leave'),
+    path('list/', leavemanagement.get_leave_applications, name='get-leaves'),
+    path('month/<int:year>/<int:month>/', leavemanagement.get_monthly_leaves, name='monthly-leaves'),
+    path('current-month/', leavemanagement.get_current_month_leaves, name='current-month-leaves'),
+    path('summary/', leavemanagement.get_leave_summary, name='yearly-summary'),
+    path('summary/<int:year>/', leavemanagement.get_leave_summary, name='yearly-summary'),
+    path('approve/<int:pk>/', leavemanagement.approve_leave, name='approve-leave'),
+    path('reject/<int:pk>/', leavemanagement.reject_leave, name='reject-leave'),
+    path('cancel/<int:pk>/', leavemanagement.cancel_leave, name='cancel-leave'),
+
 ]
