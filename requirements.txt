@@ -39,7 +39,7 @@ XlsxWriter==3.1.9
 pytesseract==0.3.10
 opencv-python==4.9.0.80
 pdfkit==1.0.0
-pydyf==0.8.0
+pydyf>=0.11.0
 pychromepdf==1.1
 xlrd==2.0.1
 
@@ -80,4 +80,4 @@ cryptography==45.0.4
 razorpay==1.4.2
 pandas==2.3.0
 jinja2==3.1.6
-weasyprint==60.0
+weasyprint==66.0
