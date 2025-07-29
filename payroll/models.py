@@ -1008,6 +1008,16 @@ class EmployeeCredentials(models.Model):
         return True
 
 
+class EmployeeEducationDetails(models.Model):
+    employee = models.ForeignKey('EmployeeCredentials', on_delete=models.CASCADE, related_name='education_details')
+    qualification = models.CharField(max_length=120, null=False, blank=False)
+    year_of_passing = models.IntegerField(null=False, blank=False)
+    upload_certificate = models.FileField(upload_to=employee_education_certificate, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.employee.employee.associate_id} - {self.qualification} ({self.year_of_passing})"
+
+
 class AttendanceLog(models.Model):
     CHECKIN_TYPES = [
         ('manual', 'Manual'),
