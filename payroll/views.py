@@ -2060,12 +2060,32 @@ def holiday_management_list_create(request):
     """
     if request.method == 'GET':
         payroll_id = request.query_params.get('payroll_id')
+        financial_year = request.query_params.get('financial_year')
+        applicable_for = request.query_params.get('applicable_for')  # optional WorkLocation ID
+
         holidays = HolidayManagement.objects.all()
         if payroll_id:
             holidays = holidays.filter(payroll_id=payroll_id)
+        if financial_year:
+            holidays = holidays.filter(financial_year=financial_year)
+        if applicable_for:
+            holidays = holidays.filter(applicable_for__id=applicable_for)
 
-        serializer = HolidayManagementSerializer(holidays, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = []
+        for holiday in holidays:
+            location_names = list(holiday.applicable_for.values_list('location_name', flat=True))
+            data.append({
+                "id": holiday.id,
+                "payroll": holiday.payroll_id,
+                "financial_year": holiday.financial_year,
+                "holiday_name": holiday.holiday_name,
+                "start_date": holiday.start_date,
+                "end_date": holiday.end_date,
+                "description": holiday.description,
+                "applicable_for": location_names  # ✅ List of names
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
         data = request.data.copy()
@@ -2124,23 +2144,21 @@ def holiday_management_filtered_list(request):
     if applicable_for:
         holidays = holidays.filter(applicable_for__id=applicable_for)
 
-    # Flatten result per work location
-    flat_data = []
+    data = []
     for holiday in holidays:
-        for location in holiday.applicable_for.all():
-            flat_data.append({
-                "id": holiday.id,
-                "payroll": holiday.payroll_id,
-                "financial_year": holiday.financial_year,
-                "holiday_name": holiday.holiday_name,
-                "start_date": holiday.start_date,
-                "end_date": holiday.end_date,
-                "description": holiday.description,
-                "applicable_for_id": location.id,
-                "applicable_for": location.location_name
-            })
+        location_names = list(holiday.applicable_for.values_list('location_name', flat=True))
+        data.append({
+            "id": holiday.id,
+            "payroll": holiday.payroll_id,
+            "financial_year": holiday.financial_year,
+            "holiday_name": holiday.holiday_name,
+            "start_date": holiday.start_date,
+            "end_date": holiday.end_date,
+            "description": holiday.description,
+            "applicable_for": location_names  # ✅ List of names
+        })
 
-    return Response(flat_data, status=status.HTTP_200_OK)
+    return Response(data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -2659,6 +2677,7 @@ def payroll_exit_settlement_details(request):
         # Fetch Holidays for the Month
         holidays = set(HolidayManagement.objects.filter(
             payroll=employee.payroll,
+            applicable_for=employee.work_location,
             start_date__gte=datetime(year, month, 1).date(),
             start_date__lte=datetime(year, month, total_days_in_month).date()
         ).values_list('start_date', flat=True))
