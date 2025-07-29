@@ -9,6 +9,8 @@ from . import attendance_controller
 from . import employeecredentials
 from . import face_recognition
 from . import leavemanagement
+from . import employee_education
+from . import holidays
 
 urlpatterns = [
     # URL for listing and creating PayrollOrg instances
@@ -255,5 +257,15 @@ urlpatterns = [
     path('approve/<int:pk>/', leavemanagement.approve_leave, name='approve-leave'),
     path('reject/<int:pk>/', leavemanagement.reject_leave, name='reject-leave'),
     path('cancel/<int:pk>/', leavemanagement.cancel_leave, name='cancel-leave'),
+
+    # Employee Education Endpoints
+    path('employee-education/', employee_education.employee_education_list_create, name='employee-education-list-create'),
+    path('employee-education/<int:education_id>/', employee_education.employee_education_detail,
+         name='employee-education-detail'),
+    path('employee-profile/', employee_education.employee_profile_details, name='employee-profile'),
+
+    # Holiday Calendar Endpoints
+    path('monthly-holidays/', holidays.get_month_wise_holiday_calendar, name='monthly-holidays'),
+    path('holiday-calendar/', holidays.get_yearly_holiday_calendar, name='holiday-calendar'),
 
 ]

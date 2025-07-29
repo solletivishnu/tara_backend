@@ -2177,10 +2177,31 @@ def holiday_management_detail_update_delete(request, holiday_id):
                         status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
-        serializer = HolidayManagementSerializer(holiday, data=request.data, partial=True)
+        data = request.data.copy()
+        payroll_id = data.get("payroll")
+        applicable_for = data.get("applicable_for")
+        location_ids = []
+        if not payroll_id:
+            return Response({"error": "Payroll ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if isinstance(applicable_for, list):
+            location_ids = list(
+                WorkLocations.objects.filter(
+                    payroll_id=payroll_id,
+                    id__in=applicable_for
+                ).values_list("id", flat=True)
+            )
+            if not location_ids:
+                return Response({"error": "No matching work locations found."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Remove M2M field from data before passing to serializer
+        data.pop("applicable_for", None)
+
+        serializer = HolidayManagementSerializer(holiday, data=data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data,
+            instance = serializer.save()
+            if location_ids:
+                instance.applicable_for.set(location_ids)  # ✅ Safe way to assign M2M
+            return Response(HolidayManagementSerializer(instance).data,
                             status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

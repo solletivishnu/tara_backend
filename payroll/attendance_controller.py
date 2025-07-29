@@ -160,7 +160,8 @@ def truetime_monthly_view(request):
     holidays = HolidayManagement.objects.filter(
         payroll=payroll,
         start_date__lte=last_day_of_month,
-        end_date__gte=first_day
+        end_date__gte=first_day,
+        applicable_for=employee.employee.work_location
     )
 
     # 3. Build set of holiday dates
@@ -315,7 +316,8 @@ def truetime_weekly_view(request):
     holidays = HolidayManagement.objects.filter(
         payroll=payroll,
         start_date__lte=last_day,
-        end_date__gte=first_day
+        end_date__gte=first_day,
+        applicable_for=employee.employee.work_location
     )
     holiday_dates = set()
     for holiday in holidays:
@@ -452,7 +454,8 @@ def truetime_datewise_view(request):
     holidays = HolidayManagement.objects.filter(
         payroll=payroll,
         start_date__lte=target_date,
-        end_date__gte=target_date
+        end_date__gte=target_date,
+        applicable_for=employee.employee.work_location
     )
     is_holiday = holidays.exists()
 

@@ -1076,3 +1076,9 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You already have a leave application for these dates")
 
         return data
+
+
+class EmployeeEducationDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeEducationDetails
+        fields = '__all__'

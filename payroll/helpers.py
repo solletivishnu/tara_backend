@@ -501,3 +501,9 @@ def employee_image_upload_path(instance, filename):
 def leave_attachments(instance, filename):
     # Construct the upload path
     return os.path.join('employees', str(instance.employee.employee.id),  'leaveManagement', str(instance.direction), filename)
+
+
+def employee_education_certificate(instance, filename):
+    # Construct the upload path
+    return os.path.join('employees', str(instance.employee.employee.id), 'education_certificates',
+                        str(instance.qualification), filename)
