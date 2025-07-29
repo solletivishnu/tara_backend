@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     curl \
     git \
-    wkhtmltopdf \  # ✅ ADD THIS LINE
+    wkhtmltopdf \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
 # Create virtual environment
@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdk-pixbuf2.0-0 \
     libffi-dev \
     libpq5 \
-    wkhtmltopdf \  # ✅ wkhtmltopdf added here!
+    wkhtmltopdf \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/venv /opt/venv
