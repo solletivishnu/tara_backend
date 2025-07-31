@@ -7,6 +7,7 @@ from usermanagement.models import *
 from datetime import date
 from collections import OrderedDict
 from django.db.models.signals import pre_save, post_save
+from django.utils.timezone import now
 from dateutil.relativedelta import relativedelta
 from datetime import date, datetime
 from django.contrib.auth.hashers import make_password, check_password
@@ -1094,7 +1095,7 @@ class LeaveApplication(models.Model):
     ]
 
     employee = models.ForeignKey(EmployeeCredentials, on_delete=models.CASCADE, related_name='leave_applications')
-    leave_type = models.CharField(max_length=10, choices=LEAVE_TYPE_CHOICES)
+    leave_type = models.ForeignKey(LeaveManagement, on_delete=models.CASCADE, related_name='payroll_leave_applications')
     start_date = models.DateField()
     end_date = models.DateField()
     reason = models.TextField(blank=True)
@@ -1119,6 +1120,41 @@ class LeaveApplication(models.Model):
 
     def __str__(self):
         return f"{self.employee} - {self.leave_type} - {self.start_date} to {self.end_date}"
+
+
+def current_financial_year():
+    today = date.today()
+    if today.month < 4:
+        return f"{today.year-1}-{today.year}"
+    return f"{today.year}-{today.year+1}"
+
+
+@receiver(post_save, sender=LeaveApplication)
+def update_leave_balance_on_approval(sender, instance, created, **kwargs):
+    if instance.status == 'approved' and instance.reviewed_on is None:
+        leave_days = (instance.end_date - instance.start_date).days + 1
+
+        try:
+            leave_balance = EmployeeLeaveBalance.objects.get(
+                employee=instance.employee,
+                leave_type=instance.leave_type,
+                financial_year=current_financial_year()
+            )
+        except EmployeeLeaveBalance.DoesNotExist:
+            return  # Or log warning if needed
+
+        if leave_balance.leave_remaining >= leave_days:
+            leave_balance.leave_used += leave_days
+            leave_balance.save()  # leave_remaining auto-updated in model's save()
+        else:
+            # Optional: prevent approval or log warning if insufficient balance
+            # instance.status = 'rejected'
+            # instance.remarks = 'Insufficient leave balance'
+            # instance.save(update_fields=['status', 'remarks'])
+            pass
+
+        instance.reviewed_on = now().date()
+        instance.save(update_fields=['reviewed_on'])
 
 
 
