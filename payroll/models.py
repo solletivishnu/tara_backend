@@ -448,17 +448,19 @@ def allocate_pro_rated_leave(sender, instance, created, **kwargs):
             pro_rated_leave = total_leaves  # Default full allocation
 
             # Calculate remaining months in the financial year
-            if instance.doj > leave_period_start:
-                remaining_months = max(1, (leave_period_end.year - instance.doj.year) * 12 +
-                                       (leave_period_end.month - instance.doj.month))
+            if instance.doj < leave_period_start:
+                remaining_months = 12
+            else:
+                remaining_months = (leave_period_end.year - instance.doj.year) * 12 + (
+                            leave_period_end.month - instance.doj.month) + 1
 
-                if leave.employee_leave_period == "Monthly":
-                    # If leave is allocated monthly, multiply remaining months by number_of_leaves
-                    pro_rated_leave = total_leaves * remaining_months
+            if leave.employee_leave_period == "Monthly":
+                # If leave is allocated monthly, multiply remaining months by number_of_leaves
+                pro_rated_leave = total_leaves * remaining_months
 
-                elif leave.employee_leave_period == "Annually":
-                    # If leave is allocated annually, divide annual leave by remaining months
-                    pro_rated_leave = round((total_leaves / 12) * remaining_months)
+            elif leave.employee_leave_period == "Annually":
+                # If leave is allocated annually, divide annual leave by remaining months
+                pro_rated_leave = round((total_leaves / 12) * remaining_months)
 
             # Create Leave Balance Entry
             EmployeeLeaveBalance.objects.create(

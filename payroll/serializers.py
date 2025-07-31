@@ -1092,3 +1092,15 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeManagement
         fields = "__all__"
+
+
+class EmployeeLeaveBalanceSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(source='employee.name', read_only=True)
+    leave_type_name = serializers.CharField(source='leave_type.name_of_leave', read_only=True)
+
+    class Meta:
+        model = EmployeeLeaveBalance
+        fields = [
+            'id', 'employee', 'employee_name', 'leave_type', 'leave_type_name',
+            'leave_entitled', 'leave_used', 'leave_remaining', 'financial_year'
+        ]
