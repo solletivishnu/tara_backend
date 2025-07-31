@@ -1131,35 +1131,27 @@ def current_financial_year():
 
 @receiver(post_save, sender=LeaveApplication)
 def update_leave_balance_on_approval(sender, instance, created, **kwargs):
-    if instance.status == 'approved' and instance.reviewed_on is None:
+    if instance.status == 'approved':
         leave_days = (instance.end_date - instance.start_date).days + 1
 
         try:
             leave_balance = EmployeeLeaveBalance.objects.get(
-                employee=instance.employee,
+                employee=instance.employee.employee,
                 leave_type=instance.leave_type,
                 financial_year=current_financial_year()
             )
         except EmployeeLeaveBalance.DoesNotExist:
-            return  # Or log warning if needed
+            return
 
         if leave_balance.leave_remaining >= leave_days:
             leave_balance.leave_used += leave_days
-            leave_balance.save()  # leave_remaining auto-updated in model's save()
+            leave_balance.save()
         else:
-            # Optional: prevent approval or log warning if insufficient balance
-            # instance.status = 'rejected'
-            # instance.remarks = 'Insufficient leave balance'
-            # instance.save(update_fields=['status', 'remarks'])
+            # Optionally handle rejection due to insufficient balance
             pass
 
-        instance.reviewed_on = now().date()
-        instance.save(update_fields=['reviewed_on'])
-
-
-
-
-
+        # Prevent recursive signal call by using update() instead of save()
+        LeaveApplication.objects.filter(id=instance.id).update(reviewed_on=now().date())
 
 
 
