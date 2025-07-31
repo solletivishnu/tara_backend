@@ -42,23 +42,27 @@ def get_month_wise_holiday_calendar(request):
         applicable_for=employee_obj.work_location,
     )
 
-    daywise_calendar = defaultdict(list)
+    flat_holiday_list = []
 
     for holiday in holidays:
         current_date = max(holiday.start_date, start_of_month)
         end_date = min(holiday.end_date, end_of_month)
 
         while current_date <= end_date:
-            formatted_date = current_date.strftime("%d-%m-%Y")
-            daywise_calendar[formatted_date].append(holiday.holiday_name)
+            flat_holiday_list.append({
+                "date": current_date.strftime("%d-%m-%Y"),
+                "title": holiday.holiday_name,
+                "type": "holiday"
+            })
             current_date += timedelta(days=1)
 
-    return Response(dict(sorted(daywise_calendar.items())))
+    return Response(flat_holiday_list)
 
 
 @api_view(['GET'])
 @authentication_classes([EmployeeJWTAuthentication])
 def get_yearly_holiday_calendar(request):
+
     employee = request.user
 
     if not isinstance(employee, EmployeeCredentials):
@@ -84,22 +88,19 @@ def get_yearly_holiday_calendar(request):
         applicable_for=employee_obj.work_location,
     )
 
-    # Group holidays as: "January" -> { "15-01-2025": [holiday_name] }
-    monthly_calendar = defaultdict(lambda: defaultdict(list))
+    # Prepare flat list of holidays
+    holiday_list = []
 
     for holiday in holidays:
         current_date = max(holiday.start_date, start_of_year)
         end_date = min(holiday.end_date, end_of_year)
 
         while current_date <= end_date:
-            month_key = current_date.strftime("%B")  # "January", "February", etc.
-            date_key = current_date.strftime("%d-%m-%Y")
-            monthly_calendar[month_key][date_key].append(holiday.holiday_name)
+            holiday_list.append({
+                "date": current_date.strftime("%d-%m-%Y"),
+                "title": holiday.holiday_name,
+                "type": "holiday"
+            })
             current_date += timedelta(days=1)
 
-    # Convert nested defaultdicts to regular dicts
-    response_data = {
-        month: dict(days) for month, days in sorted(monthly_calendar.items())
-    }
-
-    return Response(response_data)
+    return Response(holiday_list)
