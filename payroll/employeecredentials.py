@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import (EmployeeManagement, EmployeeCredentials, EmployeeEducationDetails, EmployeeFaceRecognition,
                      EmployeePersonalDetails, EmployeeBankDetails)
 from .serializers import (EmployeeManagementSerializer, EmployeeCredentialsSerializer, EmployeePersonalDetailsSerializer,
-                          EmployeeEducationDetailsSerializer, EmployeeBankDetailsSerializer)
+                          EmployeeEducationDetailsSerializer, EmployeeBankDetailsSerializer, EmployeeProfileSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 
@@ -87,7 +87,7 @@ def employee_login(request):
                 personal = None
 
             data = {
-                "profile": EmployeeManagementSerializer(EmployeeManagement.objects.get(id=creds.employee.id)).data,
+                "profile": EmployeeProfileSerializer(EmployeeManagement.objects.get(id=creds.employee.id)).data,
                 "photo": employee_image,
                 "personal_details": EmployeePersonalDetailsSerializer(personal).data if personal else None,
                 "bank_details": EmployeeBankDetailsSerializer(

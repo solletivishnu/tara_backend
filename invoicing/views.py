@@ -642,6 +642,89 @@ def formatStringDate(date):
             return ''  # Handle invalid date formats as needed
     return ''  # Handle cases where date is None or an empty string
 
+
+import re
+
+def format_with_commas(number):
+    try:
+        number = float(number)
+        is_negative = number < 0
+        number = abs(number)
+
+        int_part, dot, dec_part = f"{number:.2f}".partition(".")
+
+        # Apply Indian-style comma formatting
+        if len(int_part) > 3:
+            # Separate last 3 digits
+            last_three = int_part[-3:]
+            remaining = int_part[:-3]
+            # Add commas every 2 digits in the remaining part
+            remaining = re.sub(r'(\d)(?=(\d{2})+(?!\d))', r'\1,', remaining)
+            int_part = remaining + ',' + last_three if remaining else last_three
+
+        formatted = f"{int_part}.{dec_part}"
+        if dec_part == "00":
+            formatted = int_part
+
+        return f"-{formatted}" if is_negative else formatted
+
+    except (ValueError, TypeError):
+        return str(number)
+
+
+
+def number_to_words_in_indian_format(number):
+    if number == 0:
+        return "zero"
+
+    units = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+    teens = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+             "seventeen", "eighteen", "nineteen"]
+    tens = ["", "ten", "twenty", "thirty", "forty", "fifty", "sixty", "seventy",
+            "eighty", "ninety"]
+
+    def convert_less_than_hundred(num):
+        if num < 10:
+            return units[num]
+        elif 10 <= num < 20:
+            return teens[num - 10]
+        else:
+            return tens[num // 10] + (" " + units[num % 10] if num % 10 != 0 else "")
+
+    def convert_less_than_thousand(num):
+        if num < 100:
+            return convert_less_than_hundred(num)
+        hundred = units[num // 100] + " hundred"
+        remainder = num % 100
+        if remainder:
+            return hundred + " and " + convert_less_than_hundred(remainder)
+        return hundred
+
+    parts = []
+    crore = number // 10000000
+    remainder = number % 10000000
+
+    if crore > 0:
+        parts.append(convert_less_than_thousand(crore) + " crore")
+
+    lakh = remainder // 100000
+    remainder = remainder % 100000
+
+    if lakh > 0:
+        parts.append(convert_less_than_thousand(lakh) + " lakh")
+
+    thousand = remainder // 1000
+    remainder = remainder % 1000
+
+    if thousand > 0:
+        parts.append(convert_less_than_hundred(thousand) + " thousand")
+
+    if remainder > 0:
+        parts.append(convert_less_than_thousand(remainder))
+
+    return ' '.join(parts).strip()
+
+
 class DocumentGenerator:
     def __init__(self, request, invoicing_profile, context):
         self.request = request
@@ -718,10 +801,8 @@ def createDocument(request, id):
 
         total = invoice.total_amount
         total_str = f"{total:.2f}"
-        total_in_words = num2words(total)
-        total_in_words = total_in_words.capitalize()
-        total_in_words = total_in_words.replace("<br/>", ' ')
-        total_in_words = total_in_words.title() + ' ' + 'Rupees Only'
+        total_in_words = number_to_words_in_indian_format(int(total)).title()
+        total_in_words += ' Rupees Only'
 
         invoice_date = invoice.invoice_date
         # terms = int(invoice.terms) if invoice else 0
@@ -790,27 +871,27 @@ def createDocument(request, id):
                                 'note': item.get('note',''),
                                 'hsn_sac': item.get('hsn_sac', ''),
                                 'units': item.get('units', '-') if item.get('units') and item['units'] != 'NA' else '-',
-                                'quantity': "{:,}".format(int(float(item.get('quantity', 0)))),
-                                'rate': "{:,}".format(float(item.get('rate', 0))) if float(item.get('rate', 0)) % 1 else "{:,}".format(int(float(item.get('rate', 0)))),
-                                'discount': "{:,}".format(float(item.get('discount', 0))) if float(item.get('discount', 0)) % 1 else "{:,}".format(int(float(item.get('discount', 0)))),
+                                'quantity': format_with_commas(int(float(item.get('quantity', 0)))),
+                                'rate': format_with_commas(float(item.get('rate', 0))) if float(item.get('rate', 0)) % 1 else format_with_commas(int(float(item.get('rate', 0)))),
+                                'discount': format_with_commas(float(item.get('discount', 0))) if float(item.get('discount', 0)) % 1 else format_with_commas(int(float(item.get('discount', 0)))),
                                 'discount_type': item.get('discount_type', ''),
-                                'amount': "{:,}".format(float(item.get('amount', 0))) if float(item.get('amount', 0)) % 1 else "{:,}".format(int(float(item.get('amount', 0)))),
-                                'taxamount': "{:,}".format(float(item.get('taxamount', 0))) if float(item.get('taxamount', 0)) % 1 else "{:,}".format(int(float(item.get('taxamount', 0)))),
+                                'amount': format_with_commas(float(item.get('amount', 0))) if float(item.get('amount', 0)) % 1 else format_with_commas(int(float(item.get('amount', 0)))),
+                                'taxamount': format_with_commas(float(item.get('taxamount', 0))) if float(item.get('taxamount', 0)) % 1 else format_with_commas(int(float(item.get('taxamount', 0)))),
                                 'tax': "{}%".format(int(float(item.get('tax', 0)))),  # Ensures percentage format
-                                'total_amount': "{:,}".format(float(item.get('total_amount', 0))) if float(item.get('total_amount', 0)) % 1 else "{:,}".format(int(float(item.get('total_amount', 0))))
+                                'total_amount': format_with_commas(float(item.get('total_amount', 0))) if float(item.get('total_amount', 0)) % 1 else format_with_commas(int(float(item.get('total_amount', 0))))
                             }
                             for item in getattr(invoice, 'item_details', [])
             ],
-            'subtotal': "{:,}".format(round(float(getattr(invoice, 'subtotal_amount', 0)))),
+            'subtotal': format_with_commas(round(float(getattr(invoice, 'subtotal_amount', 0)))),
             'shipping': f"{round(float(getattr(invoice, 'shipping_amount', 0)), 2):.2f}",
             'shipping_tax': f"{round(float(getattr(invoice, 'shipping_tax', 0)), 2):.2f}",
             'cgst_amt': f"{round(float(getattr(invoice, 'total_cgst_amount', 0)), 2):.2f}",
             'sgst_amt': f"{round(float(getattr(invoice, 'total_sgst_amount', 0)), 2):.2f}",
-            'total': "{:,}".format(round(float(getattr(invoice, 'total_amount', 0)))),
+            'total': format_with_commas(round(float(getattr(invoice, 'total_amount', 0)))),
             'total_in_words': total_in_words,
-            'cgst': "{:,}".format(round(float(getattr(invoice, 'total_cgst_amount', 0)))),
-            'sgst': "{:,}".format(round(float(getattr(invoice, 'total_sgst_amount', 0)))),
-            'igst_amt': "{:,}".format(round(float(getattr(invoice, 'total_igst_amount', 0)))),
+            'cgst': format_with_commas(round(float(getattr(invoice, 'total_cgst_amount', 0)))),
+            'sgst': format_with_commas(round(float(getattr(invoice, 'total_sgst_amount', 0)))),
+            'igst_amt': format_with_commas(round(float(getattr(invoice, 'total_igst_amount', 0)))),
             'payment_status': getattr(invoice, 'payment_status', ''),
             'terms_and_conditions': getattr(invoice, 'terms_and_conditions', ''),
             'note': getattr(invoice, 'notes', ''),
@@ -818,6 +899,14 @@ def createDocument(request, id):
             'adjust_layout': adjust_layout,
             'company_email': invoice.invoicing_profile.business.email,
             'company_mobile_number': invoice.invoicing_profile.business.mobile_number,
+            'company_address_line1': invoice.invoicing_profile.business.headOffice.get('address_line1', ""),
+            'company_city': invoice.invoicing_profile.business.headOffice.get('city', ""),
+            'company_pincode': invoice.invoicing_profile.business.headOffice.get('pincode', ""),
+            'company_state': invoice.invoicing_profile.business.headOffice.get('state', ""),
+            'company_pan': invoice.invoicing_profile.business.pan,
+            "logo": getattr(getattr(invoice.invoicing_profile.business, 'logos', None), 'logo', None).url
+            if getattr(getattr(invoice.invoicing_profile.business, 'logos', None), 'logo', None)
+            else None
         }
 
         # Assuming you have a DocumentGenerator class that generates the PDF
