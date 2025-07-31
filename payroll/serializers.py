@@ -1082,3 +1082,13 @@ class EmployeeEducationDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeEducationDetails
         fields = '__all__'
+
+
+class EmployeeProfileSerializer(serializers.ModelSerializer):
+    work_location = serializers.CharField(source='work_location.location_name', read_only=True)
+    department = serializers.CharField(source='department.dept_name', read_only=True)
+    designation = serializers.CharField(source='designation.designation_name', read_only=True)
+
+    class Meta:
+        model = EmployeeManagement
+        fields = "__all__"

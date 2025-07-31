@@ -36,7 +36,7 @@ def upload_employee_images(request):
     Upload 4 directional employee images (front, back, left, right),
     analyze them using AWS Rekognition, store images and labels.
     """
-    name = request.data.get('name')
+    name = request.data.get('username')
     email = request.data.get('email')
     directions = ['front', 'upper_angle', 'left', 'right', 'lower_angle', 'back']
 

@@ -2079,8 +2079,8 @@ def holiday_management_list_create(request):
                 "payroll": holiday.payroll_id,
                 "financial_year": holiday.financial_year,
                 "holiday_name": holiday.holiday_name,
-                "start_date": holiday.start_date,
-                "end_date": holiday.end_date,
+                "start_date": holiday.start_date.strftime('%d-%m-%Y'),
+                "end_date": holiday.end_date.strftime('%d-%m-%Y'),
                 "description": holiday.description,
                 "applicable_for": location_names  # ✅ List of names
             })

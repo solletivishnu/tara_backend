@@ -37,7 +37,7 @@ def manual_check_in(request):
 
     # If last entry exists and not checked out yet — block duplicate check-in
     if last_log and last_log.check_in and not last_log.check_out:
-        return Response({'message': 'You must check out before checking in again.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': 'You must check out before checking in again.'}, status=status.HTTP_200_OK)
 
     # Else allow new check-in
     new_log = AttendanceLog.objects.create(
@@ -98,7 +98,7 @@ def today_attendance_status(request):
     ).order_by('check_in')
 
     if not attendance_logs.exists():
-        return Response({'message': 'No attendance records for today'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'message': 'No attendance records for today'}, status=status.HTTP_200_OK)
 
     serializer = AttendanceLogSerializer(attendance_logs, many=True)
 
@@ -121,7 +121,7 @@ def truetime_monthly_view(request):
         month = int(request.query_params.get('month', now().month))
         year = int(request.query_params.get('year', now().year))
     except ValueError:
-        return Response({'error': 'Invalid month/year'}, status=400)
+        return Response({'error': 'Invalid month/year'}, status=200)
 
     today = localtime(now()).date()
     # --- Restrict future months/years ---
@@ -259,7 +259,7 @@ def truetime_weekly_view(request):
         month = int(request.query_params.get('month', now().month))
         year = int(request.query_params.get('year', now().year))
     except ValueError:
-        return Response({'error': 'Invalid month/year format'}, status=400)
+        return Response({'error': 'Invalid month/year format'}, status=200)
 
     today = localtime(now()).date()
     # --- Restrict future months/years ---
@@ -432,7 +432,7 @@ def truetime_datewise_view(request):
         query_date = request.query_params.get('date', localtime(now()).date().isoformat())
         target_date = date.fromisoformat(query_date)
     except Exception as e:
-        return Response({'error': str(e)}, status=400)
+        return Response({'error': str(e)}, status=200)
 
     today = localtime(now()).date()
 
@@ -532,7 +532,7 @@ def geo_location_list_create(request):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_200_OK)
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -551,7 +551,7 @@ def geo_location_detail(request, pk):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_200_OK)
 
     elif request.method == 'DELETE':
         geo.delete()
@@ -564,7 +564,7 @@ def geo_locations_details_based_on_payroll_and_worklocation(request):
     branch = request.query_params.get("work_location")
 
     if not payroll_id:
-        return Response({"error": "Payroll ID is missing"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Payroll ID is missing"}, status=status.HTTP_200_OK)
 
     try:
         geo_locations = AttendanceGeoTag.objects.get(payroll=payroll_id, branch=branch)
@@ -576,7 +576,7 @@ def geo_locations_details_based_on_payroll_and_worklocation(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({"error": f"Something went wrong: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": f"Something went wrong: {str(e)}"}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -600,7 +600,7 @@ def geo_location_check_in(request):
     # If last entry exists and not checked out yet — block duplicate check-in
     if last_log and last_log.check_in and not last_log.check_out:
         return Response({'message': 'You must check out before checking in again.'},
-                        status=status.HTTP_400_BAD_REQUEST)
+                        status=status.HTTP_200_OK)
 
     # Else allow new check-in
     new_log = AttendanceLog.objects.create(

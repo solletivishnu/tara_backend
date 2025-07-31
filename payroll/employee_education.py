@@ -2,7 +2,7 @@ from payroll.models import (EmployeeEducationDetails, EmployeeCredentials, Payro
                             EmployeeManagement, EmployeeFaceRecognition, EmployeeBankDetails)
 from rest_framework.response import Response
 from payroll.serializers import (EmployeeEducationDetailsSerializer, EmployeePersonalDetailsSerializer,
-                                 EmployeeManagementSerializer, EmployeeBankDetailsSerializer)
+                                 EmployeeManagementSerializer, EmployeeBankDetailsSerializer, EmployeeProfileSerializer)
 from payroll.authentication import EmployeeJWTAuthentication
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from datetime import datetime, timedelta, date
@@ -96,7 +96,8 @@ def employee_profile_details(request):
         personal = None
 
     data = {
-        "profile": EmployeeManagementSerializer(EmployeeManagement.objects.get(id=employee.employee.id)).data,
+        "id": employee.pk,
+        "profile": EmployeeProfileSerializer(EmployeeManagement.objects.get(id=employee.employee.id)).data,
         "photo": employee_image,
         "personal_details": EmployeePersonalDetailsSerializer(personal).data if personal else None,
         "bank_details": EmployeeBankDetailsSerializer(
