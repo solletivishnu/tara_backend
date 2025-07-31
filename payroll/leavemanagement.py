@@ -74,62 +74,98 @@ def get_leave_applications(request):
 
 @api_view(['POST'])
 @authentication_classes([EmployeeJWTAuthentication])
-def approve_leave(request, pk):
-    user = request.user  # This is EmployeeCredentials
+def handle_leave_action(request, leave_id):
+    user = request.user
 
     try:
-        leave = LeaveApplication.objects.get(pk=pk)
+        leave = LeaveApplication.objects.get(id=leave_id)
     except LeaveApplication.DoesNotExist:
-        return Response({'error': 'Leave application not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Leave application not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Ensure only the reviewer or cc_to members can approve
-    if leave.reviewer != user and user not in leave.cc_to.all():
-        return Response({'error': 'You are not authorized to approve this leave.'}, status=status.HTTP_403_FORBIDDEN)
+    action = request.data.get('action')
+    comment = request.data.get('comment', '')
 
-    # Approve leave
-    leave.status = 'approved'
-    leave.reviewer = user  # Optional: override reviewer only if needed
-    leave.reviewed_on = timezone.now()
+    if action not in ['approve', 'reject', 'cancel']:
+        return Response({'error': 'Invalid action. Must be approve, reject, or cancel.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Validate credentials
+    if not hasattr(user, 'employeecredentials'):
+        return Response({'error': 'Invalid employee credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    employee = user.employeecredentials
+
+    # Handle rejection or approval by reviewer or cc_to
+    if action in ['approve', 'reject']:
+        if leave.reviewer != employee and employee not in leave.cc_to.all():
+            return Response({'error': 'You are not authorized to perform this action.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if leave.status != 'pending':
+            return Response({'error': f'Cannot {action} a leave with status {leave.status}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        leave.reviewer = employee
+        leave.reviewed_on = timezone.now()
+        leave.reviewer_comment = comment
+
+        if action == 'approve':
+            leave.status = 'approved'
+            message = 'Leave approved successfully.'
+        else:
+            if not comment:
+                return Response({'error': 'Comment is required for rejection.'}, status=status.HTTP_400_BAD_REQUEST)
+            leave.status = 'rejected'
+            message = 'Leave rejected successfully.'
+
+    elif action == 'cancel':
+        if leave.employee != employee:
+            return Response({'error': 'You can only cancel your own leave.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if leave.status != 'pending':
+            return Response({'error': 'Only pending leaves can be cancelled.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        leave.status = 'cancelled'
+        message = 'Leave cancelled successfully.'
+
     leave.save()
-
     serializer = LeaveApplicationSerializer(leave)
-    return Response({'message': 'Leave approved', 'data': serializer.data})
+    return Response({'message': message, 'data': serializer.data}, status=status.HTTP_200_OK)
 
 
 
 @api_view(['POST'])
 @authentication_classes([EmployeeJWTAuthentication])
-def reject_leave(request, pk):
-    if not hasattr(request.user, 'employeecredentials'):
-        return Response({'error': 'Invalid employee credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+def reject_leave(request, leave_id):
+    user = request.user
 
     try:
-        leave = LeaveApplication.objects.get(pk=pk)
+        leave = LeaveApplication.objects.get(id=leave_id)
     except LeaveApplication.DoesNotExist:
-        return Response({'error': 'Leave application not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Leave application not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    comment = request.data.get('reviewer_comment', '')
-    if not comment:
-        return Response({'error': 'Comment is required for rejection'}, status=status.HTTP_400_BAD_REQUEST)
+    # Check if the user is the reviewer or in the cc list
+    if leave.reviewer != user and user not in leave.cc_to.all():
+        return Response({'error': 'You are not authorized to reject this leave.'}, status=status.HTTP_403_FORBIDDEN)
+
+    # Only allow rejection if leave is still pending
+    if leave.status != 'pending':
+        return Response({'error': f'Cannot reject a leave with status {leave.status}.'}, status=status.HTTP_400_BAD_REQUEST)
 
     leave.status = 'rejected'
-    leave.reviewer = request.user.employeecredentials
-    leave.reviewed_on = timezone.now()
-    leave.reviewer_comment = comment
+    leave.rejection_reason = request.data.get('rejection_reason', 'Rejected by reviewer.')
+    leave.reviewed_at = timezone.now()
     leave.save()
 
-    serializer = LeaveApplicationSerializer(leave)
-    return Response({'message': 'Leave rejected', 'data': serializer.data})
+    return Response({'message': 'Leave application rejected successfully.'}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
 @authentication_classes([EmployeeJWTAuthentication])
 def cancel_leave(request, pk):
-    if not hasattr(request.user, 'employeecredentials'):
+    user = request.user
+    if not hasattr(user, 'employeecredentials'):
         return Response({'error': 'Invalid employee credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
     try:
-        leave = LeaveApplication.objects.get(pk=pk, employee=request.user.employeecredentials)
+        leave = LeaveApplication.objects.get(pk=pk, employee=user.employeecredentials)
     except LeaveApplication.DoesNotExist:
         return Response({'error': 'Leave application not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -137,10 +173,11 @@ def cancel_leave(request, pk):
         return Response({'error': 'Only pending leaves can be cancelled'}, status=status.HTTP_400_BAD_REQUEST)
 
     leave.status = 'cancelled'
-    leave.save()
+    leave.reviewed_on = timezone.now().date()
+    leave.save(update_fields=['status', 'reviewed_on'])
 
     serializer = LeaveApplicationSerializer(leave)
-    return Response({'message': 'Leave cancelled', 'data': serializer.data})
+    return Response({'message': 'Leave cancelled', 'data': serializer.data}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
