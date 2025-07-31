@@ -281,8 +281,8 @@
                     <p style="font-weight: 700; margin: 0">Bill to</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ customer_name }}</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_address }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_state }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_country }} - {{ bill_to_pincode }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_state }} - {{ bill_to_pincode }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_country }}</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">GSTIN : {{ customer_gstin }}</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">PAN : {{customer_pan}}</p>
                   </div>
@@ -298,9 +298,8 @@
                   >
                     <p style="font-weight: 700; margin: 0">Ship to</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_address }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_state }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_state }} - {{ ship_to_pincode }}</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_country }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_pincode }}</p>
                   </div>
                 </td>
                 {% endif %}
@@ -519,7 +518,11 @@
                     text-align: center;
                   "
                 >
-                  {{ item.discount }} {{ item.discount_type }}
+                  {% if item.discount != "0" and item.discount != "0.00" and item.discount != 0 %}
+                      {{ item.discount }} {{ item.discount_type }}
+                  {% else %}
+                      <span> - </span>
+                  {% endif %}
                 </td>
                 <td
                   style="
@@ -674,11 +677,13 @@
             "
           >
             {% if image_url %}
-            <img
-              src="{{ image_url }}"
-              alt="Placeholder image"
-              style="width: 150px; height: 100px;"
-            />
+              <img
+                src="{{ image_url }}"
+                alt="Placeholder image"
+                style="width: 150px; height: 100px;"
+              />
+            {% else %}
+              <div style="width: 150px; height: 100px;"></div>
             {% endif %}
             <p style="color: #5c6ac4; font-weight: 700">Authorized Signature</p>
           </div>
