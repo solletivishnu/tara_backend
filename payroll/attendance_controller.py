@@ -37,7 +37,7 @@ def manual_check_in(request):
 
     # If last entry exists and not checked out yet — block duplicate check-in
     if last_log and last_log.check_in and not last_log.check_out:
-        return Response({'message': 'You must check out before checking in again.'}, status=status.HTTP_200_OK)
+        return Response({'message': 'You must check out before checking in again.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Else allow new check-in
     new_log = AttendanceLog.objects.create(
@@ -212,7 +212,9 @@ def truetime_monthly_view(request):
             out_time_str = localtime(session.check_out).strftime('%H:%M:%S') if session.check_out else "-"
             time_pairs.append({
                 "check_in": in_time_str,
-                "check_out": out_time_str
+                "check_out": out_time_str,
+                "location": session.location if session.location else "-",
+                "device_info": session.device_info if session.device_info else "-"
             })
             if session.check_in and session.check_out:
                 day_duration += session.check_out - session.check_in
@@ -379,7 +381,9 @@ def truetime_weekly_view(request):
             out_time = localtime(session.check_out).strftime('%H:%M:%S') if session.check_out else "-"
             time_pairs.append({
                 "check_in": in_time,
-                "check_out": out_time
+                "check_out": out_time,
+                "location": session.location if session.location else "-",
+                "device_info": session.device_info if session.device_info else "-"
             })
             if session.check_in and session.check_out:
                 day_duration += session.check_out - session.check_in
@@ -493,7 +497,9 @@ def truetime_datewise_view(request):
         check_out = localtime(log.check_out).strftime('%H:%M:%S') if log.check_out else "-"
         sessions.append({
             "check_in": check_in,
-            "check_out": check_out
+            "check_out": check_out,
+            "location": log.location if log.location else "-",
+            "device_info": log.device_info if log.device_info else "-"
         })
 
         if log.check_in and (not in_time or log.check_in < in_time):
@@ -600,7 +606,7 @@ def geo_location_check_in(request):
     # If last entry exists and not checked out yet — block duplicate check-in
     if last_log and last_log.check_in and not last_log.check_out:
         return Response({'message': 'You must check out before checking in again.'},
-                        status=status.HTTP_200_OK)
+                        status=status.HTTP_400_BAD_REQUEST)
 
     # Else allow new check-in
     new_log = AttendanceLog.objects.create(
