@@ -21,7 +21,7 @@
     <style>
         @page {
           size: A4;
-          margin: 220px 20px 80px 20px;
+          margin: 220px 0px 80px 0px;
         }
 
         body {
@@ -39,7 +39,9 @@
           right: 0;
           background-color: #ffffff;
           border-bottom: 2px solid #e0e0e0;
-          margin-bottom: 1rem;
+          margin-bottom: 1.5rem;
+          margin-left: 10px;
+          margin-right: 10px;
           z-index: 1000;
           height: 240px;
           padding: 0.75rem;
@@ -130,7 +132,9 @@
             position: fixed;
             top: -220px;
             height: 220px;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            margin-left: 10px;
+            margin-right: 10px;
             padding: 0.75rem;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -215,8 +219,8 @@
                     {% endif %}
                   </div>
                 </td>
-                <td style="width:35% vertical-align: middle"></td>
-              <td style="width: 30%; vertical-align: middle">
+                <td style="width:30% vertical-align: middle"></td>
+              <td style="width: 35%; vertical-align: middle">
                 <div style="font-size: 0.900rem; line-height: 1.2rem; text-align: left">
                   <h1 style="margin: 0 0 3px 0; white-space: nowrap; color: #5c6ac4; font-size: 1.5rem;">
                     Tax Invoice
@@ -246,6 +250,8 @@
         <div
           class="section-spacing"
           style="
+            margin-left: 1.5rem;
+            margin-right: 1.5rem;
             background-color: #f1f5f9;
             padding-left: 3.5rem;
             padding-right: 3.5rem;
@@ -269,12 +275,12 @@
                     "
                   >
                     <p style="font-weight: 700; margin: 0">Bill to</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.850rem;">{{ customer_name }}</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.850rem;">{{ bill_to_address }}</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.850rem;">{{ bill_to_state }}</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.850rem;">{{ bill_to_country }} - {{ bill_to_pincode }}</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.850rem;">GSTIN : {{ customer_gstin }}</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.850rem;">PAN : {{customer_pan}}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ customer_name }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_address }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_state }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_country }} - {{ bill_to_pincode }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">GSTIN : {{ customer_gstin }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">PAN : {{customer_pan}}</p>
                   </div>
                 </td>
                 {% if ship_to_address != "NA" and ship_to_address is not None %}
@@ -287,10 +293,10 @@
                     "
                   >
                     <p style="font-weight: 700; margin: 0">Ship to</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.800rem;">{{ ship_to_address }}</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.800rem;">{{ ship_to_state }}</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.800rem;">{{ ship_to_country }}</p>
-                    <p style="margin: 0; font-weight: 600; font-size: 0.800rem;">{{ ship_to_pincode }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_address }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_state }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_country }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_pincode }}</p>
                   </div>
                 </td>
                 {% endif %}
@@ -302,8 +308,8 @@
         <div
           class="section-spacing"
           style="
-            padding-left: 1.5rem;
-            padding-right: 1.5rem;
+            padding-left: 1.3rem;
+            padding-right: 1.3rem;
             padding-top: 2rem;
             padding-bottom: 1rem;
             font-size: 0.875rem;
@@ -318,8 +324,8 @@
             <thead>
               <tr style="border-bottom: 2px solid #5c6ac4;">
                 <td
-                        colspan="1"
                   style="
+                    width: 5%;
                     border-bottom-width: 2px;
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
@@ -331,8 +337,9 @@
                 >
                   Sno
                 </td>
-                <td colspan="15"
+                <td
                   style="
+                    width: 50%;
                     border-bottom-width: 2px;
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
@@ -345,8 +352,8 @@
                   Item
                 </td>
                 <td
-                        colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 2px;
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
@@ -359,8 +366,8 @@
                   HSN
                 </td>
                 <td
-                        colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 2px;
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
@@ -373,8 +380,8 @@
                   Qty.
                 </td>
                 <td
-                        colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 2px;
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
@@ -387,8 +394,8 @@
                   Rate
                 </td>
                 <td
-                        colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 2px;
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
@@ -401,8 +408,8 @@
                   Discount
                 </td>
                 <td
-                        colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 2px;
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
@@ -415,8 +422,8 @@
                   Amount
                 </td>
                 <td
-                        colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 2px;
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
@@ -429,8 +436,8 @@
                   Tax Amount
                 </td>
                 <td
-                        colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 2px;
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
@@ -450,8 +457,8 @@
               {% for item in item_details %}
               <tr style="border-bottom: 2px solid #e2e2e2">
                 <td
-                        colspan="1"
                   style="
+                    width: 5%;
                     border-bottom-width: 1px;
                     padding: 0.75rem 0 0.75rem 0.75rem;
                   "
@@ -459,8 +466,8 @@
                   {{ forloop.counter }}
                 </td>
                 <td
-                    colspan="15"
                   style="
+                    width: 50%;
                     border-bottom-width: 1px;
                     padding: 0.5rem 0 0.75rem 0.5rem;
                   "
@@ -471,8 +478,8 @@
                   {% endif %}
                 </td>
                 <td
-                    colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 1px;
                     padding: 0.75rem 0 0.75rem 0.5rem;
                     text-align: center;
@@ -481,8 +488,8 @@
                   {{ item.hsn_sac }}
                 </td>
                 <td
-                    colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 1px;
                     padding: 0.75rem 0 0.75rem 0.5rem;
                     text-align: center;
@@ -491,8 +498,8 @@
                   {{ item.quantity }}
                 </td>
                 <td
-                    colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 1px;
                     padding: 0.75rem 0 0.75rem 0.5rem;
                     text-align: center;
@@ -501,8 +508,8 @@
                   {{ item.rate }}
                 </td>
                 <td
-                    colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 1px;
                     padding: 0.75rem 0 0.75rem 0.5rem;
                     text-align: center;
@@ -511,8 +518,8 @@
                   {{ item.discount }} {{ item.discount_type }}
                 </td>
                 <td
-                    colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 1px;
                     padding: 0.75rem 0.75rem 0.75rem 0.5rem;
                     text-align: center;
@@ -521,8 +528,8 @@
                   {{ item.amount }}
                 </td>
                 <td
-                    colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 1px;
                     padding: 0.75rem 0.75rem 0.75rem 0.5rem;
                     text-align: center;
@@ -531,8 +538,8 @@
                   {{ item.taxamount }} ({{ item.tax }})
                 </td>
                 <td
-                    colspan="2"
                   style="
+                    width: 6.5%;
                     border-bottom-width: 1px;
                     padding: 0.75rem 0.75rem 0.75rem 0.5rem;
                     text-align: center;
