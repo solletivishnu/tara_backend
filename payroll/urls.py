@@ -211,7 +211,7 @@ urlpatterns = [
     path('payroll-workflows/<int:pk>/delete/', payroll_workflow.payroll_workflow_delete),
     path('payroll-workflows/detail-or-create/', payroll_workflow.payroll_workflow_detail_or_create),
 
-# Manual check-in/check-out
+    # Manual check-in/check-out
 
     path('manual-checkin/', attendance_controller.manual_check_in, name='manual-check-in'),
     path('manual-checkout/', attendance_controller.manual_check_out, name='manual-check-out'),
@@ -257,6 +257,8 @@ urlpatterns = [
     path('approve/<int:pk>/', leavemanagement.approve_leave, name='approve-leave'),
     path('reject/<int:pk>/', leavemanagement.reject_leave, name='reject-leave'),
     path('cancel/<int:pk>/', leavemanagement.cancel_leave, name='cancel-leave'),
+    # Employee Leave Balance
+    path('my-leave-balances/', leavemanagement.get_my_leave_balances, name='my_leave_balances'),
 
     # Employee Education Endpoints
     path('employee-education/', employee_education.employee_education_list_create, name='employee-education-list-create'),
@@ -267,5 +269,6 @@ urlpatterns = [
     # Holiday Calendar Endpoints
     path('monthly-holidays/', holidays.get_month_wise_holiday_calendar, name='monthly-holidays'),
     path('holiday-calendar/', holidays.get_yearly_holiday_calendar, name='holiday-calendar'),
+
 
 ]

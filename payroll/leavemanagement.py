@@ -1,8 +1,8 @@
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.response import Response
 from rest_framework import status
-from .models import LeaveApplication
-from .serializers import LeaveApplicationSerializer
+from .models import LeaveApplication, EmployeeLeaveBalance
+from .serializers import LeaveApplicationSerializer, EmployeeLeaveBalanceSerializer
 from .authentication import EmployeeJWTAuthentication
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -187,3 +187,17 @@ def get_leave_summary(request, year=None):
         'year': year,
         'summary': summary
     })
+
+
+@api_view(['GET'])
+@authentication_classes([EmployeeJWTAuthentication])
+def get_my_leave_balances(request):
+    """Get leave balances for the currently authenticated employee."""
+    try:
+        employee = request.user.employee  # Assuming request.user is an instance of EmployeeCredentials
+    except AttributeError:
+        return Response({'error': 'Invalid user context'}, status=status.HTTP_400_BAD_REQUEST)
+
+    leave_balances = EmployeeLeaveBalance.objects.filter(employee=employee)
+    serializer = EmployeeLeaveBalanceSerializer(leave_balances, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
