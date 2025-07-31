@@ -7,32 +7,67 @@ from .authentication import EmployeeJWTAuthentication
 from django.utils import timezone
 from datetime import datetime, timedelta
 import calendar
+from datetime import date
 
 
 @api_view(['POST'])
 @authentication_classes([EmployeeJWTAuthentication])
 def apply_leave(request):
-    if not hasattr(request.user, 'employeecredentials'):
-        return Response({'error': 'Invalid employee credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+    employee_credentials = request.user  # Already EmployeeCredentials instance
+    employee = employee_credentials.employee  # Actual EmployeeManagement instance
 
-    serializer = LeaveApplicationSerializer(data=request.data, context={'request': request})
+    # Check if employee in payload matches logged-in employee
+    payload_employee_id = request.data.get('employee')
+    if str(employee_credentials.id) != str(payload_employee_id):
+        return Response(
+            {'error': 'You are not allowed to apply leave for another employee.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    serializer = LeaveApplicationSerializer(
+        data=request.data,
+        context={'request': request}
+    )
+
     if serializer.is_valid():
-        leave = serializer.save(employee=request.user.employeecredentials)
+        leave = serializer.save(employee=employee_credentials)  # Save with actual employee instance
         return Response({
             'id': leave.id,
-            'message': 'Leave application submitted successfully',
+            'message': 'Leave application submitted successfully.',
             'status': leave.status
         }, status=status.HTTP_201_CREATED)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def current_financial_year_range():
+    today = date.today()
+    year = today.year
+    if today.month < 4:
+        start = date(year - 1, 4, 1)
+        end = date(year, 3, 31)
+    else:
+        start = date(year, 4, 1)
+        end = date(year + 1, 3, 31)
+    return start, end
 
 
 @api_view(['GET'])
 @authentication_classes([EmployeeJWTAuthentication])
 def get_leave_applications(request):
-    if not hasattr(request.user, 'employeecredentials'):
+    user = request.user
+
+    if not hasattr(user, 'employee'):
         return Response({'error': 'Invalid employee credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    leaves = LeaveApplication.objects.filter(employee=request.user.employeecredentials)
+    start_date, end_date = current_financial_year_range()
+
+    leaves = LeaveApplication.objects.filter(
+        employee=user,
+        start_date__gte=start_date,
+        start_date__lte=end_date
+    )
+
     serializer = LeaveApplicationSerializer(leaves, many=True)
     return Response(serializer.data)
 
@@ -40,25 +75,26 @@ def get_leave_applications(request):
 @api_view(['POST'])
 @authentication_classes([EmployeeJWTAuthentication])
 def approve_leave(request, pk):
-    if not hasattr(request.user, 'employeecredentials'):
-        return Response({'error': 'Invalid employee credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+    user = request.user  # This is EmployeeCredentials
 
     try:
         leave = LeaveApplication.objects.get(pk=pk)
     except LeaveApplication.DoesNotExist:
         return Response({'error': 'Leave application not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Add permission check if needed
-    # if not request.user.has_perm('can_approve_leave'):
-    #     return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+    # Ensure only the reviewer or cc_to members can approve
+    if leave.reviewer != user and user not in leave.cc_to.all():
+        return Response({'error': 'You are not authorized to approve this leave.'}, status=status.HTTP_403_FORBIDDEN)
 
+    # Approve leave
     leave.status = 'approved'
-    leave.reviewer = request.user.employeecredentials
+    leave.reviewer = user  # Optional: override reviewer only if needed
     leave.reviewed_on = timezone.now()
     leave.save()
 
     serializer = LeaveApplicationSerializer(leave)
     return Response({'message': 'Leave approved', 'data': serializer.data})
+
 
 
 @api_view(['POST'])
