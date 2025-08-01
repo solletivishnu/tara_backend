@@ -11,6 +11,7 @@ from . import face_recognition
 from . import leavemanagement
 from . import employee_education
 from . import holidays
+from . import employee_salary_details
 
 urlpatterns = [
     # URL for listing and creating PayrollOrg instances
@@ -269,6 +270,10 @@ urlpatterns = [
     # Holiday Calendar Endpoints
     path('monthly-holidays/', holidays.get_month_wise_holiday_calendar, name='monthly-holidays'),
     path('holiday-calendar/', holidays.get_yearly_holiday_calendar, name='holiday-calendar'),
+
+    # Employee Salary Details Endpoints
+    path('employee-payslip/', employee_salary_details.employee_payslip_details, name='generate-payslip'),
+    path('employee-ytd-details/', employee_salary_details.get_cumulative_salary_data, name='generate-ytd-payslip'),
 
 
 ]
