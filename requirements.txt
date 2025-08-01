@@ -13,6 +13,7 @@ django-filter==24.2
 psycopg2-binary==2.9.10  # PostgreSQL driver
 channels>=4.0.0
 channels-redis>=4.1.0
+daphne>=4.0.0
 
 # Authentication & Security
 djangorestframework-simplejwt==5.3.1
