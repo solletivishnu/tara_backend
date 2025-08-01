@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'user_management',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -324,6 +325,15 @@ database_name = os.getenv('DATABASE_NAME')
 
 CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('redis', 6379)],  # Your Redis host in Docker
+        },
+    },
+}
 
 DATABASES = {
     'default': {
