@@ -4,6 +4,7 @@ from datetime import date, datetime
 from calendar import monthrange
 from rest_framework.exceptions import ValidationError
 from django.db.models import Q, Sum
+from calendar import monthrange, month_name
 
 
 class PayrollOrgSerializer(serializers.ModelSerializer):
@@ -1104,3 +1105,31 @@ class EmployeeLeaveBalanceSerializer(serializers.ModelSerializer):
             'id', 'employee', 'employee_name', 'leave_type', 'leave_type_name',
             'leave_entitled', 'leave_used', 'leave_remaining', 'financial_year'
         ]
+
+
+class EmployeeFinancialYearPayslipSerializer(serializers.ModelSerializer):
+    deduction = serializers.SerializerMethodField()
+    month_year = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EmployeeSalaryHistory
+        fields = [
+            'id', 'employee', 'month_year', 'month', 'financial_year', 'gross_salary', 'deduction', 'tds', 'net_salary'
+        ]
+
+    def get_deduction(self, obj):
+        """Calculate total deductions for the payslip"""
+        deductions = obj.epf + obj.esi + obj.pt + obj.loan_emi + obj.other_deductions
+        return round(deductions, 2) if deductions else 0.0
+
+    def get_month_year(self, obj):
+        """Return the month name for the payslip"""
+        if obj.month and obj.financial_year:
+            try:
+                start_year, end_year = obj.financial_year.split('-')
+                year = end_year if obj.month <= 3 else start_year
+                return f"{month_name[obj.month]} {year}"
+            except (ValueError, IndexError):
+                pass  # Invalid format; fall through to return None
+        return None
+

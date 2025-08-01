@@ -4,7 +4,8 @@ from django.utils.timezone import now, localtime
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import EmployeeCredentials, EmployeeSalaryHistory, EmployeeSalaryDetails
-from .serializers import EmployeeCredentialsSerializer, EmployeeSalaryHistorySerializer, EmployeeSalaryDetailsSerializer
+from .serializers import (EmployeeCredentialsSerializer, EmployeeSalaryHistorySerializer, EmployeeSalaryDetailsSerializer,
+                          EmployeeFinancialYearPayslipSerializer)
 from payroll.authentication import EmployeeJWTAuthentication
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from datetime import datetime, timedelta, date
@@ -67,34 +68,34 @@ def get_valid_fy_months_upto(month_limit):
 
 @api_view(['GET'])
 @authentication_classes([EmployeeJWTAuthentication])
-def get_cumulative_salary_data(request):
+def get_month_and_ytd_salary_data(request):
     employee = request.user
 
     if not isinstance(employee, EmployeeCredentials):
         return Response({'error': 'Invalid employee credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
     financial_year = request.query_params.get('financial_year')
-    max_month = int(request.query_params.get('month', datetime.today().month))
+    selected_month = request.query_params.get('month')
 
-    if not financial_year:
-        return Response({'error': 'financial_year is required'}, status=status.HTTP_400_BAD_REQUEST)
+    if not financial_year or not selected_month:
+        return Response({'error': 'financial_year and month are required'}, status=status.HTTP_400_BAD_REQUEST)
 
+    try:
+        selected_month = int(selected_month)
+    except ValueError:
+        return Response({'error': 'Invalid month value'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Valid financial year months: April (4) to March (3 next year)
-    valid_months = get_valid_fy_months_upto(max_month)
+    # Valid months in FY up to selected month
+    valid_months = get_valid_fy_months_upto(selected_month)
 
-    salary_history = EmployeeSalaryHistory.objects.filter(
+    salary_qs = EmployeeSalaryHistory.objects.filter(
         employee=employee.employee,
         financial_year=financial_year,
         month__in=valid_months
     ).order_by('month')
 
-    if not salary_history.exists():
-        return Response([], status=status.HTTP_200_OK)
-
-    cumulative_totals = defaultdict(float)
-    cumulative_other_earnings = defaultdict(float)
-    cumulative_other_deductions = defaultdict(float)
+    if not salary_qs.exists():
+        return Response({'message': 'No salary records found'}, status=status.HTTP_200_OK)
 
     fields_to_sum = [
         "basic_salary", "hra", "conveyance_allowance", "travelling_allowance",
@@ -104,60 +105,82 @@ def get_cumulative_salary_data(request):
         "other_deductions", "total_deductions", "net_salary"
     ]
 
-    monthly_data = []
+    cumulative_totals = defaultdict(float)
+    cumulative_other_earnings = defaultdict(float)
+    cumulative_other_deductions = defaultdict(float)
 
-    for record in salary_history:
-        month_data = {
-            "data_for": month_name[record.month],
-            "month": record.month,
-            "is_total": False,
-        }
+    month_data = None
 
+    for record in salary_qs:
+        # Capture current month record
+        if record.month == selected_month:
+            month_data = {
+                "data_for": month_name[record.month],
+                "month": record.month,
+                "is_total": False,
+            }
+            for field in fields_to_sum:
+                month_data[field] = getattr(record, field, 0) or 0
+
+            month_data["other_earnings_breakdown"] = record.other_earnings_breakdown or []
+            month_data["other_deductions_breakdown"] = record.other_deductions_breakdown or []
+
+        # Add to YTD totals
         for field in fields_to_sum:
-            value = getattr(record, field, 0) or 0
-            cumulative_totals[field] += value
-            month_data[field] = cumulative_totals[field]
+            cumulative_totals[field] += getattr(record, field, 0) or 0
 
-        earnings_breakdown = record.other_earnings_breakdown or []
-        for item in earnings_breakdown:
-            for key, val in item.items():
-                cumulative_other_earnings[key] += val or 0
+        for item in record.other_earnings_breakdown or []:
+            for k, v in item.items():
+                cumulative_other_earnings[k] += v or 0
 
-        month_data["other_earnings_breakdown"] = [
-            {k: cumulative_other_earnings[k]} for k in cumulative_other_earnings
-        ] if cumulative_other_earnings else []
+        for item in record.other_deductions_breakdown or []:
+            for k, v in item.items():
+                cumulative_other_deductions[k] += v or 0
 
-        deductions_breakdown = record.other_deductions_breakdown or []
-        for item in deductions_breakdown:
-            for key, val in item.items():
-                cumulative_other_deductions[key] += val or 0
-
-        month_data["other_deductions_breakdown"] = [
-            {k: cumulative_other_deductions[k]} for k in cumulative_other_deductions
-        ] if cumulative_other_deductions else []
-
-        monthly_data.append(month_data)
-
-    # Add "Total" row
-    total_row = {
+    ytd_data = {
         "data_for": "Cumulative Total",
         "month": None,
         "is_total": True,
     }
 
     for field in fields_to_sum:
-        total_row[field] = cumulative_totals[field]
+        ytd_data[field] = cumulative_totals[field]
 
-    total_row["other_earnings_breakdown"] = [
+    ytd_data["other_earnings_breakdown"] = [
         {k: cumulative_other_earnings[k]} for k in cumulative_other_earnings
     ] if cumulative_other_earnings else []
 
-    total_row["other_deductions_breakdown"] = [
+    ytd_data["other_deductions_breakdown"] = [
         {k: cumulative_other_deductions[k]} for k in cumulative_other_deductions
     ] if cumulative_other_deductions else []
 
-    monthly_data.append(total_row)
+    return Response({
+        "month_data": month_data,
+        "ytd_data": ytd_data
+    }, status=status.HTTP_200_OK)
 
-    return Response(monthly_data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@authentication_classes([EmployeeJWTAuthentication])
+def get_employee_financial_year_payslip_details(request):
+    employee = request.user
+
+    if not isinstance(employee, EmployeeCredentials):
+        return Response({'error': 'Invalid employee credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    financial_year = request.query_params.get('financial_year')
+    if not financial_year:
+        return Response({'error': 'financial_year is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    salary_history = EmployeeSalaryHistory.objects.filter(
+        employee=employee.employee,
+        financial_year=financial_year
+    ).order_by('-month')
+
+    if not salary_history.exists():
+        return Response([], status=status.HTTP_200_OK)
+
+    serializer = EmployeeFinancialYearPayslipSerializer(salary_history, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 

@@ -2206,23 +2206,20 @@ def holiday_management_detail_update_delete(request, holiday_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
+
         location_id = request.query_params.get("location_id")
+
         try:
+
             holiday = HolidayManagement.objects.get(id=holiday_id)
+
         except HolidayManagement.DoesNotExist:
+
             return Response({"error": "Holiday not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if not holiday.applicable_for.filter(id=location_id).exists():
-            return Response({"error": "Work location not associated with this holiday."},
-                            status=status.HTTP_400_BAD_REQUEST)
+        holiday.delete()
 
-        holiday.applicable_for.remove(location_id)
-
-        if holiday.applicable_for.count() == 0:
-            holiday.delete()
-            return Response({"message": "Holiday deleted as no locations remained."}, status=status.HTTP_204_NO_CONTENT)
-
-        return Response({"message": "Work location removed from holiday."}, status=status.HTTP_200_OK)
+        return Response({"message": "Holiday deleted as no locations remained."}, status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['GET', 'POST'])
