@@ -15,6 +15,8 @@ from rest_framework import status
 from collections import defaultdict
 from payroll.models import HolidayManagement
 from payroll.models import PaySchedule
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 @api_view(['POST'])
@@ -47,6 +49,23 @@ def manual_check_in(request):
         check_in_type='manual',
         location=location,
         device_info=device_info
+    )
+
+    # ✅ Send WebSocket notification
+    channel_layer = get_channel_layer()
+    context_id = employee_credentials.business.id
+    business = employee_credentials.employee.payroll.business
+    context = business.contexts  # reverse OneToOneField from Business to Context
+    context_id = context.id
+    group_name = f'business_{context_id}'  # Assuming FK: employee -> business
+
+    async_to_sync(channel_layer.group_send)(
+        group_name,
+        {
+            'type': 'send_notification',
+            'message': f'{employee_credentials.employee.first_name} {employee_credentials.employee.last_name} '
+                       f'checked in at {new_log.check_in.strftime("%I:%M %p")}'
+        }
     )
 
     serializer = AttendanceLogSerializer(new_log)
