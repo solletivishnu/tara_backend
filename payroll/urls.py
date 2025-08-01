@@ -273,7 +273,9 @@ urlpatterns = [
 
     # Employee Salary Details Endpoints
     path('employee-payslip/', employee_salary_details.employee_payslip_details, name='generate-payslip'),
-    path('employee-ytd-details/', employee_salary_details.get_cumulative_salary_data, name='generate-ytd-payslip'),
+    path('employee-ytd-details/', employee_salary_details.get_month_and_ytd_salary_data, name='generate-ytd-payslip'),
+    path('employee-payslips-by-financial-year/', employee_salary_details.get_employee_financial_year_payslip_details,
+         name='employee-financial-year-payslip-details'),
 
 
 ]
