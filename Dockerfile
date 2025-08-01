@@ -48,4 +48,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
-CMD ["gunicorn", "Tara.wsgi:application", "--bind", "0.0.0.0:8001", "--workers", "2"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8001", "Tara.asgi:application"]
