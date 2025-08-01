@@ -48,4 +48,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8001", "Tara.asgi:application"]
+CMD ["uvicorn", "Tara.asgi:application", "--host", "0.0.0.0", "--port", "8001"]
