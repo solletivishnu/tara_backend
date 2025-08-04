@@ -3669,12 +3669,14 @@ def detail_employee_monthly_salary(request):
             # TDS Calculation
             tds_ytd = 0
             annual_gross = int(round(per_day_salary * attendance.total_days_of_month, 2)) * 12
+            previous_month = month - 1 if month > 1 else 12
 
             # Get existing record if any
             existing_record = EmployeeSalaryHistory.objects.filter(
                 employee=employee,
                 payroll_id=payroll_id,
                 financial_year=financial_year,
+                month = previous_month
             ).first()
 
             recalculate_tds = False
