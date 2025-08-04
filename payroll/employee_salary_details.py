@@ -85,7 +85,6 @@ def get_month_and_ytd_salary_data(request):
     except ValueError:
         return Response({'error': 'Invalid month value'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Valid months in FY up to selected month
     valid_months = get_valid_fy_months_upto(selected_month)
 
     salary_qs = EmployeeSalaryHistory.objects.filter(
@@ -100,91 +99,105 @@ def get_month_and_ytd_salary_data(request):
     earnings_fields = [
         "basic_salary", "hra", "conveyance_allowance", "travelling_allowance",
         "commission", "children_education_allowance", "overtime_allowance",
-        "transport_allowance", "special_allowance", "bonus", "other_earnings"
+        "transport_allowance", "special_allowance", "bonus"
     ]
     deduction_fields = [
-        "epf", "esi", "pt", "tds", "loan_emi", "other_deductions"
+        "epf", "esi", "pt", "tds", "loan_emi"
     ]
 
-    earnings_totals = defaultdict(float)
-    deductions_totals = defaultdict(float)
-    cumulative_other_earnings = defaultdict(float)
-    cumulative_other_deductions = defaultdict(float)
+    month_earnings = defaultdict(float)
+    ytd_earnings = defaultdict(float)
+    month_deductions = defaultdict(float)
+    ytd_deductions = defaultdict(float)
 
-    total_net_salary = 0.0
-    total_gross_income = 0.0
-    total_deduction_amount = 0.0
-
-    month_data = None
+    total_net_salary_month = 0.0
+    total_net_salary_ytd = 0.0
+    total_gross_income_month = 0.0
+    total_gross_income_ytd = 0.0
+    total_deduction_month = 0.0
+    total_deduction_ytd = 0.0
 
     for record in salary_qs:
-        # Capture selected month record
-        if record.month == selected_month:
-            earnings = {field: getattr(record, field, 0) or 0 for field in earnings_fields}
-            deductions = {field: getattr(record, field, 0) or 0 for field in deduction_fields}
+        is_selected_month = (record.month == selected_month)
 
-            for item in record.other_earnings_breakdown or []:
-                for k, v in item.items():
-                    earnings[k] = v or 0
-
-            for item in record.other_deductions_breakdown or []:
-                for k, v in item.items():
-                    deductions[k] = v or 0
-
-            month_data = {
-                "data_for": month_name[record.month],
-                "month": record.month,
-                "is_total": False,
-                "earnings": earnings,
-                "deductions": deductions,
-                "net_salary": record.net_salary,
-                "gross_income": record.earned_salary,
-                "net_pay_in_words": number_to_words_in_indian_format(record.net_salary).title() + " Rupees Only",
-                "deduction_total": record.total_deductions
-            }
-
-        # YTD accumulation
+        # Earnings
         for field in earnings_fields:
-            earnings_totals[field] += getattr(record, field, 0) or 0
-
-        for field in deduction_fields:
-            deductions_totals[field] += getattr(record, field, 0) or 0
+            value = getattr(record, field, 0) or 0
+            ytd_earnings[field] += value
+            if is_selected_month:
+                month_earnings[field] = value
 
         for item in record.other_earnings_breakdown or []:
             for k, v in item.items():
-                cumulative_other_earnings[k] += v or 0
+                ytd_earnings[k] += v or 0
+                if is_selected_month:
+                    month_earnings[k] = v or 0
+
+        # Deductions
+        for field in deduction_fields:
+            value = getattr(record, field, 0) or 0
+            ytd_deductions[field] += value
+            if is_selected_month:
+                month_deductions[field] = value
 
         for item in record.other_deductions_breakdown or []:
             for k, v in item.items():
-                cumulative_other_deductions[k] += v or 0
+                ytd_deductions[k] += v or 0
+                if is_selected_month:
+                    month_deductions[k] = v or 0
 
-        total_net_salary += record.net_salary or 0
-        total_gross_income += record.earned_salary or 0
-        total_deduction_amount += record.total_deductions or 0
+        total_net_salary_ytd += record.net_salary or 0
+        total_gross_income_ytd += record.earned_salary or 0
+        total_deduction_ytd += record.total_deductions or 0
 
-    # Final YTD structured data
-    ytd_earnings = {field: earnings_totals[field] for field in earnings_fields}
-    ytd_earnings.update(cumulative_other_earnings)
+        if is_selected_month:
+            total_net_salary_month = record.net_salary or 0
+            total_gross_income_month = record.earned_salary or 0
+            total_deduction_month = record.total_deductions or 0
 
-    ytd_deductions = {field: deductions_totals[field] for field in deduction_fields}
-    ytd_deductions.update(cumulative_other_deductions)
+    # Format earnings in given order
+    earnings = []
+    for key in earnings_fields + [k for k in month_earnings.keys() if k not in earnings_fields]:
+        month_val = round(month_earnings.get(key, 0), 2)
+        ytd_val = round(ytd_earnings.get(key, 0), 2)
+        if month_val > 0 or ytd_val > 0:
+            earnings.append({
+                "component_name": key.replace("_", " ").title(),
+                "month_data": month_val,
+                "ytd": ytd_val
+            })
 
-    ytd_data = {
-        "data_for": "Cumulative Total",
-        "month": None,
-        "is_total": True,
-        "earnings": ytd_earnings,
-        "deductions": ytd_deductions,
-        "net_salary": total_net_salary,
-        "gross_income": total_gross_income,
-        "net_pay_in_words": number_to_words_in_indian_format(int(total_net_salary)).title() + " Rupees Only",
-        "deduction_total": total_deduction_amount
+    # Format deductions in given order
+    deductions = []
+    for key in deduction_fields + [k for k in month_deductions.keys() if k not in deduction_fields]:
+        month_val = round(month_deductions.get(key, 0), 2)
+        ytd_val = round(ytd_deductions.get(key, 0), 2)
+        if month_val > 0 or ytd_val > 0:
+            deductions.append({
+                "component_name": key.replace("_", " ").title(),
+                "month_data": month_val,
+                "ytd": ytd_val
+            })
+
+    # Final summary
+    response_data = {
+        "earnings": earnings,
+        "deductions": deductions,
+        "gross_income": {
+            "month_data": round(total_gross_income_month, 2),
+            "ytd": round(total_gross_income_ytd, 2)
+        },
+        "net_salary": {
+            "month_data": round(total_net_salary_month, 2),
+            "ytd": round(total_net_salary_ytd, 2)
+        },
+        "deduction_total": {
+            "month_data": round(total_deduction_month, 2),
+            "ytd": round(total_deduction_ytd, 2)
+        }
     }
 
-    return Response({
-        "month_data": month_data,
-        "ytd_data": ytd_data
-    }, status=status.HTTP_200_OK)
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

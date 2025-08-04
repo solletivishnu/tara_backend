@@ -28,8 +28,7 @@
           margin: 0;
           position: relative;
           min-height: 100vh;
-          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-            'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+          font-family: "DejaVu Sans";
         }
 
         .header {
@@ -209,7 +208,7 @@
             <tr>
                  <td style="width: 35%; vertical-align: top;">
 
-                    <div style="font-size: 0.900rem; line-height: 1.2rem">
+                    <div style="font-size: 0.875rem; line-height: 1.2rem;">
                     <h2 style="margin: 0 0 3px 0; white-space: nowrap; color: #5c6ac4; font-size: 1.25rem;">
                       {{company_name}}
                     </h2>
@@ -225,7 +224,7 @@
                 </td>
                 <td style="width:30% vertical-align: middle"></td>
               <td style="width: 35%; vertical-align: middle">
-                <div style="font-size: 0.900rem; line-height: 1.2rem; text-align: left">
+                <div style="font-size: 0.875rem; line-height: 1.2rem; text-align: left;">
                   <h1 style="margin: 0 0 3px 0; white-space: nowrap; color: #5c6ac4; font-size: 1.5rem;">
                     Tax Invoice
                   </h1>
@@ -279,12 +278,12 @@
                     "
                   >
                     <p style="font-weight: 700; margin: 0">Bill to</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ customer_name }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_address }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_state }} - {{ bill_to_pincode }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_country }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">GSTIN : {{ customer_gstin }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">PAN : {{customer_pan}}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ customer_name }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ bill_to_address }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ bill_to_state }} - {{ bill_to_pincode }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ bill_to_country }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">GSTIN : {{ customer_gstin }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">PAN : {{customer_pan}}</p>
                   </div>
                 </td>
                 {% if ship_to_address != "NA" and ship_to_address is not None %}
@@ -297,9 +296,9 @@
                     "
                   >
                     <p style="font-weight: 700; margin: 0">Ship to</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_address }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_state }} - {{ ship_to_pincode }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_country }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ ship_to_address }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ ship_to_state }} - {{ ship_to_pincode }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ ship_to_country }}</p>
                   </div>
                 </td>
                 {% endif %}
