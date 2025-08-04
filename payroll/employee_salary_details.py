@@ -87,13 +87,13 @@ def get_month_and_ytd_salary_data(request):
 
     valid_months = get_valid_fy_months_upto(selected_month)
 
-    salaries = EmployeeSalaryHistory.objects.filter(
+    salary_qs = EmployeeSalaryHistory.objects.filter(
         employee=employee.employee,
         financial_year=financial_year,
         month__in=valid_months
     ).order_by('month')
 
-    if not salaries.exists():
+    if not salary_qs.exists():
         return Response({'message': 'No salary records found'}, status=status.HTTP_200_OK)
 
     earnings_fields = [
@@ -101,73 +101,88 @@ def get_month_and_ytd_salary_data(request):
         "commission", "children_education_allowance", "overtime_allowance",
         "transport_allowance", "special_allowance", "bonus"
     ]
-    deduction_fields = ["epf", "esi", "pt", "tds", "loan_emi"]
+    deduction_fields = [
+        "epf", "esi", "pt", "tds", "loan_emi"
+    ]
 
-    def accumulate_values(records, selected_month):
-        month_vals, ytd_vals = defaultdict(float), defaultdict(float)
-        for rec in records:
-            is_selected = rec.month == selected_month
+    month_earnings = defaultdict(float)
+    ytd_earnings = defaultdict(float)
+    month_deductions = defaultdict(float)
+    ytd_deductions = defaultdict(float)
 
-            for field in earnings_fields:
-                val = getattr(rec, field, 0) or 0
-                ytd_vals[field] += val
-                if is_selected:
-                    month_vals[field] = val
+    total_net_salary_month = 0.0
+    total_net_salary_ytd = 0.0
+    total_gross_income_month = 0.0
+    total_gross_income_ytd = 0.0
+    total_deduction_month = 0.0
+    total_deduction_ytd = 0.0
 
-            for item in rec.other_earnings_breakdown or []:
-                for k, v in item.items():
-                    ytd_vals[k] += v or 0
-                    if is_selected:
-                        month_vals[k] = v or 0
+    for record in salary_qs:
+        is_selected_month = (record.month == selected_month)
 
-            for field in deduction_fields:
-                val = getattr(rec, field, 0) or 0
-                ytd_vals[field] += val
-                if is_selected:
-                    month_vals[field] = val
+        # Earnings
+        for field in earnings_fields:
+            value = getattr(record, field, 0) or 0
+            ytd_earnings[field] += value
+            if is_selected_month:
+                month_earnings[field] = value
 
-            for item in rec.other_deductions_breakdown or []:
-                for k, v in item.items():
-                    ytd_vals[k] += v or 0
-                    if is_selected:
-                        month_vals[k] = v or 0
+        for item in record.other_earnings_breakdown or []:
+            for k, v in item.items():
+                ytd_earnings[k] += v or 0
+                if is_selected_month:
+                    month_earnings[k] = v or 0
 
-        return month_vals, ytd_vals
+        # Deductions
+        for field in deduction_fields:
+            value = getattr(record, field, 0) or 0
+            ytd_deductions[field] += value
+            if is_selected_month:
+                month_deductions[field] = value
 
-    def format_components(ordered_fields, month_data, ytd_data):
-        result = []
-        all_keys = ordered_fields + [k for k in month_data.keys() if k not in ordered_fields]
-        for key in all_keys:
-            month_val = round(month_data.get(key, 0), 2)
-            ytd_val = round(ytd_data.get(key, 0), 2)
-            if month_val > 0 or ytd_val > 0:
-                result.append({
-                    "component_name": key.replace("_", " ").title(),
-                    "month_data": month_val,
-                    "ytd": ytd_val
-                })
-        return result
+        for item in record.other_deductions_breakdown or []:
+            for k, v in item.items():
+                ytd_deductions[k] += v or 0
+                if is_selected_month:
+                    month_deductions[k] = v or 0
 
-    # Accumulate earnings and deductions
-    month_earnings, ytd_earnings = accumulate_values(salaries, selected_month)
-    month_deductions = {k: v for k, v in month_earnings.items() if k in deduction_fields}
-    ytd_deductions = {k: v for k, v in ytd_earnings.items() if k in deduction_fields}
-    month_earnings = {k: v for k, v in month_earnings.items() if k not in deduction_fields}
-    ytd_earnings = {k: v for k, v in ytd_earnings.items() if k not in deduction_fields}
+        total_net_salary_ytd += record.net_salary or 0
+        total_gross_income_ytd += record.earned_salary or 0
+        total_deduction_ytd += record.total_deductions or 0
 
-    # Calculate totals
-    last_month = salaries.filter(month=selected_month).first()
-    total_net_salary_month = last_month.net_salary if last_month else 0
-    total_gross_income_month = last_month.earned_salary if last_month else 0
-    total_deduction_month = last_month.total_deductions if last_month else 0
+        if is_selected_month:
+            total_net_salary_month = record.net_salary or 0
+            total_gross_income_month = record.earned_salary or 0
+            total_deduction_month = record.total_deductions or 0
 
-    total_net_salary_ytd = sum((rec.net_salary or 0) for rec in salaries)
-    total_gross_income_ytd = sum((rec.earned_salary or 0) for rec in salaries)
-    total_deduction_ytd = sum((rec.total_deductions or 0) for rec in salaries)
+    # Format earnings in given order
+    earnings = []
+    for key in earnings_fields + [k for k in month_earnings.keys() if k not in earnings_fields]:
+        month_val = round(month_earnings.get(key, 0), 2)
+        ytd_val = round(ytd_earnings.get(key, 0), 2)
+        if month_val > 0 or ytd_val > 0:
+            earnings.append({
+                "component_name": key.replace("_", " ").title(),
+                "month_data": month_val,
+                "ytd": ytd_val
+            })
 
+    # Format deductions in given order
+    deductions = []
+    for key in deduction_fields + [k for k in month_deductions.keys() if k not in deduction_fields]:
+        month_val = round(month_deductions.get(key, 0), 2)
+        ytd_val = round(ytd_deductions.get(key, 0), 2)
+        if month_val > 0 or ytd_val > 0:
+            deductions.append({
+                "component_name": key.replace("_", " ").title(),
+                "month_data": month_val,
+                "ytd": ytd_val
+            })
+
+    # Final summary
     response_data = {
-        "earnings": format_components(earnings_fields, month_earnings, ytd_earnings),
-        "deductions": format_components(deduction_fields, month_deductions, ytd_deductions),
+        "earnings": earnings,
+        "deductions": deductions,
         "gross_income": {
             "month_data": round(total_gross_income_month, 2),
             "ytd": round(total_gross_income_ytd, 2)
