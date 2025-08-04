@@ -173,7 +173,7 @@ class EmployeeSalaryProcessor:
                 financial_year=self.financial_year
             ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
 
-            previous_month = self.month - 1
+            previous_month = self.month - 1 if self.month > 1 else 12
             existing_record = EmployeeSalaryHistory.objects.filter(
                 employee=employee,
                 payroll=self.payroll_org,
