@@ -21,14 +21,14 @@
     <style>
         @page {
           size: A4;
-          margin: 220px 0px 80px 0px;
+          margin: 260px 0px 80px 0px;
         }
 
         body {
           margin: 0;
           position: relative;
           min-height: 100vh;
-          font-family: "DejaVu Sans";
+font-family: "DejaVu Sans";
         }
 
         .header {
@@ -131,8 +131,8 @@
           }
           .header {
             position: fixed;
-            top: -220px;
-            height: 220px;
+            top: -260px;
+            height: 260px;
             margin-bottom: 1.5rem;
             margin-left: 10px;
             margin-right: 10px;
@@ -206,40 +206,43 @@
         <table style="width: 100%; border-collapse: collapse; border-spacing: 0;">
           <tbody>
             <tr>
-                 <td style="width: 35%; vertical-align: top;">
+                 <td style="width: 40%; vertical-align: top;">
 
-                    <div style="font-size: 0.875rem; line-height: 1.2rem;">
+                    <div style="font-size: 0.800rem; line-height: 1.5rem; margin-bottom: 5px;">
                     <h2 style="margin: 0 0 3px 0; white-space: nowrap; color: #5c6ac4; font-size: 1.25rem;">
                       {{company_name}}
                     </h2>
-                    <p style="margin: 0">{{company_address_line1}}</p>
-                    <p style="margin: 0">{{company_city}} - {{company_pincode}}</p>
-                    <p style="margin: 0">{{company_state}}</p>
-                    <p style="margin: 0">Mobile: {{company_mobile_number}}</p>
-                    <p style="margin: 0">Email: {{email}}</p>
+                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">{{company_address_line1}}</p>
+                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">{{company_city}} - {{company_pincode}}</p>
+                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">{{company_state}}</p>
+                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Mobile: {{company_mobile_number}}</p>
+                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Email: {{email}}</p>
                     {% if gstin != "NA" and gstin is not None and gstin != '' and gst_registered %}
-                      <p style="margin: 0;">GSTIN: {{gstin}}</p>
+                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">GSTIN: {{gstin}}</p>
                     {% endif %}
                   </div>
                 </td>
-                <td style="width:30% vertical-align: middle"></td>
+                <td style="width:25% vertical-align: middle"></td>
               <td style="width: 35%; vertical-align: middle">
-                <div style="font-size: 0.875rem; line-height: 1.2rem; text-align: left;">
+                <div style="font-size: 0.850rem; line-height: 1.5rem; text-align: left;">
                   <h1 style="margin: 0 0 3px 0; white-space: nowrap; color: #5c6ac4; font-size: 1.5rem;">
                     Tax Invoice
                   </h1>
 
-                    <p style="margin: 0;">
+                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">
                     Invoice No. : {{invoice_number}}
                   </p>
-                  <p style="margin: 0;">
+                  <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">
                     Date : {{invoice_date}}
                   </p>
-                    <p style="margin: 0">Terms : {{terms}}</p>
-                    <p style="margin: 0">Due Date : {{due_date}}</p>
-                    <p style="margin: 0;">
+                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Terms : {{terms}}</p>
+                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Due Date : {{due_date}}</p>
+                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">
                       Place of supply : {{place_of_supply}}
                     </p>
+                    {% if order_number != "NA" and order_number is not None %}
+                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Order No. : {{order_number}}</p>
+                    {% endif %}
                 </div>
               </td>
             </tr>
@@ -260,8 +263,8 @@
             padding-right: 3.5rem;
             padding-top: 1.5rem;
             padding-bottom: 1.5rem;
-            font-size: 0.875rem;
-            line-height: 1rem;
+            font-size: 0.800rem;
+            line-height: 1.2rem;
           "
         >
           <table
@@ -272,33 +275,33 @@
                 <td style="width: 40%; vertical-align: top">
                   <div
                     style="
-                      font-size: 0.875rem;
-                      line-height: 1rem;
+                      font-size: 0.800rem;
+                      line-height: 1.2rem;
                       color: #525252;
                     "
                   >
                     <p style="font-weight: 700; margin: 0">Bill to</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ customer_name }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ bill_to_address }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ bill_to_state }} - {{ bill_to_pincode }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ bill_to_country }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">GSTIN : {{ customer_gstin }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">PAN : {{customer_pan}}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ customer_name }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_address }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_state }} - {{ bill_to_pincode }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_country }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">GSTIN : {{ customer_gstin }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">PAN : {{customer_pan}}</p>
                   </div>
                 </td>
                 {% if ship_to_address != "NA" and ship_to_address is not None %}
                 <td style="width: 40%; vertical-align: top; text-align: left; padding-left: 6rem">
                   <div
                     style="
-                      font-size: 0.875rem;
-                      line-height: 1rem;
+                      font-size: 0.800rem;
+                      line-height: 1.2rem;
                       color: #525252;
                     "
                   >
                     <p style="font-weight: 700; margin: 0">Ship to</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ ship_to_address }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ ship_to_state }} - {{ ship_to_pincode }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.850rem;">{{ ship_to_country }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_address }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_state }} - {{ ship_to_pincode }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ ship_to_country }}</p>
                   </div>
                 </td>
                 {% endif %}
@@ -314,14 +317,14 @@
             padding-right: 1.3rem;
             padding-top: 2rem;
             padding-bottom: 1rem;
-            font-size: 0.875rem;
-            line-height: 1rem;
+            font-size: 0.800rem;
+            line-height: 1.2rem;
             color: #404040;
           "
         >
           <table
             class="invoice-table"
-            style="width: 100%; border-collapse: collapse; border-spacing: 0"
+            style="width: 100%; border-collapse: collapse; border-spacing: 0; font-size: 0.800rem; line-height: 1.25rem;"
           >
             <thead>
               <tr style="border-bottom: 2px solid #5c6ac4;">
@@ -346,7 +349,6 @@
                     border-color: #5c6ac4;
                     padding-bottom: 0.75rem;
                     padding-left: 0.5rem;
-                    text-align: center;
                     font-weight: 700;
                     color: #5c6ac4;
                   "
@@ -563,8 +565,8 @@
           style="
             padding-left: 1.5rem;
             padding-right: 1.5rem;
-            font-size: 0.875rem;
-            line-height: 1rem;
+            font-size: 0.800rem;
+            line-height: 1.2rem;
             color: #404040;
           "
         >
@@ -588,43 +590,43 @@
 
               <!-- Right Column - Totals -->
               <td style="width: 50%; vertical-align: top; padding: 0.75rem 0;">
-                <table style="width: 100%; border-collapse: collapse;">
+                <table style="width: 100%; border-collapse: collapse; font-weight: 500; font-size: 0.800rem;">
                   <tr>
-                    <td style="padding: 12px 12px; color: #94a3b8;">SUB TOTAL :</td>
+                    <td style="padding: 12px 12px; color: #404040;">SUB TOTAL :</td>
                     <td style="padding: 12px 12px; text-align: right; font-weight: 700; color: #5c6ac4;">{{subtotal}}</td>
                   </tr>
 
                   {% if shipping != "0" and shipping != "0.00" and shipping != 0 %}
                   <tr>
-                    <td style="padding: 12px 12px; color: #94a3b8;">SHIPPING AMOUNT :</td>
+                    <td style="padding: 12px 12px; color: #404040;">SHIPPING AMOUNT :</td>
                     <td style="padding: 12px 12px; text-align: right; font-weight: 700; color: #5c6ac4;">{{shipping}}</td>
                   </tr>
                   {% endif %}
 
                   {% if shipping_tax != "0" and shipping_tax != "0.00" and shipping_tax != 0 %}
                   <tr>
-                    <td style="padding: 12px 12px; color: #94a3b8;">SHIPPING Tax:</td>
+                    <td style="padding: 12px 12px; color: #404040;">SHIPPING Tax:</td>
                     <td style="padding: 12px 12px; text-align: right; font-weight: 700; color: #5c6ac4;">{{shipping_tax}}</td>
                   </tr>
                   {% endif %}
 
                   {% if cgst != "0" and cgst != "0.00" and cgst != 0 %}
                   <tr>
-                    <td style="padding: 12px 12px; color: #94a3b8;">CGST :</td>
+                    <td style="padding: 12px 12px; color: 404040;">CGST :</td>
                     <td style="padding: 12px 12px; text-align: right; font-weight: 700; color: #5c6ac4;">{{cgst}}</td>
                   </tr>
                   {% endif %}
 
                   {% if sgst != "0" and sgst != "0.00" and sgst != 0 %}
                   <tr>
-                    <td style="padding: 12px 12px; color: #94a3b8;">SGST :</td>
+                    <td style="padding: 12px 12px; color: #404040;">SGST :</td>
                     <td style="padding: 12px 12px; text-align: right; font-weight: 700; color: #5c6ac4;">{{sgst}}</td>
                   </tr>
                   {% endif %}
 
                   {% if igst_amt != "0" and igst_amt != "0.00" and igst_amt != 0 %}
                   <tr>
-                    <td style="padding: 12px 12px; color: #94a3b8;">IGST Amount :</td>
+                    <td style="padding: 12px 12px; color: #404040;">IGST Amount :</td>
                     <td style="padding: 12px 12px; text-align: right; font-weight: 700; color: #5c6ac4;">{{igst_amt}}</td>
                   </tr>
                   {% endif %}
@@ -652,7 +654,7 @@
             style="
               padding-left: 3.5rem;
               padding-right: 3.5rem;
-              font-size: 0.875rem;
+              font-size: 0.800rem;
               line-height: 1.5rem;
               color: #404040;
             "
@@ -669,8 +671,8 @@
             style="
               padding-left: 3.5rem;
               padding-right: 3.5rem;
-              font-size: 0.875rem;
-              line-height: 1rem;
+              font-size: 0.800rem;
+              line-height: 1.2rem;
               color: #404040;
               text-align: right;
             "
