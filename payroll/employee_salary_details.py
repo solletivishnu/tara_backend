@@ -85,6 +85,16 @@ def get_month_and_ytd_salary_data(request):
     except ValueError:
         return Response({'error': 'Invalid month value'}, status=status.HTTP_400_BAD_REQUEST)
 
+    today = date.today()
+    current_month = today.month
+
+    if selected_month > current_month:
+        return Response({'error': 'You cannot access future months'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if selected_month == current_month and today.day < 26:
+        return Response({'error': 'You cannot access the current month before the 26th'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
     valid_months = get_valid_fy_months_upto(selected_month)
 
     salary_qs = EmployeeSalaryHistory.objects.filter(
@@ -223,4 +233,79 @@ def get_employee_financial_year_payslip_details(request):
     serializer = EmployeeFinancialYearPayslipSerializer(salary_history, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+
+@api_view(['GET'])
+@authentication_classes([EmployeeJWTAuthentication])
+def get_pf_breakdown(request):
+    employee = request.user
+
+    if not isinstance(employee, EmployeeCredentials):
+        return Response({'error': 'Invalid employee credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    financial_year = request.query_params.get('financial_year')
+    selected_month = request.query_params.get('month')
+
+    if not financial_year or not selected_month:
+        return Response({'error': 'financial_year and month are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        selected_month = int(selected_month)
+    except ValueError:
+        return Response({'error': 'Invalid month value'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 🔐 Restriction: Disallow access to future months and current month if today is before the 26th
+    today = date.today()
+    current_month = today.month
+
+    if selected_month > current_month:
+        return Response({'error': 'You cannot access future months'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if selected_month == current_month and today.day < 26:
+        return Response({'error': 'You cannot access the current month before the 26th'}, status=status.HTTP_400_BAD_REQUEST)
+
+    valid_months = get_valid_fy_months_upto(selected_month)
+
+    salary_qs = EmployeeSalaryHistory.objects.filter(
+        employee=employee.employee,
+        financial_year=financial_year,
+        month__in=valid_months
+    ).order_by('month')
+
+    if not salary_qs.exists():
+        return Response({'message': 'No salary records found'}, status=status.HTTP_200_OK)
+
+    employee_pf_month = 0.0
+    employee_pf_ytd = 0.0
+    employer_pf_month = 0.0
+    employer_pf_ytd = 0.0
+
+    for record in salary_qs:
+        is_selected_month = (record.month == selected_month)
+
+        # Employee PF
+        epf = record.epf or 0
+        employee_pf_ytd += epf
+        if is_selected_month:
+            employee_pf_month = epf
+            employer_pf_month = min(((record.gross_salary or 0) * 0.5) * 0.12, 1800)
+
+    employer_pf_ytd = employer_pf_month * len(valid_months)
+
+    pf_breakdown = {
+        "employee_pf": {
+            "month_data": round(employee_pf_month, 2),
+            "ytd": round(employee_pf_ytd, 2)
+        },
+        "employer_pf": {
+            "month_data": round(employer_pf_month, 2),
+            "ytd": round(employer_pf_ytd, 2)
+        },
+        "total_pf": {
+            "month_data": round(employee_pf_month + employer_pf_month, 2),
+            "ytd": round(employee_pf_ytd + employer_pf_ytd, 2)
+        }
+    }
+
+    return Response(pf_breakdown, status=status.HTTP_200_OK)
 
