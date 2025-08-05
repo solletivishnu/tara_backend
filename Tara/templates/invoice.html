@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html
-  lang="en"
-  style="
-    line-height: 1.5;
+        lang="en"
+        style="
+    line-height: 1.4;
     -webkit-text-size-adjust: 100%;
     -moz-tab-size: 4;
     tab-size: 4;
@@ -13,7 +13,7 @@
     font-feature-settings: normal;
     font-variation-settings: normal;
   "
->
+        xmlns="http://www.w3.org/1999/html">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,7 +21,7 @@
     <style>
         @page {
           size: A4;
-          margin: 260px 0px 80px 0px;
+          margin: 230px 0px 60px 0px;
         }
 
         body {
@@ -33,7 +33,7 @@ font-family: "DejaVu Sans";
 
         .header {
           position: fixed;
-          top: -240px;
+          top: -230px;
           left: 0;
           right: 0;
           background-color: #ffffff;
@@ -42,7 +42,7 @@ font-family: "DejaVu Sans";
           margin-left: 10px;
           margin-right: 10px;
           z-index: 1000;
-          height: 240px;
+          height: 230px;
           padding: 0.75rem;
           box-sizing: border-box;
         }
@@ -131,8 +131,8 @@ font-family: "DejaVu Sans";
           }
           .header {
             position: fixed;
-            top: -260px;
-            height: 260px;
+            top: -230px;
+            height: 230px;
             margin-bottom: 1.5rem;
             margin-left: 10px;
             margin-right: 10px;
@@ -208,40 +208,40 @@ font-family: "DejaVu Sans";
             <tr>
                  <td style="width: 40%; vertical-align: top;">
 
-                    <div style="font-size: 0.800rem; line-height: 1.5rem; margin-bottom: 5px;">
+                    <div style="font-size: 0.800rem; line-height: 1.4rem; margin-bottom: 5px;">
                     <h2 style="margin: 0 0 3px 0; white-space: nowrap; color: #5c6ac4; font-size: 1.25rem;">
                       {{company_name}}
                     </h2>
                     <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">{{company_address_line1}}</p>
                     <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">{{company_city}} - {{company_pincode}}</p>
                     <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">{{company_state}}</p>
-                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Mobile: {{company_mobile_number}}</p>
-                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Email: {{email}}</p>
+                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong>Mobile:</strong> {{company_mobile_number}}</p>
+                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong>Email:</strong> {{email}}</p>
                     {% if gstin != "NA" and gstin is not None and gstin != '' and gst_registered %}
-                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">GSTIN: {{gstin}}</p>
+                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong>GSTIN:</strong> {{gstin}}</p>
                     {% endif %}
                   </div>
                 </td>
                 <td style="width:25% vertical-align: middle"></td>
               <td style="width: 35%; vertical-align: middle">
-                <div style="font-size: 0.850rem; line-height: 1.5rem; text-align: left;">
+                <div style="font-size: 0.850rem; line-height: 1.4rem; text-align: left;">
                   <h1 style="margin: 0 0 3px 0; white-space: nowrap; color: #5c6ac4; font-size: 1.5rem;">
                     Tax Invoice
                   </h1>
 
                     <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">
-                    Invoice No. : {{invoice_number}}
+                      <strong>Invoice No. :</strong> {{invoice_number}}
                   </p>
                   <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">
-                    Date : {{invoice_date}}
+                    <strong>Date :</strong> {{invoice_date}}
                   </p>
-                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Terms : {{terms}}</p>
-                    <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Due Date : {{due_date}}</p>
+                  <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong>Terms :</strong> {{terms}}</p>
+                  <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong>Due Date :</strong> {{due_date}}</p>
                     <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">
-                      Place of supply : {{place_of_supply}}
+                      <strong>Place of supply :</strong> {{place_of_supply}}
                     </p>
                     {% if order_number != "NA" and order_number is not None %}
-                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">Order No. : {{order_number}}</p>
+                  <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong>Order No. :</strong> {{order_number}}</p>
                     {% endif %}
                 </div>
               </td>
@@ -258,13 +258,14 @@ font-family: "DejaVu Sans";
           style="
             margin-left: 1.5rem;
             margin-right: 1.5rem;
+            margin-top: 1rem;
             background-color: #f1f5f9;
             padding-left: 3.5rem;
             padding-right: 3.5rem;
             padding-top: 1.5rem;
             padding-bottom: 1.5rem;
             font-size: 0.800rem;
-            line-height: 1.2rem;
+            line-height: 1.1rem;
           "
         >
           <table
@@ -276,17 +277,17 @@ font-family: "DejaVu Sans";
                   <div
                     style="
                       font-size: 0.800rem;
-                      line-height: 1.2rem;
+                      line-height: 1.1rem;
                       color: #525252;
                     "
                   >
                     <p style="font-weight: 700; margin: 0">Bill to</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ customer_name }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;"><strong>{{ customer_name }}</strong></p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_address }}</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_state }} - {{ bill_to_pincode }}</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">{{ bill_to_country }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">GSTIN : {{ customer_gstin }}</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;">PAN : {{customer_pan}}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;"><strong>GSTIN :</strong> {{ customer_gstin }}</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.800rem;"><strong>PAN :</strong> {{customer_pan}}</p>
                   </div>
                 </td>
                 {% if ship_to_address != "NA" and ship_to_address is not None %}
@@ -294,7 +295,7 @@ font-family: "DejaVu Sans";
                   <div
                     style="
                       font-size: 0.800rem;
-                      line-height: 1.2rem;
+                      line-height: 1.1rem;
                       color: #525252;
                     "
                   >
@@ -315,16 +316,16 @@ font-family: "DejaVu Sans";
           style="
             padding-left: 1.3rem;
             padding-right: 1.3rem;
-            padding-top: 2rem;
+            padding-top: 1rem;
             padding-bottom: 1rem;
             font-size: 0.800rem;
-            line-height: 1.2rem;
+            line-height: 1.1rem;
             color: #404040;
           "
         >
           <table
             class="invoice-table"
-            style="width: 100%; border-collapse: collapse; border-spacing: 0; font-size: 0.800rem; line-height: 1.25rem;"
+            style="width: 100%; border-collapse: collapse; border-spacing: 0; font-size: 0.800rem;"
           >
             <thead>
               <tr style="border-bottom: 2px solid #5c6ac4;">
@@ -566,11 +567,11 @@ font-family: "DejaVu Sans";
             padding-left: 1.5rem;
             padding-right: 1.5rem;
             font-size: 0.800rem;
-            line-height: 1.2rem;
+            line-height: 1.1rem;
             color: #404040;
           "
         >
-          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+          <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <!-- Left Column - Notes and Terms -->
               <td style="width: 50%; vertical-align: top; padding: 0.75rem;">
@@ -655,16 +656,16 @@ font-family: "DejaVu Sans";
               padding-left: 3.5rem;
               padding-right: 3.5rem;
               font-size: 0.800rem;
-              line-height: 1.5rem;
+              line-height: 1.4rem;
               color: #404040;
             "
           >
             <p style="color: #5c6ac4; font-weight: 700">PAYMENT DETAILS</p>
-            <p style="margin: 0">Bank Name: {{bank_name}}</p>
-            <p style="margin: 0">Account Number: {{account_number}}</p>
-            <p style="margin: 0">IFSC Code: {{ifsc_code}}</p>
-            <p style="margin: 0">Swift Code: {{swift_code}}</p>
-            <p style="margin: 0">Pan: {{company_pan}}</p>
+            <p style="margin: 0"><strong>Bank Name:</strong> {{bank_name}}</p>
+            <p style="margin: 0"><strong>Account Number:</strong> {{account_number}}</p>
+            <p style="margin: 0"><strong>IFSC Code:</strong> {{ifsc_code}}</p>
+            <p style="margin: 0"><strong>Swift Code:</strong> {{swift_code}}</p>
+            <p style="margin: 0"><strong>Pan:</strong> {{company_pan}}</p>
           </div>
 
           <div
@@ -672,7 +673,7 @@ font-family: "DejaVu Sans";
               padding-left: 3.5rem;
               padding-right: 3.5rem;
               font-size: 0.800rem;
-              line-height: 1.2rem;
+              line-height: 1.1rem;
               color: #404040;
               text-align: right;
             "

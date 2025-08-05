@@ -3751,11 +3751,7 @@ def detail_employee_monthly_salary(request):
                 'bonus': round(component_amounts['bonus']),
                 'other_earnings': 0 if 0 <= component_amounts['other_earnings'] < 1 else round(
                     component_amounts['other_earnings']),
-                'benefits_total': int(round(sum(component_amounts[key] for key in [
-                    'basic', 'hra', 'special_allowance', 'bonus', 'other_earnings',
-                    'conveyance_allowance', 'travelling_allowance', 'commission',
-                    'children_education_allowance', 'overtime_allowance', 'transport_allowance'
-                ]), 2)),
+                'benefits_total': int(benefits_total),
                 'bonus_incentive': round(total_bonus_amount),
                 'epf': round(epf_value),
                 'esi': round(esi),
