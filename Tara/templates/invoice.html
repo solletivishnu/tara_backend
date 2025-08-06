@@ -215,14 +215,14 @@ font-family: "DejaVu Sans";
                     <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">{{company_address_line1}}</p>
                     <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">{{company_city}} - {{company_pincode}}</p>
                     <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;">{{company_state}}</p>
-                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong>Mobile:</strong> {{company_mobile_number}}</p>
-                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong>Email:</strong> {{email}}</p>
+                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong style="color: #5c6ac4;">Mobile:</strong> {{company_mobile_number}}</p>
+                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong style="color: #5c6ac4;">Email:</strong> {{email}}</p>
                     {% if gstin != "NA" and gstin is not None and gstin != '' and gst_registered %}
-                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong>GSTIN:</strong> {{gstin}}</p>
+                      <p style="margin: 0; color: #525252; font-weight: 500; font-size: 0.800rem;"><strong style="color: #5c6ac4;">GSTIN:</strong> {{gstin}}</p>
                     {% endif %}
                   </div>
                 </td>
-                <td style="width:25% vertical-align: middle"></td>
+                <td style="width:25%; vertical-align: middle"></td>
               <td style="width: 35%; vertical-align: middle">
                 <div style="font-size: 0.850rem; line-height: 1.4rem; text-align: left;">
                   <h1 style="margin: 0 0 3px 0; white-space: nowrap; color: #5c6ac4; font-size: 1.5rem;">
@@ -260,7 +260,7 @@ font-family: "DejaVu Sans";
             margin-right: 1.5rem;
             margin-top: 1rem;
             background-color: #f1f5f9;
-            padding-left: 3.5rem;
+            padding-left: 0.600rem;
             padding-right: 3.5rem;
             padding-top: 1.5rem;
             padding-bottom: 1.5rem;
@@ -297,6 +297,7 @@ font-family: "DejaVu Sans";
                       font-size: 0.800rem;
                       line-height: 1.1rem;
                       color: #525252;
+                      margin-left: 2.25rem;
                     "
                   >
                     <p style="font-weight: 700; margin: 0">Ship to</p>
@@ -354,7 +355,7 @@ font-family: "DejaVu Sans";
                     color: #5c6ac4;
                   "
                 >
-                  Item
+                  Description
                 </td>
                 <td
                   style="
@@ -575,7 +576,7 @@ font-family: "DejaVu Sans";
             <tr>
               <!-- Left Column - Notes and Terms -->
               <td style="width: 50%; vertical-align: top; padding: 0.75rem;">
-                <h3 style="margin: 0 0 10px 0; font-weight: 600;">Total In Words:</h3>
+                <h3 style="margin: 0 0 10px 0; font-weight: 600; color: #5c6ac4;">Total In Words:</h3>
                 <p style="margin: 0 0 15px 0;">{{total_in_words}}</p>
 
                 {% if terms_and_conditions and terms_and_conditions != "" and terms_and_conditions != "NA" %}
