@@ -2,8 +2,7 @@ from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from .serializers import (UsersKYCSerializer, UserActivationSerializer,
-                          FirmKYCSerializer)
+from .serializers import (UsersKYCSerializer, UserActivationSerializer, FirmKYCSerializer)
 from django.db.models import Count
 from .serializers import *
 from password_generator import PasswordGenerator
