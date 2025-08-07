@@ -4120,14 +4120,14 @@ def get_financial_year_summary(request):
                 action = ""
             ctc = ""
         else:
-            ctc = total_ctc
+            ctc = int(total_ctc) // 12
             status = "Processed"
             action = "view"
 
         summary.append({
             "month": datetime(year, month, 1).strftime('%B'),
             "year": year,
-            "ctc": ctc//12,
+            "ctc": ctc,
             "status": status,
             "action": action,
         })
