@@ -17,13 +17,13 @@ services:
     container_name: tara_backend_dev
     restart: always
     ports:
-      - "8001:8000"
+      - "8000:8001"
     env_file:
       - .env
     volumes:
       - backend_logs:/app/logs
     command: >
-      uvicorn Tara.asgi:application --host 0.0.0.0 --port 8000
+      uvicorn Tara.asgi:application --host 0.0.0.0 --port 8001
     depends_on:
       - redis
     networks:
