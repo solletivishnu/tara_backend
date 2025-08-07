@@ -3955,7 +3955,7 @@ def payroll_summary_view(request):
 
     return Response({
         "total_employees": total_employees,
-        "total_ctc": total_ctc/12,
+        "total_ctc": total_ctc//12,
         "gross": gross,
         "total_deductions": total_deductions,
         "net_pay": net_pay,
@@ -4029,7 +4029,7 @@ def get_financial_year_summary(request):
         summary.append({
             "month": datetime(year, month, 1).strftime('%B'),
             "year": year,
-            "ctc": ctc,
+            "ctc": ctc//12,
             "status": status,
             "action": action,
         })
