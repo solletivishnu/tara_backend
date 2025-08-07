@@ -4330,16 +4330,16 @@ def employee_monthly_salary_template(request):
 
         # === Earnings Components ===
         earnings_components = {
-            "Basic": format_with_commas(salary_history.basic_salary),
-            "House Rent Allowance": format_with_commas(salary_history.hra),
-            "Conveyance Allowance": format_with_commas(salary_history.conveyance_allowance),
-            "Travelling Allowance": format_with_commas(salary_history.travelling_allowance),
-            "Commission": format_with_commas(salary_history.commission),
-            "Children Education Allowance": format_with_commas(salary_history.children_education_allowance),
-            "Overtime Allowance": format_with_commas(salary_history.overtime_allowance),
-            "Transport Allowance": format_with_commas(salary_history.transport_allowance),
-            "Special Allowance": format_with_commas(salary_history.special_allowance),
-            "Bonus": format_with_commas(salary_history.bonus),
+            "Basic": salary_history.basic_salary,
+            "House Rent Allowance": salary_history.hra,
+            "Conveyance Allowance": salary_history.conveyance_allowance,
+            "Travelling Allowance": salary_history.travelling_allowance,
+            "Commission": salary_history.commission,
+            "Children Education Allowance": salary_history.children_education_allowance,
+            "Overtime Allowance": salary_history.overtime_allowance,
+            "Transport Allowance": salary_history.transport_allowance,
+            "Special Allowance": salary_history.special_allowance,
+            "Bonus": salary_history.bonus,
         }
 
         for item in getattr(salary_history, 'other_earnings_breakdown', []):
@@ -4348,16 +4348,16 @@ def employee_monthly_salary_template(request):
                     earnings_components[name.replace('_', ' ').title()] = amount
 
         earnings_components = {
-            k: round(v, 2) for k, v in earnings_components.items() if v and v > 0
+            k: format_with_commas(round(v, 2)) for k, v in earnings_components.items() if v and v > 0
         }
 
         # === Deduction Components ===
         deduction_components = {
-            "EPF Contribution": format_with_commas(salary_history.epf),
-            "ESI": format_with_commas(salary_history.esi),
-            "Professional Tax": format_with_commas(salary_history.pt),
-            "Loan EMI": format_with_commas(salary_history.loan_emi),
-            "Income Tax": format_with_commas(salary_history.tds),
+            "EPF Contribution": salary_history.epf,
+            "ESI": salary_history.esi,
+            "Professional Tax": salary_history.pt,
+            "Loan EMI": salary_history.loan_emi,
+            "Income Tax": salary_history.tds,
         }
 
         for item in getattr(salary_history, 'other_deductions_breakdown', []):
@@ -4366,7 +4366,7 @@ def employee_monthly_salary_template(request):
                     deduction_components[name.replace('_', ' ').title()] = amount
 
         deduction_components = {
-            k: round(v, 2) for k, v in deduction_components.items() if v and v > 0
+            k: format_with_commas(round(v, 2)) for k, v in deduction_components.items() if v and v > 0
         }
 
         context = {
@@ -4394,6 +4394,7 @@ def employee_monthly_salary_template(request):
             "deductions": deduction_components,
 
             "gross_earnings": format_with_commas(salary_history.earned_salary),
+            "bonus_incentive_format": True if total_bonus_amount > 0 else False,
             "bonus_incentive": format_with_commas(total_bonus_amount),
             "net_pay": format_with_commas(net_pay_total),
             "amount_in_words": total_in_words,
