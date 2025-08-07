@@ -1464,9 +1464,6 @@ def get_statutory_settings(employee):
 
 
 def calculate_pf_contributions(pf_wage, basic_monthly, payroll_id=None):
-    # Default EPF contribution values
-    epf_monthly = 0.12 * min(basic_monthly, 15000)
-    epf_annually = epf_monthly * 12
 
     # Initialize benefits with default 'Not Applicable'
     benefits = {
@@ -1495,6 +1492,12 @@ def calculate_pf_contributions(pf_wage, basic_monthly, payroll_id=None):
                 epf_details = payroll.epf_details
 
                 # Check for EPF Employer Contribution inclusion
+                if epf_details.employer_contribution_rate == "12% of Actual PF Wage":
+                    epf_monthly = 0.12 * basic_monthly
+                    epf_annually = epf_monthly * 12
+                else:
+                    epf_monthly = 0.12 * min(basic_monthly, 15000)
+                    epf_annually = epf_monthly * 12
                 if epf_details.include_employer_contribution_in_ctc:
                     benefits["EPF Employer Contribution"] = {
                         "monthly": epf_monthly,
@@ -1595,7 +1598,10 @@ def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enab
             hasattr(payroll, 'epf_details') and payroll.epf_details and
             payroll.epf_details.include_employer_contribution_in_ctc
         ):
-            epf_monthly = 0.12 * min(basic_monthly, 15000)
+            if payroll.epf_details.employee_contribution_rate == "12% of Actual PF Wage":
+                epf_monthly = 0.12 * basic_monthly
+            else:
+                epf_monthly = 0.12 * min(basic_monthly, 15000)
             deductions["EPF Employee Contribution"] = {
                 "monthly": epf_monthly,
                 "annually": epf_monthly * 12,
@@ -1791,7 +1797,7 @@ def calculate_payroll(request):
             monthly_gross_salary = gross_salary / 12
 
             # Calculate statutory deductions
-            esi_enabled = employee.statutory_components.get("esi_enabled", False)
+            # esi_enabled = employee.statutory_components.get("esi_enabled", False)
             statutory_deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly,
                                                     monthly_gross_salary, pt_enabled, data.get("payroll"), esi_enabled)
 
