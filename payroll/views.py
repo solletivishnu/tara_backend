@@ -3576,7 +3576,11 @@ def detail_employee_monthly_salary(request):
                     prorated_component = (component_amount * total_working_days) / attendance.total_days_of_month
                     epf_eligible_total += prorated_component
 
-            epf_base = min(epf_eligible_total, 15000)
+            payroll = PayrollOrg.objects.get(id=payroll_id)
+            if payroll.epf_details.employee_contribution_rate == "12% of Actual PF Wage":
+                epf_base = epf_eligible_total
+            else:
+                epf_base = min(epf_eligible_total, 15000)
             pf = round(epf_base * 0.12, 2)
 
             # PT Calculation
@@ -3638,7 +3642,8 @@ def detail_employee_monthly_salary(request):
                         if name == "epf_employee_contribution" and employee.statutory_components.get("epf_enabled",
                                                                                                      False):
                             full_month_basic = component_amounts['basic']
-                            if full_month_basic > 15000:
+                            if (full_month_basic > 15000 and payroll.epf_details.employee_contribution_rate !=
+                                    "12% of Actual PF Wage"):
                                 epf_contribution = 1800
                             else:
                                 epf_contribution = round(full_month_basic * 0.12, 2)
