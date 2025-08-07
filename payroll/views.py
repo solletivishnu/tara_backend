@@ -34,6 +34,9 @@ from rest_framework.permissions import AllowAny
 from django.utils.dateparse import parse_date
 from rest_framework.permissions import IsAuthenticated
 from usermanagement.usage_limits import get_usage_entry, increment_usage
+from io import BytesIO
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font
 
 
 def upload_to_s3(pdf_data, bucket_name, object_key):
@@ -3836,6 +3839,101 @@ def monthly_salary_details_of_employees(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except EmployeeSalaryHistory.DoesNotExist:
         return Response({"error": "Salary record not found for this employee."}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+def download_salary_report(request):
+    """
+    Downloads salary data with:
+    - Month in report title
+    - Employee ID as first column
+    - Clean column names
+    - Proper Excel formatting
+    """
+    file_format = request.query_params.get('format', 'excel').lower()
+    payroll_id = request.query_params.get('payroll_id')
+    month = int(request.query_params.get('month', date.today().month))
+    financial_year = request.query_params.get('financial_year')
+
+    if not financial_year:
+        return Response({"error": "Financial year is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Get month name
+    month_name = date(1900, month, 1).strftime('%B')
+
+    # Build filters
+    filters = {
+        'month': month,
+        'financial_year': financial_year
+    }
+    if payroll_id:
+        filters['payroll'] = payroll_id
+
+    # Get data
+    queryset = EmployeeSalaryHistory.objects.filter(**filters).order_by('-id')
+    if not queryset.exists():
+        return Response({"error": "No records found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Convert to DataFrame
+    data = EmployeeSalaryHistorySerializer(queryset, many=True).data
+    df = pd.DataFrame(data)
+
+    # Reorder columns - Employee ID first
+    cols = ['associate_id'] + [col for col in df.columns if col not in ['id', 'payroll', 'employee',
+                                                                        'associate_id', 'notes',
+                                                                        'is_active', 'change_date']]
+    df = df[cols]
+
+    # Clean column names
+    def clean_column_name(col):
+        return col.replace('_', ' ').title()
+
+    df.columns = [clean_column_name(col) for col in df.columns]
+
+    # Create response
+    if file_format == 'csv':
+        output = BytesIO()
+        df.to_csv(output, index=False)
+        content_type = 'text/csv'
+        filename = f'{month_name}_Salary_Report.csv'
+        output.seek(0)
+        response = HttpResponse(output, content_type=content_type)
+    else:  # default to Excel
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name=f'{month_name[:3]} Salary')
+            workbook = writer.book
+            worksheet = writer.sheets[f'{month_name[:3]} Salary']
+
+            # Set column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = get_column_letter(column[0].column)
+
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+
+                adjusted_width = min(max_length + 2, 40)
+                worksheet.column_dimensions[column_letter].width = max(adjusted_width, 15)
+
+                # Bold headers
+                for cell in worksheet[1]:
+                    cell.font = Font(bold=True)
+
+            # Freeze header row
+            worksheet.freeze_panes = 'A2'
+
+        content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        filename = f'{month_name}_Salary_Report.xlsx'
+        output.seek(0)
+        response = HttpResponse(output, content_type=content_type)
+
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    return response
 
 
 def calculate_component_amounts(earnings, total_working_days, total_days_of_month):

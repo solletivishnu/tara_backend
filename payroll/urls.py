@@ -173,6 +173,7 @@ urlpatterns = [
 
     path('monthly-salary-details-of-employees', views.monthly_salary_details_of_employees,
          name='monthly-salary-details-of-employees'),
+    path('download-salary-report', views.download_salary_report, name='download-salary-report'),
 
     path('employee-monthly-salary-template', views.employee_monthly_salary_template,
          name='employee-monthly-salary-template'),
