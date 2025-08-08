@@ -4127,7 +4127,7 @@ def get_financial_year_summary(request):
         summary.append({
             "month": datetime(year, month, 1).strftime('%B'),
             "year": year,
-            "ctc": ctc,
+            "ctc": format_with_commas(ctc),
             "status": status,
             "action": action,
         })
@@ -4174,12 +4174,14 @@ def format_with_commas(number):
 
         int_part, dot, dec_part = f"{number:.2f}".partition(".")
 
-        # Apply Indian-style comma formatting to the integer part
+        # Apply Indian-style comma formatting
         if len(int_part) > 3:
-            int_part = int_part[-3:]  # last 3 digits
-            prefix = re.findall(r'\d{1,2}', f"{int(number):,}"[:-3][::-1])
-            if prefix:
-                int_part = ",".join(x[::-1] for x in prefix[::-1]) + "," + int_part
+            # Separate last 3 digits
+            last_three = int_part[-3:]
+            remaining = int_part[:-3]
+            # Add commas every 2 digits in the remaining part
+            remaining = re.sub(r'(\d)(?=(\d{2})+(?!\d))', r'\1,', remaining)
+            int_part = remaining + ',' + last_three if remaining else last_three
 
         formatted = f"{int_part}.{dec_part}"
         if dec_part == "00":
