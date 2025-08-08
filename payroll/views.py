@@ -1532,7 +1532,7 @@ def calculate_pf_contributions(pf_wage, basic_monthly, payroll_id=None):
     return benefits
 
 
-def calculate_esi_contributions(basic_monthly, payroll_id=None):
+def calculate_esi_contributions(basic_monthly, esi_enabled, payroll_id=None):
     # Default response
     benefits = {
         "monthly": "NA",
@@ -1550,7 +1550,7 @@ def calculate_esi_contributions(basic_monthly, payroll_id=None):
         if hasattr(payroll, 'esi_details') and payroll.esi_details:
             esi_details = payroll.esi_details
 
-            if esi_details.employer_contribution and esi_details.include_employer_contribution_in_ctc:
+            if esi_details.employer_contribution and esi_details.include_employer_contribution_in_ctc and esi_enabled:
                 if basic_monthly <= 21000:
                     monthly = 0.0325 * basic_monthly
                     return {
@@ -1781,7 +1781,7 @@ def calculate_payroll(request):
             }
 
             benefits["ESI Employer Contribution"] = calculate_esi_contributions(
-                basic_salary_monthly, data.get("payroll")
+                basic_salary_monthly, esi_enabled, data.get("payroll")
             )
             total_benefits = safe_sum(item["annually"] for item in benefits.values() if isinstance(item, dict))
 
@@ -1806,6 +1806,19 @@ def calculate_payroll(request):
 
             # Get non-statutory deductions from payload
             non_statutory_deductions = {}
+
+
+            # # Handle loan_emi specifically
+            # loan_emi = next((item for item in deductions if item["component_name"] == "loan_emi"), None)
+            # if loan_emi and loan_emi.get("monthly") != "NA":
+            #     non_statutory_deductions["loan_emi"] = {
+            #         "monthly": loan_emi["monthly"],
+            #         "annually": loan_emi["annually"],
+            #         "calculation_type": loan_emi.get("calculation_type", "Fixed")
+            #     }
+            # else:
+            #     non_statutory_deductions["loan_emi"] = "NA"
+
             for item in deductions:
                 if item["component_name"] not in ["EPF Employee Contribution", "ESI Employee Contribution", "PT"]:
                     non_statutory_deductions[item["component_name"]] = {
@@ -1814,16 +1827,7 @@ def calculate_payroll(request):
                         "calculation_type": item.get("calculation_type", "Fixed")
                     }
 
-            # Handle loan_emi specifically
-            loan_emi = next((item for item in deductions if item["component_name"] == "loan_emi"), None)
-            if loan_emi and loan_emi.get("monthly") != "NA":
-                non_statutory_deductions["loan_emi"] = {
-                    "monthly": loan_emi["monthly"],
-                    "annually": loan_emi["annually"],
-                    "calculation_type": loan_emi.get("calculation_type", "Fixed")
-                }
-            else:
-                non_statutory_deductions["loan_emi"] = "NA"
+
 
             # Combine all deductions
             all_deductions = {**statutory_deductions, **non_statutory_deductions}
