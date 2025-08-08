@@ -23,15 +23,19 @@ cp /tmp/http.conf /etc/nginx/sites-available/ || { echo "[AfterInstall] ❌ Fail
 ln -sf /etc/nginx/sites-available/http.conf /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
-# 2. Test & restart Nginx
+# 2. Test Nginx config
 echo "[AfterInstall] 🔍 Validating Nginx config..."
 nginx -t || { echo "[AfterInstall] ❌ Nginx config test failed. Exiting..."; exit 1; }
 
-# Ensure Nginx is running
-systemctl restart nginx
-systemctl is-active --quiet nginx || { echo "[AfterInstall] ❌ Nginx service failed to start. Exiting..."; exit 1; }
+# 3. Check if Nginx is already running and skip restart if it is
+if ! systemctl is-active --quiet nginx; then
+    echo "[AfterInstall] ❌ Nginx is not running. Attempting to restart..."
+    systemctl restart nginx || { echo "[AfterInstall] ❌ Nginx service failed to start. Exiting..."; exit 1; }
+else
+    echo "[AfterInstall] ✅ Nginx is already running. Skipping restart."
+fi
 
-# 3. Ensure .env exists (used by docker-compose or app)
+# 4. Ensure .env exists (used by docker-compose or app)
 echo "[AfterInstall] 🛡️ Ensuring .env exists with secure permissions..."
 touch /home/ubuntu/tara_dev_backend/.env
 chmod 600 /home/ubuntu/tara_dev_backend/.env
