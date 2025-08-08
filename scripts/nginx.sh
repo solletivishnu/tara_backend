@@ -7,7 +7,7 @@ sudo rm -f /etc/nginx/sites-enabled/Tara
 sudo cp /home/ubuntu/TaraFirst/nginx/nginx.conf /etc/nginx/sites-available/Tara
 sudo ln -s /etc/nginx/sites-available/Tara /etc/nginx/sites-enabled/
 
-# Update the main nginx.conf file with the http configuration
+# Update the main nginx
 sudo cp /home/ubuntu/TaraFirst/nginx/nginx.conf /etc/nginx/nginx.conf
 
 # Set ownership and permissions for the proxy directory
