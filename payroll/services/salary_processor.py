@@ -135,6 +135,7 @@ class EmployeeSalaryProcessor:
 
             epf_value = 0
             employee_deductions = 0
+            nps_contribution = 0
             other_deductions = 0
             pt_set = False
             other_deductions_breakdown = []
@@ -161,6 +162,8 @@ class EmployeeSalaryProcessor:
                     prorated = prorate(value)
                     other_deductions += prorated
                     if prorated > 0:
+                        if name == "nps_contribution":
+                            nps_contribution = round(prorate(value))
                         other_deductions_breakdown.append({name: round(prorated, 2)})
 
             total_deductions = taxes + emi_deduction + employee_deductions + other_deductions + pt_amount + esi
@@ -208,6 +211,7 @@ class EmployeeSalaryProcessor:
                     current_month=current_month,
                     epf_value=epf_value,
                     ept_value=pt_amount,
+                    nps_contribution=nps_contribution,
                     bonus_or_revisions=recalculate_tds
                 )
                 if existing_record:

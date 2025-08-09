@@ -922,8 +922,11 @@ class EmployeeSalaryHistorySerializer(serializers.ModelSerializer):
     department = serializers.SerializerMethodField()
     designation = serializers.SerializerMethodField()
     regime = serializers.SerializerMethodField()
-    pan = serializers.SerializerMethodField()
+    pan_number = serializers.SerializerMethodField()
     associate_id = serializers.CharField(source='employee.associate_id', read_only=True)
+    date_of_joining = serializers.DateField(source='employee.doj', read_only=True, format='%d-%m-%Y')
+    bank_account_number = serializers.CharField(source='employee.employee_bank_details.account_number', read_only=True)
+    bank_ifsc_code = serializers.CharField(source='employee.employee_bank_details.ifsc_code', read_only=True)
 
     class Meta:
         model = EmployeeSalaryHistory
@@ -948,7 +951,7 @@ class EmployeeSalaryHistorySerializer(serializers.ModelSerializer):
         except AttributeError:
             return None
 
-    def get_pan(self, obj):
+    def get_pan_number(self, obj):
         """Fetch PAN from employee's personal details"""
         try:
             return obj.employee.employee_personal_details.pan
