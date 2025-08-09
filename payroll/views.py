@@ -3584,10 +3584,13 @@ def detail_employee_monthly_salary(request):
                     epf_eligible_total += prorated_component
 
             payroll = PayrollOrg.objects.get(id=payroll_id)
-            if payroll.epf_details.employee_contribution_rate == "12% of Actual PF Wage":
-                epf_base = epf_eligible_total
+            if employee.statutory_components.get("epf_enabled", False) and getattr(payroll, "epf_details", None):
+                if payroll.epf_details.employee_contribution_rate == "12% of Actual PF Wage":
+                    epf_base = epf_eligible_total
+                else:
+                    epf_base = min(epf_eligible_total, 15000)
             else:
-                epf_base = min(epf_eligible_total, 15000)
+                epf_base = 0
             pf = round(epf_base * 0.12, 2)
 
             # PT Calculation
@@ -3648,7 +3651,7 @@ def detail_employee_monthly_salary(request):
 
                     if "tax" not in name:
                         if name == "epf_employee_contribution" and employee.statutory_components.get("epf_enabled",
-                                                                                                     False):
+                                                                    False) and getattr(payroll, "epf_details", None):
                             full_month_basic = component_amounts['basic']
                             if (full_month_basic > 15000 and payroll.epf_details.employee_contribution_rate !=
                                     "12% of Actual PF Wage"):
