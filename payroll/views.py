@@ -3637,6 +3637,7 @@ def detail_employee_monthly_salary(request):
             epf_value = 0
             other_deductions = 0
             employee_deductions = 0
+            nps_contribution = 0
             other_deductions_breakdown = []
 
             if salary_record.deductions:
@@ -3668,6 +3669,8 @@ def detail_employee_monthly_salary(request):
                     if all(ex not in name for ex in exclude_deductions):
                         other_deductions += prorate(value)
                     if all(ex not in name for ex in exclude_deductions) and value > 0:
+                        if name == "nps_contribution":
+                            nps_contribution = round(prorate(value))
                         other_deductions_breakdown.append({name: round(prorate(value), 2)})
 
             total_deductions = taxes + emi_deduction + employee_deductions + other_deductions + pt_amount + esi
@@ -3727,6 +3730,7 @@ def detail_employee_monthly_salary(request):
                     current_month=current_month,
                     epf_value=epf_value,
                     ept_value=pt_amount,
+                    nps_contribution=nps_contribution,
                     bonus_or_revisions=recalculate_tds
                 )
 
@@ -3890,7 +3894,21 @@ def download_salary_report(request):
 
     # Clean column names
     def clean_column_name(col):
-        return col.replace('_', ' ').title()
+        # Basic clean: underscores → spaces, title case
+        cleaned = col.replace('_', ' ').title()
+
+        # Acronym replacements
+        acronyms = {
+            "Ifsc": "IFSC",
+            "Pan": "PAN",
+            "Pf": "PF",
+            "Uan": "UAN",
+            "Esi": "ESI"
+        }
+        for wrong, correct in acronyms.items():
+            cleaned = cleaned.replace(wrong, correct)
+
+        return cleaned
 
     df.columns = [clean_column_name(col) for col in df.columns]
 
@@ -4131,7 +4149,7 @@ def get_financial_year_summary(request):
         summary.append({
             "month": datetime(year, month, 1).strftime('%B'),
             "year": year,
-            "ctc": format_with_commas(ctc),
+            "ctc": ctc,
             "status": status,
             "action": action,
         })
