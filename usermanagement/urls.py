@@ -19,7 +19,7 @@ from . import service_views
 from . import service_registration_process
 from . import service_payment
 from . import create_service_request
-from . import service_layer_extarct_place_holder_using_ai
+
 
 urlpatterns = [
     # Registration endpoints
@@ -328,6 +328,5 @@ urlpatterns = [
 
     path("usage-summary/<int:context_id>/", views.get_usage_summary_by_context, name="usage-summary-by-context"),
 
-    path("ai_place_holder_detection/", service_layer_extarct_place_holder_using_ai.ai_detect_placeholders, name="usage-summary")
 
 ]
