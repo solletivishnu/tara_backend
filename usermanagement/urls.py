@@ -19,6 +19,7 @@ from . import service_views
 from . import service_registration_process
 from . import service_payment
 from . import create_service_request
+from . import service_layer_extarct_place_holder_using_ai
 
 urlpatterns = [
     # Registration endpoints
@@ -289,7 +290,7 @@ urlpatterns = [
 
     path('service-payment/create-order/', service_payment.create_razorpay_order_for_services,
          name='create_razorpay_order'),
-    path('service-payment/webhook/', service_payment.unified_razorpay_webhook, name='service_razorpay_webhook'),
+    path('service-payment/webhooks/', service_payment.unified_razorpay_webhook, name='service_razorpay_webhook'),
 
     path('service-request/create/', create_service_request.create_new_service_request, name='create-service-request'),
 
@@ -326,5 +327,7 @@ urlpatterns = [
     path('business-logo/<int:pk>/', other_factors.business_logo_detail, name='business_logo_detail'),
 
     path("usage-summary/<int:context_id>/", views.get_usage_summary_by_context, name="usage-summary-by-context"),
+
+    path("ai_place_holder_detection/", service_layer_extarct_place_holder_using_ai.ai_detect_placeholders, name="usage-summary")
 
 ]
