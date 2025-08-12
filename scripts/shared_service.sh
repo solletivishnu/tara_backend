@@ -28,7 +28,7 @@ services:
     container_name: redis_shared
     restart: always
     ports:
-      - "6379:6379"
+      - "6380:6379"
     networks:
       - taranet
 
