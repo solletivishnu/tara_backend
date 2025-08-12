@@ -2343,7 +2343,7 @@ def employee_tds_list(request):
                 "associate_id": record["associate_id"],
                 "employee_name": record["employee_name"],
                 "regime": record["regime"],
-                "pan": record["pan"],
+                "pan": record["pan_number"],
                 "tds_ytd": round(record["tds_ytd"], 2) if record["tds_ytd"] is not None else 0,
                 "tds": round(record["tds"], 2) if record["tds"] is not None else 0,
                 "annual_tds": round(record["annual_tds"], 2) if record["annual_tds"] is not None else 0,
@@ -2847,7 +2847,7 @@ def payroll_advance_loans(request):
         loans = AdvanceLoan.objects.filter(
             employee__payroll=payroll_id,
             start_month__lte=selected_month,  # Loan must have started before or in the selected month
-            end_month__gte=selected_month     # Loan must end after or in the selected month
+            end_month__gt=selected_month     # Loan must end after or in the selected month
         )
 
         if not loans.exists():
