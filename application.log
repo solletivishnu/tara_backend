@@ -1,0 +1,124 @@
+2025-08-07 11:33:12,866 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 11:33:12,866 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 11:53:04,802 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 11:53:04,802 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 11:53:10,697 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 11:56:14,848 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 11:56:14,848 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 11:56:17,886 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 12:26:17,887 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 12:26:17,887 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 12:26:22,408 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 12:26:22,408 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 12:26:27,152 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 12:38:17,429 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 12:38:17,429 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 12:38:24,610 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 12:38:24,610 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 12:38:28,176 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 12:38:47,640 django.request WARNING  Unauthorized: /payroll/employee-monthly-salary-template
+2025-08-07 12:38:47,640 django.request WARNING  Unauthorized: /payroll/employee-monthly-salary-template
+2025-08-07 12:38:47,640 django.server WARNING  "GET /payroll/employee-monthly-salary-template?employee_id=26&month=4&financial_year=2025-2026&year=2025 HTTP/1.1" 401 183
+2025-08-07 12:38:47,640 django.server WARNING  "GET /payroll/employee-monthly-salary-template?employee_id=26&month=4&financial_year=2025-2026&year=2025 HTTP/1.1" 401 183
+2025-08-07 12:39:33,136 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=26&month=4&financial_year=2025-2026&year=2025 HTTP/1.1" 200 44
+2025-08-07 12:39:33,136 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=26&month=4&financial_year=2025-2026&year=2025 HTTP/1.1" 200 44
+2025-08-07 12:40:26,612 django.request ERROR    Internal Server Error: /payroll/employee-monthly-salary-template
+2025-08-07 12:40:26,612 django.request ERROR    Internal Server Error: /payroll/employee-monthly-salary-template
+2025-08-07 12:40:26,613 django.server ERROR    "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 500 291
+2025-08-07 12:40:26,613 django.server ERROR    "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 500 291
+2025-08-07 12:52:27,121 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 12:52:27,121 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 12:52:49,108 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 12:53:17,037 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 29757
+2025-08-07 12:53:17,037 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 29757
+2025-08-07 12:59:11,393 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31074
+2025-08-07 12:59:11,393 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31074
+2025-08-07 13:05:03,874 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31074
+2025-08-07 13:05:03,874 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31074
+2025-08-07 13:05:35,883 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31085
+2025-08-07 13:05:35,883 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31085
+2025-08-07 13:08:28,254 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:08:28,254 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:08:37,424 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:08:37,424 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:08:40,636 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 13:08:48,131 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\generate_salary_upload_template.py changed, reloading.
+2025-08-07 13:08:48,131 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\generate_salary_upload_template.py changed, reloading.
+2025-08-07 13:08:50,592 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:08:50,592 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:08:52,314 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 13:09:53,401 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:09:53,401 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:09:55,884 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:09:55,884 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:09:57,643 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 13:10:23,600 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:10:23,600 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:10:26,415 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:10:26,415 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:10:28,709 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 13:23:27,495 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:23:27,495 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:23:29,726 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 13:24:53,155 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 29757
+2025-08-07 13:24:53,155 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 29757
+2025-08-07 13:25:44,194 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 29757
+2025-08-07 13:25:44,194 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 29757
+2025-08-07 13:28:20,240 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31406
+2025-08-07 13:28:20,240 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31406
+2025-08-07 13:28:37,689 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31406
+2025-08-07 13:28:37,689 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31406
+2025-08-07 13:29:45,358 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:29:45,358 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:30:01,822 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:30:01,822 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:30:04,166 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 13:32:35,045 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:32:35,045 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 13:32:37,614 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:32:37,614 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 13:32:39,260 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 13:32:55,935 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31406
+2025-08-07 13:32:55,935 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31406
+2025-08-07 16:34:18,568 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 16:34:18,568 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 16:34:22,871 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 16:35:20,540 django.request ERROR    Internal Server Error: /payroll/employee-monthly-salary-template
+2025-08-07 16:35:20,540 django.request ERROR    Internal Server Error: /payroll/employee-monthly-salary-template
+2025-08-07 16:35:20,542 django.server ERROR    "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 500 66
+2025-08-07 16:35:20,542 django.server ERROR    "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 500 66
+2025-08-07 16:41:45,449 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 16:41:45,449 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 16:41:48,890 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 16:41:48,890 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 16:41:51,233 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 16:42:21,120 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31385
+2025-08-07 16:42:21,120 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31385
+2025-08-07 16:45:33,239 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31393
+2025-08-07 16:45:33,239 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31393
+2025-08-07 16:52:13,490 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 16:52:13,490 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 16:52:16,849 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 16:52:16,849 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 16:52:22,148 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 16:54:31,873 django.request ERROR    Internal Server Error: /payroll/employee-monthly-salary-template
+2025-08-07 16:54:31,873 django.request ERROR    Internal Server Error: /payroll/employee-monthly-salary-template
+2025-08-07 16:54:31,877 django.server ERROR    "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 500 82
+2025-08-07 16:54:31,877 django.server ERROR    "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 500 82
+2025-08-07 16:55:42,478 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31515
+2025-08-07 16:55:42,478 django.server INFO     "GET /payroll/employee-monthly-salary-template?employee_id=119&month=7&financial_year=2025-2026&year=2025 HTTP/1.1" 200 31515
+2025-08-07 17:06:59,600 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 17:06:59,600 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 17:07:05,226 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 17:07:05,226 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 17:07:07,366 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 17:08:23,725 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 17:08:23,725 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\payroll\views.py changed, reloading.
+2025-08-07 17:08:30,191 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 17:08:30,191 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 17:08:35,551 botocore.credentials INFO     Found credentials in environment variables.
+2025-08-07 17:59:08,335 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\usermanagement\other_factors.py changed, reloading.
+2025-08-07 17:59:08,335 django.utils.autoreload INFO     C:\Projects\Tara\tara_backend\usermanagement\other_factors.py changed, reloading.
+2025-08-07 17:59:14,186 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 17:59:14,186 django.utils.autoreload INFO     Watching for file changes with StatReloader
+2025-08-07 17:59:17,377 botocore.credentials INFO     Found credentials in environment variables.

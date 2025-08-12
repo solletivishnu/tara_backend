@@ -1,45 +1,37 @@
-version: '3.8'
-
 services:
-  redis:
-    image: ${REDIS_IMAGE}
-    container_name: redis
-    restart: always
-    env_file:
-      - .env
-    ports:
-      - "6379:6379"
-    networks:
-      - taranet
-
   backend:
     image: ${DOCKER_IMAGE}:${IMAGE_TAG}
-    container_name: tara_backend_dev
+    container_name: tara_backend_prod_${DEPLOY_SLOT}
+    healthcheck:
+      test: curl -f http://localhost:8000/user_management/happy-coder/ || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
     restart: always
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT}:8000"
     env_file:
       - .env
     volumes:
       - backend_logs:/app/logs
     command: >
-      uvicorn Tara.asgi:application --host 0.0.0.0 --port 8000
-    depends_on:
-      - redis
+      gunicorn Tara.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers 2
+      --access-logfile /app/logs/access.log
+      --error-logfile /app/logs/error.log
     networks:
       - taranet
 
   celery_worker:
     image: ${DOCKER_IMAGE}:${IMAGE_TAG}
-    container_name: celery_worker
+    container_name: celery_worker_${DEPLOY_SLOT}
     command: celery -A Tara worker --loglevel=info --pool=solo
-    depends_on:
-      - redis
     restart: always
     environment:
       - PYTHONPATH=/app
-      - DJANGO_SETTINGS_MODULE=Tara.settings.default               # ✅ Important
-      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DJANGO_SETTINGS_MODULE=Tara.settings.default
     env_file:
       - .env
     networks:
@@ -47,15 +39,12 @@ services:
 
   celery_beat:
     image: ${DOCKER_IMAGE}:${IMAGE_TAG}
-    container_name: celery_beat
+    container_name: celery_beat_${DEPLOY_SLOT}
     command: celery -A Tara beat --loglevel=info
-    depends_on:
-      - redis
     restart: always
     environment:
       - PYTHONPATH=/app
       - DJANGO_SETTINGS_MODULE=Tara.settings.default
-      - CELERY_BROKER_URL=redis://redis:6379/0
     env_file:
       - .env
     networks:
@@ -64,7 +53,7 @@ services:
 volumes:
   backend_logs:
 
-
 networks:
   taranet:
-    driver: bridge
+    external: true
+    name: taranet

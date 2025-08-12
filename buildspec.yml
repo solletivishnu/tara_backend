@@ -10,7 +10,6 @@ env:
     DOCKER_HUB_USERNAME: /tara_backend/docker-credentials/username
     DOCKER_HUB_PASSWORD: /tara_backend/docker-credentials/password
     DOCKER_IMAGE_NAME: /tara_backend/docker/image_name
-    REDIS_IMAGE: /tara_backend/docker/redis_image
 
 phases:
   install:
@@ -24,12 +23,25 @@ phases:
     commands:
       - echo "[PreBuild] Logging in to Docker Hub..."
       - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
-      - export IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+
+      # Determine slot and port
+      - CURRENT_SLOT=$(aws ssm get-parameter --name "/tara_backend/current_slot" --query "Parameter.Value" --output text || echo "blue")
+      - if [ "$CURRENT_SLOT" = "blue" ]; then
+          NEXT_SLOT="green";
+          NEXT_PORT="8002";
+          echo "Switching from BLUE to GREEN deployment";
+        else
+          NEXT_SLOT="blue";
+          NEXT_PORT="8001";
+          echo "Switching from GREEN to BLUE deployment";
+        fi
+
+      # Construct full tag with slot
+      - export IMAGE_TAG="$COMMIT_HASH-$NEXT_SLOT"
       - export DOCKER_IMAGE=$DOCKER_IMAGE_NAME
-      - export REDIS_IMAGE=$REDIS_IMAGE
       - echo "DOCKER_IMAGE=$DOCKER_IMAGE"
       - echo "IMAGE_TAG=$IMAGE_TAG"
-      - echo "REDIS_IMAGE=$REDIS_IMAGE"
 
   build:
     commands:
@@ -40,10 +52,13 @@ phases:
 
   post_build:
     commands:
-      - echo "[PostBuild] Generating image_vars.env..."
+      - echo "[PostBuild] Updating SSM and writing env file..."
+      - aws ssm put-parameter --name "/tara_backend/current_slot" --value "$NEXT_SLOT" --type "String" --overwrite
       - echo "DOCKER_IMAGE=$DOCKER_IMAGE" > image_vars.env
       - echo "IMAGE_TAG=$IMAGE_TAG" >> image_vars.env
-      - echo "REDIS_IMAGE=$REDIS_IMAGE" >> image_vars.env
+      - echo "DEPLOY_SLOT=$NEXT_SLOT" >> image_vars.env
+      - echo "BACKEND_PORT=$NEXT_PORT" >> image_vars.env
+      - echo "PREVIOUS_SLOT=$CURRENT_SLOT" >> image_vars.env
       - chmod 644 image_vars.env
 
 artifacts:
