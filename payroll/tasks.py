@@ -16,3 +16,5 @@ def process_all_orgs_salary_task():
     print(f"[INFO] Running salary processing for all orgs: FY={financial_year}, Month={month}")
     AllOrgPayrollProcessor(financial_year, month).run()
     print("[INFO] Payroll processing completed.")
+
+
