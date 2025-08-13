@@ -14,3 +14,9 @@ class PayrollConfig(AppConfig):
                 print("✅ Salary schedule synced in payroll app.")
             except Exception as e:
                 print(f"⚠️ Failed to sync salary schedule in payroll app: {e}")
+        # Import signals here so they are connected
+        try:
+            import payroll.signals
+            print("✅ Payroll signals imported.")
+        except Exception as e:
+            print(f"⚠️ Failed to import payroll signals: {e}")

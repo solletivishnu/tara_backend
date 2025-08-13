@@ -37,7 +37,11 @@ from usermanagement.usage_limits import get_usage_entry, increment_usage
 from io import BytesIO
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
-
+import tempfile
+from botocore.client import Config
+from django.core.cache import cache
+from django.core.files.base import ContentFile
+from Tara.settings.default import AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_PRIVATE_BUCKET_NAME
 
 def upload_to_s3(pdf_data, bucket_name, object_key):
     try:
@@ -1598,9 +1602,7 @@ def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enab
 
         # --- EPF Employee Contribution ---
         if (
-            hasattr(payroll, 'epf_details') and payroll.epf_details and
-            payroll.epf_details.include_employer_contribution_in_ctc
-        ):
+            hasattr(payroll, 'epf_details') and payroll.epf_details):
             if payroll.epf_details.employee_contribution_rate == "12% of Actual PF Wage":
                 epf_monthly = 0.12 * basic_monthly
             else:
@@ -4160,33 +4162,50 @@ def get_financial_year_summary(request):
     return JsonResponse({"financial_year_summary": summary}, status=200)
 
 
+# class DocumentGenerator:
+#     def __init__(self, request, invoicing_profile, context):
+#         self.request = request
+#         self.invoicing_profile = invoicing_profile
+#         self.context = context
+#
+#     def generate_document(self, template_name):
+#         try:
+#             # Render the HTML template with the context data
+#             html_content = render_to_string(template_name, self.context)
+#
+#             # Generate the PDF from the HTML content using pdfkit
+#             try:
+#                 pdf = pdfkit.from_string(html_content, False)  # False to get the PDF as a byte string
+#                 print("PDF generation successful.")
+#             except Exception as pdf_error:
+#                 print(f"Error in generating PDF: {pdf_error}")
+#                 raise
+#
+#             # Return the generated PDF as an HTTP response
+#             response = HttpResponse(pdf, content_type='application/pdf')
+#             response['Content-Disposition'] = 'inline; filename="salary_template.pdf"'
+#             print(response)
+#             return response
+#         except Exception as e:
+#             print(f"Error generating document: {e}")
+#             raise
+
+
 class DocumentGenerator:
-    def __init__(self, request, invoicing_profile, context):
-        self.request = request
-        self.invoicing_profile = invoicing_profile
+    """Handles HTML-to-PDF document generation using pdfkit."""
+    def __init__(self, context):
         self.context = context
 
-    def generate_document(self, template_name):
-        try:
-            # Render the HTML template with the context data
-            html_content = render_to_string(template_name, self.context)
+    def generate_pdf_bytes(self, template_name: str) -> bytes:
+        """Render HTML template with context and return PDF as bytes."""
+        html_content = render_to_string(template_name, self.context)
+        return pdfkit.from_string(html_content, False)
 
-            # Generate the PDF from the HTML content using pdfkit
-            try:
-                pdf = pdfkit.from_string(html_content, False)  # False to get the PDF as a byte string
-                print("PDF generation successful.")
-            except Exception as pdf_error:
-                print(f"Error in generating PDF: {pdf_error}")
-                raise
-
-            # Return the generated PDF as an HTTP response
-            response = HttpResponse(pdf, content_type='application/pdf')
-            response['Content-Disposition'] = 'inline; filename="salary_template.pdf"'
-            print(response)
-            return response
-        except Exception as e:
-            print(f"Error generating document: {e}")
-            raise
+    def generate_pdf_file(self, template_name: str, output_path: str) -> str:
+        """Render HTML template with context and save as PDF file."""
+        html_content = render_to_string(template_name, self.context)
+        pdfkit.from_string(html_content, output_path)
+        return output_path
 
 
 import re
@@ -4412,137 +4431,356 @@ def number_to_words_in_indian_format(number):
 #
 #     except Exception as e:
 #         return Response({'error': str(e)}, status=500)
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def employee_monthly_salary_template(request):
+#     try:
+#         today = date.today()
+#         current_day = today.day
+#         month = int(request.query_params.get("month", today.month))
+#         year_ = int(request.query_params.get("year", today.year))
+#         financial_year = request.query_params.get("financial_year")
+#         employee_id = request.query_params.get("employee_id")
+#
+#         month_name = calendar.month_abbr[month]
+#
+#         if not financial_year:
+#             return Response({"error": "Financial year is required."}, status=status.HTTP_400_BAD_REQUEST)
+#         if not employee_id:
+#             return Response({"error": "Employee Id is required."}, status=status.HTTP_400_BAD_REQUEST)
+#         if current_day < 26 and month == today.month:
+#             return Response({"message": "Salary processing will be initiated between the 26th and 30th of the month."},
+#                             status=status.HTTP_200_OK)
+#
+#         try:
+#             salary_history = EmployeeSalaryHistory.objects.get(
+#                 employee_id=employee_id,
+#                 financial_year=financial_year,
+#                 month=month
+#             )
+#         except EmployeeSalaryHistory.DoesNotExist:
+#             return Response({"message": "No salary history record found"}, status=status.HTTP_200_OK)
+#
+#         bonus_incentives = BonusIncentive.objects.filter(
+#             employee_id=employee_id,
+#             month=month,
+#             financial_year=financial_year
+#         )
+#         total_bonus_amount = bonus_incentives.aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+#
+#         net_pay_total = salary_history.net_salary + total_bonus_amount
+#
+#         total_in_words = number_to_words_in_indian_format(net_pay_total).title() + " Rupees Only"
+#
+#         # === Earnings Components ===
+#         earnings_components = {
+#             "Basic": salary_history.basic_salary,
+#             "House Rent Allowance": salary_history.hra,
+#             "Conveyance Allowance": salary_history.conveyance_allowance,
+#             "Travelling Allowance": salary_history.travelling_allowance,
+#             "Commission": salary_history.commission,
+#             "Children Education Allowance": salary_history.children_education_allowance,
+#             "Overtime Allowance": salary_history.overtime_allowance,
+#             "Transport Allowance": salary_history.transport_allowance,
+#             "Special Allowance": salary_history.special_allowance,
+#             "Bonus": salary_history.bonus,
+#         }
+#
+#         for item in getattr(salary_history, 'other_earnings_breakdown', []):
+#             for name, amount in item.items():
+#                 if name and amount:
+#                     earnings_components[name.replace('_', ' ').title()] = amount
+#
+#         earnings_components = {
+#             k: format_with_commas(round(v, 2)) for k, v in earnings_components.items() if v and v > 0
+#         }
+#
+#         # === Deduction Components ===
+#         deduction_components = {
+#             "EPF Contribution": salary_history.epf,
+#             "ESI": salary_history.esi,
+#             "Professional Tax": salary_history.pt,
+#             "Loan EMI": salary_history.loan_emi,
+#             "Income Tax": salary_history.tds,
+#         }
+#
+#         for item in getattr(salary_history, 'other_deductions_breakdown', []):
+#             for name, amount in item.items():
+#                 if name and amount:
+#                     deduction_components[name.replace('_', ' ').title()] = amount
+#
+#         deduction_components = {
+#             k: format_with_commas(round(v, 2)) for k, v in deduction_components.items() if v and v > 0
+#         }
+#
+#         context = {
+#             "company_name": getattr(salary_history.payroll.business, "nameOfBusiness", ""),
+#             "address": f"{getattr(salary_history.payroll, 'filling_address_line1', '')}, "
+#                        f"{getattr(salary_history.payroll, 'filling_address_state', '')}, "
+#                        f"{getattr(salary_history.payroll, 'filling_address_city', '')}, "
+#                        f"{getattr(salary_history.payroll, 'filling_address_pincode', '')}",
+#             "month": month,
+#             "year": year_,
+#             "employee_name": f"{getattr(salary_history.employee, 'first_name', '')} "
+#                              f"{getattr(salary_history.employee, 'last_name', '')}",
+#             "designation": getattr(salary_history.employee.designation, "designation_name", ""),
+#             "employee_id": getattr(salary_history.employee, "associate_id", ""),
+#             "doj": getattr(salary_history.employee, "doj", ""),
+#             "pay_period": f"{month_name} {year_}",
+#             "pay_date": "",
+#             "bank_account_number": getattr(
+#                 getattr(salary_history.employee, 'employee_bank_details', None), 'account_number', ""
+#             ),
+#             "uan_number": salary_history.employee.statutory_components.get('employee_provident_fund', {}).get('uan', "")
+#             if hasattr(salary_history.employee, 'statutory_components') else "",
+#
+#             "components": earnings_components,
+#             "deductions": deduction_components,
+#
+#             "gross_earnings": format_with_commas(salary_history.earned_salary),
+#             "bonus_incentive_format": True if total_bonus_amount > 0 else False,
+#             "bonus_incentive": format_with_commas(total_bonus_amount),
+#             "net_pay": format_with_commas(net_pay_total),
+#             "amount_in_words": total_in_words,
+#             "paid_days": salary_history.paid_days,
+#             "lop_days": salary_history.lop,
+#
+#             "total_deduction": format_with_commas(salary_history.total_deductions),
+#             "loan_emi": format_with_commas(salary_history.loan_emi),
+#             "salary_adjustments": 0,
+#
+#             "logo": getattr(getattr(salary_history.payroll.business, 'logos', None), 'logo', None).url
+#             if getattr(getattr(salary_history.payroll.business, 'logos', None), 'logo', None)
+#             else None,
+#         }
+#
+#         template_name = "salary_template.html"
+#         document_generator = DocumentGenerator(request, salary_history, context)
+#         pdf_response = document_generator.generate_document(template_name)
+#
+#         return pdf_response
+#
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=500)
+
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def employee_monthly_salary_template(request):
     try:
         today = date.today()
-        current_day = today.day
         month = int(request.query_params.get("month", today.month))
         year_ = int(request.query_params.get("year", today.year))
         financial_year = request.query_params.get("financial_year")
         employee_id = request.query_params.get("employee_id")
 
-        month_name = calendar.month_abbr[month]
-
         if not financial_year:
-            return Response({"error": "Financial year is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Financial year is required."}, status=400)
         if not employee_id:
-            return Response({"error": "Employee Id is required."}, status=status.HTTP_400_BAD_REQUEST)
-        if current_day < 26 and month == today.month:
-            return Response({"message": "Salary processing will be initiated between the 26th and 30th of the month."},
-                            status=status.HTTP_200_OK)
+            return Response({"error": "Employee Id is required."}, status=400)
 
-        try:
-            salary_history = EmployeeSalaryHistory.objects.get(
-                employee_id=employee_id,
-                financial_year=financial_year,
-                month=month
+        # Restrict processing before 26th
+        if today.day < 26 and month == today.month:
+            return Response(
+                {"message": "Salary processing will be initiated between the 26th and 30th of the month."},
+                status=200
             )
-        except EmployeeSalaryHistory.DoesNotExist:
-            return Response({"message": "No salary history record found"}, status=status.HTTP_200_OK)
 
-        bonus_incentives = BonusIncentive.objects.filter(
-            employee_id=employee_id,
-            month=month,
-            financial_year=financial_year
+        # Cache keys
+
+
+        # S3 setup
+        # s3 = boto3.client("s3", region_name="ap-south-1", config=Config(signature_version="s3v4"))
+        s3 = boto3.client(
+            's3',
+            region_name=AWS_REGION,
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY
         )
-        total_bonus_amount = bonus_incentives.aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+        bucket_name = AWS_PRIVATE_BUCKET_NAME
+        object_key = f"salary_slips/{employee_id}/{financial_year}/{month}_{year_}.pdf"
 
-        net_pay_total = salary_history.net_salary + total_bonus_amount
+        # Fetch salary history
+        salary_history = EmployeeSalaryHistory.objects.select_related("payroll").filter(
+            employee_id=employee_id,
+            financial_year=financial_year,
+            month=month
+        ).first()
 
-        total_in_words = number_to_words_in_indian_format(net_pay_total).title() + " Rupees Only"
+        if not salary_history:
+            return Response({"message": "No salary history record found"}, status=200)
 
-        # === Earnings Components ===
-        earnings_components = {
-            "Basic": salary_history.basic_salary,
-            "House Rent Allowance": salary_history.hra,
-            "Conveyance Allowance": salary_history.conveyance_allowance,
-            "Travelling Allowance": salary_history.travelling_allowance,
-            "Commission": salary_history.commission,
-            "Children Education Allowance": salary_history.children_education_allowance,
-            "Overtime Allowance": salary_history.overtime_allowance,
-            "Transport Allowance": salary_history.transport_allowance,
-            "Special Allowance": salary_history.special_allowance,
-            "Bonus": salary_history.bonus,
-        }
+        cache_pdf_key = f"salary_slip_url_{salary_history.employee_id}_{month}_{year_}_{financial_year}"
+        cache_url_key = f"salary_slip_url:{salary_history.employee_id}:{financial_year}:{month}:{year_}"
 
-        for item in getattr(salary_history, 'other_earnings_breakdown', []):
-            for name, amount in item.items():
-                if name and amount:
-                    earnings_components[name.replace('_', ' ').title()] = amount
 
-        earnings_components = {
-            k: format_with_commas(round(v, 2)) for k, v in earnings_components.items() if v and v > 0
-        }
+        workflow = PayrollWorkflow.objects.get(payroll=salary_history.payroll, month=month,
+                                              financial_year=financial_year)
 
-        # === Deduction Components ===
-        deduction_components = {
-            "EPF Contribution": salary_history.epf,
-            "ESI": salary_history.esi,
-            "Professional Tax": salary_history.pt,
-            "Loan EMI": salary_history.loan_emi,
-            "Income Tax": salary_history.tds,
-        }
+        # ---------------- CASE 1: Payroll locked ----------------
+        if workflow.lock_payroll:
+            # Serve directly from cache if PDF bytes are present
+            cached_pdf = cache.get(cache_pdf_key)
+            if cached_pdf:
+                response = HttpResponse(cached_pdf, content_type='application/pdf')
+                response['Content-Disposition'] = f'inline; filename="{month}_{year_}_payslip.pdf"'
+                # optional: expose cached presigned URL if present
+                cached_url = cache.get(cache_url_key)
+                if cached_url:
+                    response['X-Payslip-URL'] = cached_url
+                return response
 
-        for item in getattr(salary_history, 'other_deductions_breakdown', []):
-            for name, amount in item.items():
-                if name and amount:
-                    deduction_components[name.replace('_', ' ').title()] = amount
+            # Otherwise, try from S3
+            try:
+                s3.head_object(Bucket=bucket_name, Key=object_key)
+                s3_obj = s3.get_object(Bucket=bucket_name, Key=object_key)
+                pdf_bytes = s3_obj['Body'].read()
 
-        deduction_components = {
-            k: format_with_commas(round(v, 2)) for k, v in deduction_components.items() if v and v > 0
-        }
+                # Store PDF bytes in cache
+                cache.set(cache_pdf_key, pdf_bytes, timeout=7200)
 
-        context = {
-            "company_name": getattr(salary_history.payroll.business, "nameOfBusiness", ""),
-            "address": f"{getattr(salary_history.payroll, 'filling_address_line1', '')}, "
-                       f"{getattr(salary_history.payroll, 'filling_address_state', '')}, "
-                       f"{getattr(salary_history.payroll, 'filling_address_city', '')}, "
-                       f"{getattr(salary_history.payroll, 'filling_address_pincode', '')}",
-            "month": month,
-            "year": year_,
-            "employee_name": f"{getattr(salary_history.employee, 'first_name', '')} "
-                             f"{getattr(salary_history.employee, 'last_name', '')}",
-            "designation": getattr(salary_history.employee.designation, "designation_name", ""),
-            "employee_id": getattr(salary_history.employee, "associate_id", ""),
-            "doj": getattr(salary_history.employee, "doj", ""),
-            "pay_period": f"{month_name} {year_}",
-            "pay_date": "",
-            "bank_account_number": getattr(
-                getattr(salary_history.employee, 'employee_bank_details', None), 'account_number', ""
-            ),
-            "uan_number": salary_history.employee.statutory_components.get('employee_provident_fund', {}).get('uan', "")
-            if hasattr(salary_history.employee, 'statutory_components') else "",
+                # Generate presigned URL (optional, if you want to store for future use)
+                signed_url = s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': bucket_name, 'Key': object_key},
+                    ExpiresIn=3600  # 1 hour
+                )
+                cache.set(cache_url_key, signed_url, timeout=7200)
 
-            "components": earnings_components,
-            "deductions": deduction_components,
+                # Return the PDF as before
+                response = HttpResponse(pdf_bytes, content_type='application/pdf')
+                response['Content-Disposition'] = f'inline; filename="{month}_{year_}_payslip.pdf"'
+                response['X-Payslip-URL'] = signed_url  # optional debug/visibility
+                return response
 
-            "gross_earnings": format_with_commas(salary_history.earned_salary),
-            "bonus_incentive_format": True if total_bonus_amount > 0 else False,
-            "bonus_incentive": format_with_commas(total_bonus_amount),
-            "net_pay": format_with_commas(net_pay_total),
-            "amount_in_words": total_in_words,
-            "paid_days": salary_history.paid_days,
-            "lop_days": salary_history.lop,
+            except Exception as e:
+                # If S3 object not found, generate and upload
+                pdf_bytes = generate_payslip_from_history(salary_history, month, year_, financial_year)
+                s3.put_object(
+                    Bucket=bucket_name,
+                    Key=object_key,
+                    Body=pdf_bytes,
+                    ContentType="application/pdf"
+                )
 
-            "total_deduction": format_with_commas(salary_history.total_deductions),
-            "loan_emi": format_with_commas(salary_history.loan_emi),
-            "salary_adjustments": 0,
+                # Cache the PDF
+                cache.set(cache_pdf_key, pdf_bytes, timeout=7200)
 
-            "logo": getattr(getattr(salary_history.payroll.business, 'logos', None), 'logo', None).url
-            if getattr(getattr(salary_history.payroll.business, 'logos', None), 'logo', None)
-            else None,
-        }
+                # Generate presigned URL for the new file
+                signed_url = s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': bucket_name, 'Key': object_key},
+                    ExpiresIn=3600
+                )
+                cache.set(cache_url_key, signed_url, timeout=3600)
 
-        template_name = "salary_template.html"
-        document_generator = DocumentGenerator(request, salary_history, context)
-        pdf_response = document_generator.generate_document(template_name)
+                # Return PDF as before
+                response = HttpResponse(pdf_bytes, content_type='application/pdf')
+                response['Content-Disposition'] = f'inline; filename="{month}_{year_}_payslip.pdf"'
+                response['X-Payslip-URL'] = signed_url  # optional
+                return response
 
-        return pdf_response
+        # ---------------- CASE 2: Payroll not locked ----------------
+        pdf_bytes = generate_payslip_from_history(salary_history, month, year_, financial_year)
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{month}_{year_}_payslip.pdf"'
+        return response
 
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+
+
+def generate_payslip_from_history(salary_history, month, year_, financial_year):
+    """Helper function to prepare context and return PDF bytes."""
+    # Bonus total
+    total_bonus_amount = BonusIncentive.objects.filter(
+        employee_id=salary_history.employee_id,
+        month=month,
+        financial_year=financial_year
+    ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
+
+    net_pay_total = salary_history.net_salary + total_bonus_amount
+    total_in_words = number_to_words_in_indian_format(net_pay_total).title() + " Rupees Only"
+    month_name = calendar.month_abbr[month]
+
+    # Earnings
+    earnings_components = {
+        "Basic": salary_history.basic_salary,
+        "House Rent Allowance": salary_history.hra,
+        "Conveyance Allowance": salary_history.conveyance_allowance,
+        "Travelling Allowance": salary_history.travelling_allowance,
+        "Commission": salary_history.commission,
+        "Children Education Allowance": salary_history.children_education_allowance,
+        "Overtime Allowance": salary_history.overtime_allowance,
+        "Transport Allowance": salary_history.transport_allowance,
+        "Special Allowance": salary_history.special_allowance,
+        "Bonus": salary_history.bonus,
+    }
+    for item in getattr(salary_history, 'other_earnings_breakdown', []):
+        for name, amount in item.items():
+            if name and amount:
+                earnings_components[name.replace('_', ' ').title()] = amount
+    earnings_components = {k: format_with_commas(round(v, 2)) for k, v in earnings_components.items() if v and v > 0}
+
+    # Deductions
+    deduction_components = {
+        "EPF Contribution": salary_history.epf,
+        "ESI": salary_history.esi,
+        "Professional Tax": salary_history.pt,
+        "Loan EMI": salary_history.loan_emi,
+        "Income Tax": salary_history.tds,
+    }
+    for item in getattr(salary_history, 'other_deductions_breakdown', []):
+        for name, amount in item.items():
+            if name and amount:
+                deduction_components[name.replace('_', ' ').title()] = amount
+    deduction_components = {k: format_with_commas(round(v, 2)) for k, v in deduction_components.items() if v and v > 0}
+
+    # PDF context
+    context = {
+        "company_name": getattr(salary_history.payroll.business, "nameOfBusiness", ""),
+        "address": f"{getattr(salary_history.payroll, 'filling_address_line1', '')}, "
+                   f"{getattr(salary_history.payroll, 'filling_address_state', '')}, "
+                   f"{getattr(salary_history.payroll, 'filling_address_city', '')}, "
+                   f"{getattr(salary_history.payroll, 'filling_address_pincode', '')}",
+        "month": month,
+        "year": year_,
+        "employee_name": f"{getattr(salary_history.employee, 'first_name', '')} "
+                         f"{getattr(salary_history.employee, 'last_name', '')}",
+        "designation": getattr(salary_history.employee.designation, "designation_name", ""),
+        "employee_id": getattr(salary_history.employee, "associate_id", ""),
+        "doj": getattr(salary_history.employee, "doj", ""),
+        "pay_period": f"{month_name} {year_}",
+        "pay_date": "",
+        "bank_account_number": getattr(
+            getattr(salary_history.employee, 'employee_bank_details', None), 'account_number', ""
+        ),
+        "uan_number": salary_history.employee.statutory_components.get('employee_provident_fund', {}).get('uan', "")
+        if hasattr(salary_history.employee, 'statutory_components') else "",
+        "components": earnings_components,
+        "deductions": deduction_components,
+        "gross_earnings": format_with_commas(salary_history.earned_salary),
+        "bonus_incentive_format": total_bonus_amount > 0,
+        "bonus_incentive": format_with_commas(total_bonus_amount),
+        "net_pay": format_with_commas(net_pay_total),
+        "amount_in_words": total_in_words,
+        "paid_days": salary_history.paid_days,
+        "lop_days": salary_history.lop,
+        "total_deduction": format_with_commas(salary_history.total_deductions),
+        "loan_emi": format_with_commas(salary_history.loan_emi),
+        "salary_adjustments": 0,
+        "logo": getattr(getattr(salary_history.payroll.business, 'logos', None), 'logo', None).url
+        if getattr(getattr(salary_history.payroll.business, 'logos', None), 'logo', None) else None,
+    }
+
+    document_generator = DocumentGenerator(context)
+    return document_generator.generate_pdf_bytes("salary_template.html")
+
+
+
+
 
 
 @api_view(['GET'])
