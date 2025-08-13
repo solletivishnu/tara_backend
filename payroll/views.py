@@ -4614,7 +4614,7 @@ def employee_monthly_salary_template(request):
             return Response({"message": "No salary history record found"}, status=200)
 
         cache_pdf_key = f"salary_slip_url_{salary_history.employee_id}_{month}_{year_}_{financial_year}"
-        cache_url_key = f"salary_slip_url:{salary_history.employee_id}:{financial_year}:{month}:{year_}"
+        cache_url_key = f"salary_slip_url_{salary_history.employee_id}_{month}_{year_}_{financial_year}"
 
 
         workflow = PayrollWorkflow.objects.get(payroll=salary_history.payroll, month=month,
