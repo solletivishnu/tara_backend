@@ -4571,7 +4571,7 @@ def employee_monthly_salary_template(request):
     try:
         today = date.today()
         month = int(request.query_params.get("month", today.month))
-        year_ = int(request.query_params.get("year", today.year))
+        year_ = int(request.query_params.get("year"))
         financial_year = request.query_params.get("financial_year")
         employee_id = request.query_params.get("employee_id")
 
@@ -4579,6 +4579,8 @@ def employee_monthly_salary_template(request):
             return Response({"error": "Financial year is required."}, status=400)
         if not employee_id:
             return Response({"error": "Employee Id is required."}, status=400)
+        if financial_year:
+            year_ = int(financial_year.split("-")[0]) if 4 <= int(month) <= 12 else int(financial_year.split("-")[1])
 
         # Restrict processing before 26th
         if today.day < 26 and month == today.month:
