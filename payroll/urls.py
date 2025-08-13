@@ -12,6 +12,7 @@ from . import leavemanagement
 from . import employee_education
 from . import holidays
 from . import employee_salary_details
+from . import epf_reports
 # from . import employee_dashboard
 
 urlpatterns = [
@@ -282,4 +283,9 @@ urlpatterns = [
 
 
     # path('tds-summary/', employee_dashboard.tds_summary_view, name='tds-summary-view'),
+
+    path('epf/template/', epf_reports.download_epf_template, name='epf-template-download'),
+
+    # Convert Filled Excel to Text
+    path('epf/convert/', epf_reports.convert_epf_to_text, name='epf-excel-to-text'),
 ]

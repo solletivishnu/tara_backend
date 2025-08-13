@@ -61,7 +61,7 @@ def manual_check_in(request):
     async_to_sync(channel_layer.group_send)(
         group_name,
         {
-            'type': 'send_notification',
+            'type': 'send_attendance_update',
             'message': f'{employee_credentials.employee.first_name} {employee_credentials.employee.last_name} '
                        f'checked in at {new_log.check_in.strftime("%I:%M %p")}'
         }
