@@ -4188,20 +4188,24 @@ def get_financial_year_summary(request):
 #             raise
 
 
+from weasyprint import HTML
+from django.template.loader import render_to_string
+
 class DocumentGenerator:
-    """Handles HTML-to-PDF document generation using pdfkit."""
+    """Handles HTML-to-PDF document generation using WeasyPrint."""
     def __init__(self, context):
         self.context = context
 
     def generate_pdf_bytes(self, template_name: str) -> bytes:
         """Render HTML template with context and return PDF as bytes."""
         html_content = render_to_string(template_name, self.context)
-        return pdfkit.from_string(html_content, False)
+        pdf_bytes = HTML(string=html_content).write_pdf()
+        return pdf_bytes
 
     def generate_pdf_file(self, template_name: str, output_path: str) -> str:
         """Render HTML template with context and save as PDF file."""
         html_content = render_to_string(template_name, self.context)
-        pdfkit.from_string(html_content, output_path)
+        HTML(string=html_content).write_pdf(output_path)
         return output_path
 
 
