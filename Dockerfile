@@ -3,26 +3,21 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# Install system dependencies including wkhtmltopdf
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libffi-dev \
-    libcairo2 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
     libpq-dev \
     curl \
-    git \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
-
-# Install wkhtmltopdf separately with its dependencies
-RUN apt-get update && apt-get install -y \
+    wget \
     xfonts-75dpi \
     xfonts-base \
-    && wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.bullseye_amd64.deb \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install wkhtmltopdf
+RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.bullseye_amd64.deb \
     && dpkg -i wkhtmltox_0.12.6.1-2.bullseye_amd64.deb \
-    && apt-get install -f \
+    || apt-get install -y -f \
     && rm wkhtmltox_0.12.6.1-2.bullseye_amd64.deb
 
 # Create virtual environment
@@ -43,18 +38,15 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcairo2 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
     libpq5 \
     xfonts-75dpi \
     xfonts-base \
+    libgdk-pixbuf-2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install wkhtmltopdf separately
+# Copy wkhtmltopdf from builder
 COPY --from=builder /usr/local/bin/wkhtmltopdf /usr/local/bin/
 COPY --from=builder /usr/local/bin/wkhtmltoimage /usr/local/bin/
 COPY --from=builder /usr/local/lib/libwkhtmltox* /usr/local/lib/
@@ -65,5 +57,4 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy application code
 COPY . .
 
-# Expose the port your app runs on
 EXPOSE 8000
