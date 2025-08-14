@@ -1575,7 +1575,8 @@ def calculate_esi_contributions(basic_monthly, esi_enabled, payroll_id=None):
     return benefits
 
 
-def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enabled, payroll_id=None, esi_enabled=False):
+def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enabled, payroll_id=None, esi_enabled=False,
+                                  epf_enabled=False):
     deductions = {
         "EPF Employee Contribution": {
             "monthly": "NA",
@@ -1601,8 +1602,7 @@ def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enab
         payroll = PayrollOrg.objects.get(id=payroll_id)
 
         # --- EPF Employee Contribution ---
-        if (
-            hasattr(payroll, 'epf_details') and payroll.epf_details):
+        if hasattr(payroll, 'epf_details') and payroll.epf_details and epf_enabled:
             if payroll.epf_details.employee_contribution_rate == "12% of Actual PF Wage":
                 epf_monthly = 0.12 * basic_monthly
             else:
@@ -1614,10 +1614,7 @@ def calculate_employee_deductions(pf_wage, basic_monthly, gross_monthly, pt_enab
             }
 
         # --- ESI Employee Contribution ---
-        if (
-            hasattr(payroll, 'esi_details') and payroll.esi_details and
-            payroll.esi_details.include_employer_contribution_in_ctc and esi_enabled
-        ):
+        if hasattr(payroll, 'esi_details') and payroll.esi_details and esi_enabled:
             if gross_monthly <= 21000:
                 esi_monthly = 0.0075 * gross_monthly
                 deductions["ESI Employee Contribution"] = {
@@ -1804,7 +1801,7 @@ def calculate_payroll(request):
             # Calculate statutory deductions
             # esi_enabled = employee.statutory_components.get("esi_enabled", False)
             statutory_deductions = calculate_employee_deductions(pf_wage, basic_salary_monthly,
-                                                    monthly_gross_salary, pt_enabled, data.get("payroll"), esi_enabled)
+                                        monthly_gross_salary, pt_enabled, data.get("payroll"), esi_enabled, epf_enabled)
 
             # Get non-statutory deductions from payload
             non_statutory_deductions = {}
