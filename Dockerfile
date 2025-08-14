@@ -3,7 +3,7 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# Install build & system dependencies
+# Install system dependencies for WeasyPrint (no wkhtmltopdf here)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libffi-dev \
@@ -12,36 +12,35 @@ RUN apt-get update && apt-get install -y \
     libpangocairo-1.0-0 \
     libgdk-pixbuf-2.0-0 \
     libpq-dev \
-    fontconfig \
-    libxrender1 \
-    wget \
     curl \
     git \
- && wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bullseye_amd64.deb \
- && apt install -y ./wkhtmltox_0.12.6-1.bullseye_amd64.deb \
- && rm -f wkhtmltox_0.12.6-1.bullseye_amd64.deb \
- && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
 # Create virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Download portable wkhtmltopdf (static binary)
+RUN curl -L https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox-0.12.6-1.tar.xz \
+    -o wkhtmltox.tar.xz \
+    && mkdir -p /opt/wkhtmltopdf \
+    && tar -xJf wkhtmltox.tar.xz -C /opt/wkhtmltopdf --strip-components=1 \
+    && rm wkhtmltox.tar.xz
 
 # ---------- STAGE 2: Runtime ----------
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PATH="/opt/venv/bin:$PATH"
+ENV PATH="/opt/venv/bin:/opt/wkhtmltopdf/bin:$PATH"
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies for WeasyPrint
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     libpango-1.0-0 \
@@ -51,17 +50,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     fontconfig \
     libxrender1 \
-    wget \
- && wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bullseye_amd64.deb \
- && apt install -y ./wkhtmltox_0.12.6-1.bullseye_amd64.deb \
- && rm -f wkhtmltox_0.12.6-1.bullseye_amd64.deb \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy Python environment from builder
+# Copy venv and wkhtmltopdf from builder
 COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /opt/wkhtmltopdf /opt/wkhtmltopdf
 
-# Copy application code
+# Copy app
 COPY . .
 
-# Start command (adjust as needed)
 # CMD ["uvicorn", "Tara.asgi:application", "--host", "0.0.0.0", "--port", "8000"]
