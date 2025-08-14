@@ -3,14 +3,14 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# Install system dependencies for WeasyPrint + wkhtmltopdf
+# Install build & system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libffi-dev \
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     libpq-dev \
     fontconfig \
     libxrender1 \
@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
@@ -40,12 +41,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-# Install runtime dependencies for WeasyPrint + wkhtmltopdf
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     libffi-dev \
     libpq5 \
     fontconfig \
@@ -56,5 +57,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -f wkhtmltox_0.12.6-1.bullseye_amd64.deb \
  && rm -rf /var/lib/apt/lists/*
 
+# Copy Python environment from builder
 COPY --from=builder /opt/venv /opt/venv
+
+# Copy application code
 COPY . .
+
+# Start command (adjust as needed)
+# CMD ["uvicorn", "Tara.asgi:application", "--host", "0.0.0.0", "--port", "8000"]
