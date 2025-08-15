@@ -44,7 +44,7 @@ hooks:
       timeout: 300
       runas: root
   ApplicationStop:
-    - location: scripts/applicationstop.sh
+    - location: scripts/applistop.sh
       timeout: 180
       runas: ubuntu
 
