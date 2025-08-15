@@ -34,8 +34,7 @@ docker ps -a --filter "name=tara_backend_prod_${NEW_SLOT}" --filter "status=exit
 echo "[AfterInstall] 🧼 Removing dangling Docker images..."
 docker image prune -f
 
-# 🔍 (Optional) Remove old images related to NEW_SLOT (if tagged with slot name)
-# This assumes your image tags include slot info, like tara_dev_backend_green
+# 🔍 Remove old images related to NEW_SLOT
 echo "[AfterInstall] 🧼 Removing old images tagged with $NEW_SLOT..."
 docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep "tara_backend_prod_${NEW_SLOT}" | awk '{print $2}' | xargs -r docker rmi
 
@@ -43,13 +42,17 @@ docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep "tara_backend_p
 echo "[AfterInstall] 📦 Copying new artifacts to $DEPLOY_DIR..."
 cp -r /home/ubuntu/tara_backend_staging/* "$DEPLOY_DIR"
 
+# 🔧 Permissions for .env (only if it exists)
+if [ -f "$DEPLOY_DIR/.env" ]; then
+  chmod 600 "$DEPLOY_DIR/.env"
+  chown ubuntu:ubuntu "$DEPLOY_DIR/.env"
+  echo "[AfterInstall] 🔑 Permissions updated for .env."
+else
+  echo "[AfterInstall] ⚠️ .env not found in $DEPLOY_DIR, skipping permissions."
+fi
 
 # # # Recreate nginx template file safely
 rm -f /tmp/http.conf
 cp /tmp/http_template.conf /tmp/http.conf
-
-# ✅ Permissions
-chmod 600 "$DEPLOY_DIR/.env"
-chown ubuntu:ubuntu "$DEPLOY_DIR/.env"
 
 echo "[AfterInstall] ✅ AfterInstall script completed for $NEW_SLOT."
