@@ -135,6 +135,13 @@ urlpatterns = [
     path('employee-personal-details', views.employee_personal_list, name='employee-personal-list'),
     path('employee-personal-details/<int:pk>', views.employee_personal_detail, name='employee-personal-detail'),
 
+    # Employee Reporting Manager Endpoints
+    path('employee-reporting-manager', views.employee_reporting_manager_list, name='employee-reporting-manager-list'),
+    path('create-employee-reporting-manager/', views.employee_reporting_manager_create,
+         name='employee-reporting-manager-create'),
+    path('employee-reporting-manager/<int:pk>/', views.employee_reporting_manager_detail,
+         name='employee-reporting-manager-detail'),
+
     path('employee-bank-details', views.employee_bank_list, name='employee-bank-list'),
     path('employee-bank-details/<int:pk>', views.employee_bank_detail, name='employee-bank-detail'),
 
