@@ -1,36 +1,29 @@
 # consumers.py
-from channels.generic.websocket import AsyncWebsocketConsumer
 import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.utils.timezone import localdate
+
 
 class AttendanceConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.context_id = self.scope['url_route']['kwargs']['context_id']
-        self.group_name = f'business_{self.context_id}'
+        # Expect URL like ws://localhost:8000/ws/attendance/7/
+        self.employee_id = self.scope["url_route"]["kwargs"]["employee_id"]
 
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
+        # Join employee-specific group
+        self.user_group = f"user_{self.employee_id}"
+        await self.channel_layer.group_add(self.user_group, self.channel_name)
+
+        # Optionally: also join their business group if needed
+        # For now just user-based
         await self.accept()
+        await self.send(text_data=json.dumps({
+            "type": "ws_connected",
+            "employee_id": self.employee_id
+        }))
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name
-        )
+        await self.channel_layer.group_discard(self.user_group, self.channel_name)
 
-    async def receive(self, text_data):
-        # You may not need this unless frontend sends messages.
-        data = json.loads(text_data)
-        await self.channel_layer.group_send(
-            self.group_name,
-            {
-                'type': 'send_attendance_update',
-                'message': data.get('message', '')
-            }
-        )
-
+    # Server push handler
     async def send_attendance_update(self, event):
-        await self.send(text_data=json.dumps({
-            'message': event['message']
-        }))
+        await self.send(text_data=json.dumps(event.get("payload", {})))
