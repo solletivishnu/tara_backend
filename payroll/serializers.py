@@ -638,10 +638,33 @@ class EmployeeBankDetailsSerializer(serializers.ModelSerializer):
         return value
 
 
+class EmployeeReportingManagerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeReportingManager
+        fields = '__all__'
+
+    def validate(self, data):
+        employee = data.get('employee')
+        reporting_manager = data.get('reporting_manager')
+        hod = data.get('head_of_department')
+
+        level = int(employee.employee_level)
+        allow_self = level in [0, 1]
+
+        if not allow_self:
+            if reporting_manager == employee:
+                raise serializers.ValidationError("Self cannot be reviewing manager for levels above 2.")
+            if hod == employee:
+                raise serializers.ValidationError("Self cannot be head of department for levels above 2.")
+
+        return data
+
+
 class EmployeeDataSerializer(serializers.ModelSerializer):
     employee_salary = EmployeeSalaryDetailsSerializer(read_only=True)
     employee_personal_details = EmployeePersonalDetailsSerializer(read_only=True)
     employee_bank_details = EmployeeBankDetailsSerializer(read_only=True)
+    employee_reporting_manager = EmployeeReportingManagerSerializer(read_only=True)
 
     designation_name = serializers.CharField(source='designation.designation_name', read_only=True)
     department_name = serializers.CharField(source='department.dept_name', read_only=True)
@@ -1136,3 +1159,16 @@ class EmployeeFinancialYearPayslipSerializer(serializers.ModelSerializer):
                 pass  # Invalid format; fall through to return None
         return None
 
+
+class ReportingHODChoiceSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    class Meta:
+        model = EmployeeManagement
+        fields = ["id", "name"]
+
+    def get_name(self, obj):
+        names = [obj.first_name]
+        if obj.middle_name:
+            names.append(obj.middle_name)
+        names.append(obj.last_name)
+        return " ".join(names)

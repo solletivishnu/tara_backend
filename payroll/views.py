@@ -5105,3 +5105,147 @@ def process_single_payroll_org(request):
             "error": str(e),
             "traceback": traceback.format_exc()
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'POST'])
+def employee_reporting_manager_create(request):
+    """
+        Handles creation and retrieval of employee reporting manager details.
+
+        - When the request method is **GET**:
+            1. It checks if `employee_id` is provided as a query parameter.
+            2. If not provided, it returns a 400 error response.
+            3. If provided, it tries to fetch the corresponding `EmployeeManagement` instance.
+               - If the employee does not exist, a 404 error is returned.
+            4. Once the employee is found, it retrieves the related
+               `EmployeeReportingManager` entry for that employee.
+            5. The reporting manager data is serialized and returned with a 200 response.
+            6. If any unexpected exception occurs, it is caught and returned as a 500 error.
+
+        - When the request method is **POST**:
+            1. It initializes the `EmployeeReportingManagerSerializer` with the request data.
+            2. The serializer validates the incoming data.
+               - If validation fails, it returns a 400 error with details.
+            3. If the data is valid, a new `EmployeeReportingManager` record is created.
+            4. The newly created record is serialized and returned with a 201 response.
+
+        In short:
+        - GET → Fetch reporting manager details for a specific employee.
+        - POST → Create a new reporting manager entry for an employee.
+    """
+    if request.method == 'GET':
+        try:
+            employee = request.query_params.get('employee_id')
+            if not employee:
+                return Response({"error": "employee_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                employee_instance = EmployeeManagement.objects.get(id=employee)
+            except EmployeeManagement.DoesNotExist:
+                return Response({"error": "Invalid employee_id"}, status=status.HTTP_404_NOT_FOUND)
+            try:
+                reporting_managers = EmployeeReportingManager.objects.get(employee=employee)
+            except EmployeeReportingManager.DoesNotExist:
+                return Response({"error": "Reporting manager not found for this employee"}, status=status.HTTP_404_NOT_FOUND)
+            serializer = EmployeeReportingManagerSerializer(reporting_managers)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif request.method == 'POST':
+        serializer = EmployeeReportingManagerSerializer(data=request.data)
+        if serializer.is_valid():
+            manager = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def employee_reporting_manager_detail(request, pk):
+    """
+        Retrieve, update, or delete a reporting manager by ID.
+    """
+    try:
+        manager = EmployeeReportingManager.objects.get(id=pk)
+    except EmployeeReportingManager.DoesNotExist:
+        return Response({"error": "Reporting manager not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = EmployeeReportingManagerSerializer(manager)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    elif request.method == 'PUT':
+        serializer = EmployeeReportingManagerSerializer(manager, data=request.data, partial=True)
+        if serializer.is_valid():
+            updated_manager = serializer.save()
+            return Response(EmployeeReportingManagerSerializer(updated_manager).data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        manager.delete()
+        return Response({"message": "Reporting manager deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+def employee_reporting_manager_list(request):
+    """
+       Returns possible reporting managers and heads of department for a given employee.
+
+       - Requires `payroll_id`, `employee_id`, and `employee_level` as query params.
+       - Filters managers up to 2 levels above the employee within the same payroll.
+       - Adds "Self" option if employee level is 0, 1, or 2.
+       - Also fetches heads of department from the same department and higher levels.
+    """
+    payroll = request.query_params.get('payroll_id')
+    employee_id = request.query_params.get('employee_id')
+
+    if not payroll:
+        return Response({"error": "payroll_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+    if not employee_id:
+        return Response({"error": "employee_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        payroll_instance = PayrollOrg.objects.get(id=payroll)
+    except PayrollOrg.DoesNotExist:
+        return Response({"error": "Invalid payroll_id"}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        employee = EmployeeManagement.objects.get(id=employee_id)
+    except EmployeeManagement.DoesNotExist:
+        return Response({"error": "Invalid employee_id"}, status=status.HTTP_404_NOT_FOUND)
+
+    employee_level = employee.employee_level
+    try:
+        employee_level_int = int(employee_level)
+    except ValueError:
+        return Response({"error": "Invalid employee_level"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # ✅ Condition 1: Filter only those at least 2 levels above (i.e., numerically lower)
+    level_choices = {max(employee_level_int - 1, 0), max(employee_level_int - 2, 0)}
+
+    # More efficient approach
+    potential_managers = EmployeeManagement.objects.filter(
+        payroll=payroll_instance,
+        employee_level__in=level_choices
+    )
+
+    reporting_managers_data = ReportingHODChoiceSerializer(potential_managers, many=True).data
+
+    if employee_level_int in [0, 1]:
+        reporting_managers_data.insert(0, {
+            "id": employee.id,
+            "fullname": "Self"
+        })
+
+    # Filter the HODs from the same queryset
+    hod_data = ReportingHODChoiceSerializer(
+        potential_managers.filter(department=employee.department),
+        many=True
+    ).data
+
+    return Response({
+        "employee": employee_id,
+        "reporting_managers": reporting_managers_data,
+        "heads_of_department": hod_data,
+    }, status=status.HTTP_200_OK)
+
+
