@@ -27,6 +27,6 @@ echo "✅ Using image: ${DOCKER_IMAGE}:${IMAGE_TAG}"
 echo "✅ Using Redis image: ${REDIS_IMAGE}"
 
 # 🚀 Since images are already pulled in pull_images.sh, just start containers
-docker-compose --env-file image_vars.env up -d
+docker-compose --env-file image_vars.env up -d --no-build --no-recreate
 
 echo "[Start] ✅ Containers launched."
