@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "[Start] Starting Docker containers..."
+echo "[BeforeInstall] Pulling Docker images..."
 cd /home/ubuntu/tara_dev_backend
 
 if [ -f "image_vars.env" ]; then
@@ -23,10 +23,10 @@ if [[ -z "$REDIS_IMAGE" ]]; then
     exit 1
 fi
 
-echo "✅ Using image: ${DOCKER_IMAGE}:${IMAGE_TAG}"
-echo "✅ Using Redis image: ${REDIS_IMAGE}"
+echo "✅ Pulling app image: ${DOCKER_IMAGE}:${IMAGE_TAG}"
+docker pull ${DOCKER_IMAGE}:${IMAGE_TAG}
 
-# 🚀 Since images are already pulled in pull_images.sh, just start containers
-docker-compose --env-file image_vars.env up -d
+echo "✅ Pulling Redis image: ${REDIS_IMAGE}"
+docker pull ${REDIS_IMAGE}
 
-echo "[Start] ✅ Containers launched."
+echo "[BeforeInstall] ✅ Images pulled successfully."
