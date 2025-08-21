@@ -37,7 +37,7 @@ ALLOWED_HOSTS = [
     'ec2-35-154-44-198.ap-south-1.compute.amazonaws.com',  # EC2 public DNS
     'api.ipify.org',  # Add this if your app needs to handle requests from this domain
     '*',
-    'dev.tarafirst.com'
+    'dev-backend.tarafirst.com'
 ]
 
 CORS_ORIGIN_ALLOW_ALL =True
@@ -330,7 +330,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('redis', 6379)],  # Your Redis host in Docker
+            "hosts": [('localhost', 6379)],  # Your Redis host in Docker
         },
     },
 }
