@@ -5,6 +5,7 @@ from calendar import monthrange
 from rest_framework.exceptions import ValidationError
 from django.db.models import Q, Sum
 from calendar import monthrange, month_name
+from .models import LeaveNotification
 
 
 class PayrollOrgSerializer(serializers.ModelSerializer):
@@ -1172,3 +1173,9 @@ class ReportingHODChoiceSerializer(serializers.ModelSerializer):
             names.append(obj.middle_name)
         names.append(obj.last_name)
         return " ".join(names)
+
+
+class LeaveNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeaveNotification
+        fields = '__all__'

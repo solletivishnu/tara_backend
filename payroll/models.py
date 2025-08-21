@@ -8,6 +8,7 @@ from datetime import date
 from collections import OrderedDict
 from django.db.models.signals import pre_save, post_save
 from django.utils.timezone import now
+from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from datetime import date, datetime
 from django.contrib.auth.hashers import make_password, check_password
@@ -1169,6 +1170,15 @@ class LeaveApplication(models.Model):
 
     def __str__(self):
         return f"{self.employee} - {self.leave_type} - {self.start_date} to {self.end_date}"
+
+
+class LeaveNotification(models.Model):
+    leave_application = models.ForeignKey('LeaveApplication', on_delete=models.CASCADE)
+    reviewer = models.ForeignKey('EmployeeCredentials', on_delete=models.CASCADE)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    message = models.TextField(blank=True, default="")
 
 
 def current_financial_year():

@@ -8,7 +8,21 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 import calendar
 from datetime import date
+from Tara.broadcast import broadcast_leave_notification_to_employee
+from payroll.models import LeaveNotification
+from payroll.serializers import LeaveNotificationSerializer
 
+
+
+
+def get_unread_count_for_reviewer(reviewer):
+    return LeaveNotification.objects.filter(reviewer=reviewer, is_read=False).count()
+
+@api_view(['GET'])
+@authentication_classes([EmployeeJWTAuthentication])
+def unread_leave_notification_count(request):
+    count = LeaveNotification.objects.filter(reviewer=request.user, is_read=False).count()
+    return Response({"unread_count": count})
 
 @api_view(['POST'])
 @authentication_classes([EmployeeJWTAuthentication])
@@ -54,7 +68,46 @@ def apply_leave(request):
 
     if serializer.is_valid():
         leave = serializer.save(employee=employee_credentials)  # Save with actual employee instance
+
+        reviewer = leave.reviewer
+        print(leave.leave_type.name_of_leave)
+        # Format dates
+        start_date = leave.start_date.strftime("%d %b %Y")
+        end_date = leave.end_date.strftime("%d %b %Y")
+        days = (leave.end_date - leave.start_date).days + 1
+
+        # Get employee details - Removed employee_id since it doesn't exist
+        employee_name = f"{leave.employee.employee.first_name} {leave.employee.employee.last_name}"
+        employee_designation = leave.employee.employee.designation.designation_name if leave.employee.employee.designation else "N/A"
+        employee_department = leave.employee.employee.department.dept_name if leave.employee.employee.department else "N/A"
+
+        # Create matter-like notification
+        detailed_message = (
+            f"{employee_name}, {employee_designation} from the {employee_department} department, "
+            f"has requested {days} day{'s' if days > 1 else ''} of {leave.leave_type.name_of_leave}."
+            f"The leave period is from {start_date} to {end_date}."
+            f"Reason for leave: {leave.reason}"
+        )
+
+        notification = LeaveNotification.objects.create(
+            leave_application=leave,
+            reviewer=reviewer,
+            message=detailed_message
+        )       
+        unread_count = get_unread_count_for_reviewer(reviewer)
+        payload = {
+            "type": "leave_notification",
+            "action": "new_leave",
+            "title": f"{employee_name} - {leave.leave_type.name_of_leave} Request",
+            "message": detailed_message,
+            "notification_id": notification.id,
+            "unread_count": unread_count
+        }
+
+        broadcast_leave_notification_to_employee(reviewer.id, payload)
+
         return Response({
+            "data": LeaveNotificationSerializer(notification).data,
             'id': leave.id,
             'message': 'Leave application submitted successfully.',
             'status': leave.status
