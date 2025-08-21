@@ -69,7 +69,7 @@ def manual_check_in(request):
     # business_id = employee_credentials.employee.payroll.business_id
     # broadcast_to_business(business_id, payload)
 
-    return Response({'message': 'Check-out successful', 'data': payload["record"]}, status=status.HTTP_200_OK)
+    return Response({'message': 'Check-in successful', 'data': payload["record"]}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
