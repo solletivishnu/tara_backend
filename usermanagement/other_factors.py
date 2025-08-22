@@ -28,6 +28,7 @@ import json
 from Tara.settings.default import *
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
+from .rate_limit_decorator import rate_limit
 from datetime import datetime, timezone
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -2286,6 +2287,7 @@ def send_admin_notification(consultation, join_url):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@rate_limit(key='ip', rate='5/h', message='Too many consultation bookings. Try again in 1 hour.')
 def create_consultation(request):
     """ API to create a new consultation with 30-minute slot validation """
     serializer = ConsultationSerializer(data=request.data)

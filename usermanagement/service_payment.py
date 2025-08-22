@@ -13,6 +13,7 @@ from .models import ServicePaymentInfo, ServiceRequest, ServicePlan
 import json
 from rest_framework.permissions import AllowAny
 from .serializers import *
+from .rate_limit_decorator import rate_limit
 
 # Initialize Razorpay client
 client = razorpay.Client(auth=(RAZORPAY_CLIENT_ID, RAZORPAY_CLIENT_SECRET))
@@ -20,6 +21,7 @@ client = razorpay.Client(auth=(RAZORPAY_CLIENT_ID, RAZORPAY_CLIENT_SECRET))
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@rate_limit(key='ip', rate='10/h', message='Too many service payment attempts. Try again in 1 hour.')
 def create_razorpay_order_for_services(request):
 
     context_id = request.data.get('context_id')

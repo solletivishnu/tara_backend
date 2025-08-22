@@ -10,12 +10,14 @@ from .models import (
     Users, Context, Role, UserContextRole, Module,
     ModuleFeature, UserFeaturePermission, ModuleSubscription, ServiceRequest
 )
+from .rate_limit_decorator import rate_limit_login
 
 User = get_user_model()
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit_login(rate='5/h')
 def login_user(request):
     email = request.data.get('email')
     password = request.data.get('password')

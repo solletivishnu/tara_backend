@@ -18,6 +18,7 @@ from django.db import IntegrityError
 from .models import *
 import boto3
 from botocore.exceptions import ClientError
+from .rate_limit_decorator import rate_limit
 import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import *
@@ -153,6 +154,7 @@ logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit(key='ip', rate='3/h', message='Too many registration attempts. Try again in 1 hour.')
 def initial_registration(request):
     """
     Final step of registration that creates a user after OTP verification.

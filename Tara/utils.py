@@ -152,6 +152,19 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]  # Ensure this view is publicly accessible
 
     def post(self, request, *args, **kwargs):
+        # Apply rate limiting using the decorator logic
+        from usermanagement.rate_limit_decorator import is_rate_limited, get_client_ip
+        
+        # Check IP rate limit (10 token requests per hour)
+        ip = get_client_ip(request)
+        if is_rate_limited(f"token_ip_{ip}", limit=10, window_hours=1):
+            return Response({
+                'error': 'Too many token requests from your IP. Try again in 1 hour.',
+                'detail': 'Rate limit exceeded for token requests.',
+                'retry_after': '1 hour',
+                'limit': '10/h'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
         # Serialize the incoming request data
         print(request.data)
         serializer = self.get_serializer(data=request.data)
@@ -166,6 +179,16 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             # Validate the data
             serializer.is_valid(raise_exception=True)
         except AuthenticationFailed as e:
+            # Rate limit failed token attempts
+            email = request.data.get('email') or request.data.get('username', 'unknown')
+            if is_rate_limited(f"failed_token_{email}", limit=5, window_hours=1):
+                return Response({
+                    'error': f'Too many failed token requests for {email}. Try again in 1 hour.',
+                    'detail': 'Failed token request limit exceeded.',
+                    'retry_after': '1 hour',
+                    'limit': '5/h'
+                }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            
             # If validation fails, return an error response
             return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 

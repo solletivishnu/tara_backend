@@ -13,6 +13,7 @@ import logging
 from .get_login_data import get_login_response
 from .models import Context, Role, UserContextRole, Service, ServiceRequest, PendingUserOTP
 from Tara.settings.default import *
+from .rate_limit_decorator import rate_limit
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -20,6 +21,7 @@ User = get_user_model()
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit(key='ip', rate='3/h', message='Too many service registration attempts. Try again in 1 hour.')
 def register_user_with_service(request):
     email = request.data.get('email')
     password = request.data.get('password')
