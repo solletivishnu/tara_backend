@@ -9,7 +9,7 @@ if [ -f "image_vars.env" ]; then
     source image_vars.env
     set +a
 else
-    echo "❌ image_vars.env not found!"
+    echo "❌ image_vars.env not founddddd!"
     exit 1
 fi
 
