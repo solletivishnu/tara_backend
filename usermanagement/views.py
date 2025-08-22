@@ -36,12 +36,15 @@ from .serializers import (
     UserFeaturePermissionSerializer
 )
 import json
+from .rate_limit_decorator import rate_limit, rate_limit_login
 
 # Module Management APIs
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit(key='ip', rate='5/h', message='Too many OTP requests from your IP. Try again in 1 hour.')
+@rate_limit(key='email', rate='3/h', message='Too many OTP requests for this email. Try again in 1 hour.')
 def request_otp(request):
     email = request.data.get('email')
     if not email:

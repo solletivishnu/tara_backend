@@ -10,11 +10,13 @@ from .service_serializers import *  # Optional if using serializer
 from django.shortcuts import get_object_or_404
 from servicetasks.models import ServiceTask
 from django.db.models import Q
+from .rate_limit_decorator import rate_limit
 # Initialize Razorpay client
 client = razorpay.Client(auth=(RAZORPAY_CLIENT_ID, RAZORPAY_CLIENT_SECRET))
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@rate_limit(key='ip', rate='10/h', message='Too many service requests. Try again in 1 hour.')
 def create_new_service_request(request):
     """
     API endpoint to create a new ServiceRequest using serializer's save()

@@ -13,10 +13,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from .models import PaymentInfo, ServicePaymentInfo
 from .serializers import PaymentInfoSerializer, ServicePaymentInfoSerializer
+from .rate_limit_decorator import rate_limit
 
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit(key='ip', rate='100/h', message='Too many webhook requests from your IP. Contact support if this is legitimate.')
 def razorpay_webhook(request):
     """Handle Razorpay Webhook Safely."""
     try:

@@ -9,12 +9,15 @@ from .models import *
 from django.utils import timezone
 from datetime import timedelta
 from Tara.settings.default import RAZORPAY_CLIENT_ID, RAZORPAY_CLIENT_SECRET
+from .rate_limit_decorator import rate_limit
 
 # Initialize Razorpay client
 client = razorpay.Client(auth=(RAZORPAY_CLIENT_ID, RAZORPAY_CLIENT_SECRET))
 
 
 @api_view(['POST'])
+@rate_limit(key='ip', rate='10/h', message='Too many order creation attempts from your IP. Try again in 1 hour.')
+@rate_limit(key=lambda req: req.user.id if req.user.is_authenticated else 'anonymous', rate='5/h', message='Too many orders per user. Try again in 1 hour.')
 def create_order(request):
     """Create Razorpay Order and Save PaymentInfo"""
     try:
@@ -74,6 +77,8 @@ def create_order(request):
 
 
 @api_view(['POST'])
+@rate_limit(key='ip', rate='20/h', message='Too many payment verification attempts from your IP. Try again in 1 hour.')
+@rate_limit(key=lambda req: req.user.id if req.user.is_authenticated else 'anonymous', rate='15/h', message='Too many payment verifications per user. Try again in 1 hour.')
 def verify_payment(request):
     """Verify Razorpay Payment Only (No Subscription Creation Yet)"""
     try:

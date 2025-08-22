@@ -18,6 +18,7 @@ from .models import (
     Users, Context, Role, UserContextRole, Module,
     ModuleFeature, UserFeaturePermission, SubscriptionPlan, ModuleSubscription, PendingUserOTP
 )
+from .rate_limit_decorator import rate_limit
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
@@ -27,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit(key='ip', rate='3/h', message='Too many business registration attempts. Try again in 1 hour.')
 def register_business(request):
     """
     Register a new business user with a module subscription and full feature permissions.
