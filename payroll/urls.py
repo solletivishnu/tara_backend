@@ -13,7 +13,7 @@ from . import employee_education
 from . import holidays
 from . import employee_salary_details
 from . import epf_reports
-# from . import employee_dashboard
+from . import employee_dashboard
 
 urlpatterns = [
     # URL for listing and creating PayrollOrg instances
@@ -288,11 +288,14 @@ urlpatterns = [
     path('employee-payslips-by-financial-year/', employee_salary_details.get_employee_financial_year_payslip_details,
          name='employee-financial-year-payslip-details'),
 
-
-    # path('tds-summary/', employee_dashboard.tds_summary_view, name='tds-summary-view'),
-
     path('epf/template/', epf_reports.download_epf_template, name='epf-template-download'),
 
     # Convert Filled Excel to Text
     path('epf/convert/', epf_reports.convert_epf_to_text, name='epf-excel-to-text'),
+
+    #Employee TDS Summary, Portal Change Password, Forgot Password and Reset Password
+    path('tds-summary/', employee_dashboard.tds_summary_view, name='tds-summary-view'),
+    path('employee/change-password/', employee_dashboard.change_password, name='change-password'),
+    path('employee/forgot-password/', employee_dashboard.forgot_password, name='forgot-password'),
+    path('employee/reset-password/', employee_dashboard.reset_password, name='reset-password'),
 ]
