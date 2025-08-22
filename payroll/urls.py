@@ -174,7 +174,7 @@ urlpatterns = [
     # Employee Monthly Salary calculation
     path('calculate-employee-monthly-salary', views.calculate_employee_monthly_salary,
          name='calculate-employee-monthly-salary'),
-
+    path('unread_notifications_count/', leavemanagement.unread_leave_notification_count, name='unread_leave_notifications'),
     # Employee Monthly Detail Salary calculation
     path('detail_employee_payroll_salary', views.detail_employee_monthly_salary,
          name='detail-employee-monthly-salary'),
@@ -242,7 +242,7 @@ urlpatterns = [
     path('weekly-report/', attendance_controller.truetime_weekly_view, name='weekly-report'),
     path('date-wise-report/', attendance_controller.truetime_datewise_view, name='date-wise-report'),
 
-
+     
     path("credentials/", employeecredentials.credentials_list_create, name="credentials-list-create"),
     path("credentials/<int:pk>/", employeecredentials.credentials_detail, name="credentials-detail"),
 
