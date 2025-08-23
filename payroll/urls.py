@@ -178,7 +178,11 @@ urlpatterns = [
     # Employee Monthly Detail Salary calculation
     path('detail_employee_payroll_salary', views.detail_employee_monthly_salary,
          name='detail-employee-monthly-salary'),
-
+    path(
+        'leave-notifications/<int:notification_id>/', 
+        leavemanagement.get_leave_notification_details, 
+        name='leave-notification-details'
+    ),
     path('monthly-salary-details-of-employees', views.monthly_salary_details_of_employees,
          name='monthly-salary-details-of-employees'),
     path('download-salary-report', views.download_salary_report, name='download-salary-report'),
