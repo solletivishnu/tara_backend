@@ -1,1 +1,0 @@
-default_app_config = 'income_tax_returns.apps.IncomeTaxReturnsConfig'
